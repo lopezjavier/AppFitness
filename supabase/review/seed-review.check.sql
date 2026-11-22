@@ -7,7 +7,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(26);
+select plan(28);
 
 create function pg_temp.plan() returns uuid language sql as $$
   select id from public.coach_plans where user_id = '00000000-0000-4000-8000-000000000001' and status = 'accepted' $$;
@@ -48,6 +48,10 @@ select cmp_ok((select count(*)::int from public.coach_week_reports where paused)
 select cmp_ok((select count(*)::int from public.coach_week_reports where not paused), '>=', 1, 'a weekly report is stored');
 select ok((select bool_and(snapshot->>'schema_version' = '2' and snapshot ? 'progress') from public.coach_week_reports where not paused),
   'the stored normal weekly report is v2 with progress');
+select ok((select bool_and(snapshot->>'schema_version' = '2') from public.coach_week_reports),
+  'every stored weekly report has schema_version 2');
+select is((select count(*)::int from public.coach_week_reports where body_v1 is not null), 0,
+  'no stored weekly report has a v1 backup (the dataset is written as v2)');
 select cmp_ok((select count(*)::int from public.coach_block_reviews), '>=', 1, 'a block review is stored');
 
 select lives_ok($$select public.coach_plan_weeks(pg_temp.plan(), (now() at time zone 'utc')::date)$$, 'coach_plan_weeks reads the block');
