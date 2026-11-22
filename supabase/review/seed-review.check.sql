@@ -7,7 +7,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(32);
+select plan(34);
 
 create function pg_temp.plan() returns uuid language sql as $$
   select id from public.coach_plans where user_id = '00000000-0000-4000-8000-000000000001' and status = 'accepted' $$;
@@ -64,6 +64,9 @@ select ok(exists (select 1 from jsonb_array_elements(public.list_coach_reports()
   'the block row of the list has a teaser');
 
 select lives_ok($$select public.coach_plan_weeks(pg_temp.plan(), (now() at time zone 'utc')::date)$$, 'coach_plan_weeks reads the block');
+select ok(exists (select 1 from jsonb_array_elements(public.training_range_progress(null, null)->'exercises') e
+                  where e->>'state' <> 'uncompared'), 'Estadisticas: at least one exercise has a compared progress');
+select is(jsonb_array_length(public.weekly_muscle_sets()), 8, 'Estadisticas: sets per muscle group cover 8 weeks');
 select is((public.coach_week_summary((now() at time zone 'utc')::date))->>'seen', 'false', 'the weekly summary is unseen');
 select cmp_ok(jsonb_array_length(public.list_coach_reports()), '>=', 3, 'the reports list holds the summaries and the review');
 
