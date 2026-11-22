@@ -113,6 +113,7 @@ object WeightPaceChartDefaults {
 fun WeightPaceChart(
     data: WeightPaceChartData,
     modifier: Modifier = Modifier,
+    height: Dp = WeightPaceChartDefaults.Height,
     valueLabel: (Double) -> String = {
         (
             (it * WeightPaceChartDefaults.Tenth).roundToInt() /
@@ -133,7 +134,7 @@ fun WeightPaceChart(
         label = colors.textTertiary,
         grid = colors.textTertiary,
     )
-    Canvas(modifier.fillMaxWidth().height(WeightPaceChartDefaults.Height).clearAndSetSemantics {}) {
+    Canvas(modifier.fillMaxWidth().height(height).clearAndSetSemantics {}) {
         drawPace(data, palette, labelStyle, measurer, valueLabel, planProgress.value, trendProgress.value)
     }
 }

@@ -10,8 +10,11 @@ import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.repository.CoachSummaryRepository
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
+import io.github.lopezjavier.appfitness.domain.usecase.LoadDiscomfortFollowUpsUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.domain.usecase.RecordPausedWeekReport
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,12 +32,14 @@ private const val KEY_PAUSED_RECORDED = "week_summary_paused_recorded"
  * does not repeat it) and the reminders are refreshed so its notice clears. A failed mark-seen is silent: the notice
  * simply stays. Nothing here calls the coach.
  */
+@Suppress("LongParameterList") // Collaborators of the view model, injected one by one.
 class WeekSummaryViewModel(
     private val summaries: CoachSummaryRepository,
     private val markSeen: MarkWeekSummarySeen,
     private val recordPausedWeek: RecordPausedWeekReport,
     private val reminders: ReminderCoordinator,
     private val names: ExerciseNameResolver,
+    private val discomfortFollowUps: LoadDiscomfortFollowUpsUseCase,
     private val clock: Clock,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val timeZone: TimeZone = TimeZone.UTC,
@@ -64,10 +69,12 @@ class WeekSummaryViewModel(
         }
     }
 
-    private suspend fun fetch(): WeekSummaryUiState {
+    private suspend fun fetch(): WeekSummaryUiState = coroutineScope {
+        // The follow-ups are read alongside the summary; a failed read only hides the health note.
+        val followUps = async { discomfortFollowUps().getOrNull().orEmpty() }
         val result = summaries.getLatest(today())
         val summary = result.getOrNull()
-        return when {
+        when {
             result.isFailure -> if (result.appErrorOrNull() == AppError.Network) {
                 WeekSummaryUiState.Offline
             } else {
@@ -77,7 +84,11 @@ class WeekSummaryViewModel(
             summary == null -> WeekSummaryUiState.Empty
 
             // A failed name read leaves the change rows out (R-54) instead of failing the whole summary.
-            else -> names.weekSummaryContent(summary)
+            else -> names.weekSummaryContent(summary).let { content ->
+                content.copy(
+                    report = weekReportOf(summary, content.exerciseNames, live = true, followUps = followUps.await()),
+                )
+            }
         }
     }
 

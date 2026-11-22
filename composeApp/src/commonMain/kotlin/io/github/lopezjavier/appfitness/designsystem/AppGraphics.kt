@@ -193,7 +193,9 @@ object SparklineDefaults {
 /**
  * A small smoothed trend line of [values] (left to right, scaled to their own range) with a faded area under it and a
  * lit dot on the latest value. No axes and no labels: it previews a trend beside a figure that is written as text.
- * Decorative. Give it a width; the height defaults to 40 dp. It is revealed once from the start.
+ * Decorative. Give it a width; the height defaults to 40 dp. It is revealed once from the start. With [hollowPoints]
+ * (indices into [values]; an empty set is allowed) every point gets a small dot and the listed ones are drawn hollow
+ * (the deload weeks of the weekly report); null keeps the original look.
  */
 @Composable
 fun Sparkline(
@@ -201,6 +203,7 @@ fun Sparkline(
     modifier: Modifier = Modifier,
     color: Color = AppTheme.colors.athleticCyan,
     fill: Boolean = true,
+    hollowPoints: Set<Int>? = null,
 ) {
     val reveal = rememberFillProgress()
     val ramp = AppPaint.ramp(color)
@@ -212,19 +215,7 @@ fun Sparkline(
         val right = size.width - pad
         val top = pad
         val bottom = size.height - pad
-        val low = values.min()
-        val high = values.max()
-        val points = values.mapIndexed { index, value ->
-            val x = if (values.size == 1) right else left + (right - left) * index / (values.size - 1)
-            val y = if (high ==
-                low
-            ) {
-                (top + bottom) / 2f
-            } else {
-                bottom - ((value - low) / (high - low)).toFloat() * (bottom - top)
-            }
-            Offset(x, y)
-        }
+        val points = sparkPoints(values, left, right, top, bottom)
         clipRect(right = size.width * reveal.value) {
             if (points.size > 1) {
                 if (fill) {
@@ -241,11 +232,42 @@ fun Sparkline(
                     style = Stroke(SparklineDefaults.StrokeWidth.toPx(), cap = StrokeCap.Round),
                 )
             }
-            val last = points.last()
-            drawRadialGlow(ramp.bright, last, dot * 3.2f, alpha = 0.45f)
-            drawCircle(ramp.bright, dot, last)
-            drawCircle(Color.White.copy(alpha = 0.9f), dot * 0.4f, last)
+            drawSparkMarkers(points, hollowPoints, ramp.bright, dot)
         }
+    }
+}
+
+/** The values projected into the box [left, right] x [top, bottom]; a flat series runs through the middle. */
+private fun sparkPoints(values: List<Double>, left: Float, right: Float, top: Float, bottom: Float): List<Offset> {
+    val low = values.min()
+    val high = values.max()
+    return values.mapIndexed { index, value ->
+        val x = if (values.size == 1) right else left + (right - left) * index / (values.size - 1)
+        val share = if (high == low) 0.5f else ((value - low) / (high - low)).toFloat()
+        val y = bottom - share * (bottom - top)
+        Offset(x, y)
+    }
+}
+
+/** The end dot and, with [hollowPoints], a small dot on every point (hollow for the listed indices). */
+private fun DrawScope.drawSparkMarkers(points: List<Offset>, hollowPoints: Set<Int>?, bright: Color, dot: Float) {
+    if (hollowPoints != null) {
+        points.forEachIndexed { index, point ->
+            if (index == points.lastIndex) return@forEachIndexed
+            if (index in hollowPoints) {
+                drawCircle(bright, dot * 0.8f, point, style = Stroke(SparklineDefaults.StrokeWidth.toPx() * 0.7f))
+            } else {
+                drawCircle(bright, dot * 0.7f, point)
+            }
+        }
+    }
+    val last = points.last()
+    if (hollowPoints != null && points.lastIndex in hollowPoints) {
+        drawCircle(bright, dot, last, style = Stroke(SparklineDefaults.StrokeWidth.toPx()))
+    } else {
+        drawRadialGlow(bright, last, dot * 3.2f, alpha = 0.45f)
+        drawCircle(bright, dot, last)
+        drawCircle(Color.White.copy(alpha = 0.9f), dot * 0.4f, last)
     }
 }
 

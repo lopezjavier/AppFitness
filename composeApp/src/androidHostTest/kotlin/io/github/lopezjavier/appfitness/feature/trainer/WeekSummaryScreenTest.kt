@@ -1,31 +1,28 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
-import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import io.github.lopezjavier.appfitness.app.FakeCoachSummaryRepository
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
+import io.github.lopezjavier.appfitness.app.FakeDiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.app.ReminderEnv
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.CoachChangeKind
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
-import io.github.lopezjavier.appfitness.domain.model.ProposalStatus
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.domain.model.StallCause
 import io.github.lopezjavier.appfitness.domain.model.StallDiagnosis
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
+import io.github.lopezjavier.appfitness.domain.usecase.LoadDiscomfortFollowUpsUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.domain.usecase.RecordPausedWeekReport
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
@@ -66,127 +63,12 @@ class WeekSummaryScreenTest {
         WeekSummaryUiState.Content(summary, mapOf("id-bench" to "Press banca"))
 
     @Test
-    fun finishedWeek_showsEverySectionWithItsFigures() {
-        show(content())
-
-        rule.onNodeWithTag("week_summary_title").assertTextEquals("Resumen semanal")
-        rule.onNodeWithTag("week_summary_subtitle").assertTextContains("Semana${NBSP}2", substring = true)
-        rule.onNodeWithTag(
-            "week_summary_section_sessions_headline",
-            useUnmergedTree = true,
-        ).assertTextEquals("3${NBSP}de${NBSP}4")
-        rule.onNodeWithTag("week_summary_nutrition_weight").assertTextContains("80,2", substring = true)
-    }
-
-    @Test
-    fun indirectSetsCountHalf_andGroupsWithZeroAreOmitted() {
-        show(content())
-
-        rule.onNodeWithText("Series por grupo muscular").assertIsDisplayed()
-        rule.onNodeWithTag("week_summary_section_groups").assertExists()
-        rule.onNodeWithText("Pecho").assertExists()
-        rule.onNodeWithText("Espalda").assertExists()
-        rule.onNodeWithText("Tríceps").assertExists()
-    }
-
-    @Test
-    fun fiveCompleteDays_showTheThreeFiguresAndTheWeightLine() {
-        show(content())
-
-        rule.onNodeWithTag("week_summary_section_nutrition").assertIsDisplayed()
-        rule.onNodeWithText("Nutrición").assertIsDisplayed()
-        rule.onNodeWithTag("week_summary_nutrition_days").assertTextContains("5", substring = true)
-        rule.onNodeWithTag("week_summary_nutrition_kcal").assertTextContains("2.310", substring = true)
-        rule.onNodeWithTag("week_summary_nutrition_kcal").assertTextContains("Objetivo 2.400", substring = true)
-        rule.onNodeWithTag("week_summary_nutrition_protein").assertTextContains("149", substring = true)
-        rule.onNodeWithTag("week_summary_nutrition_protein")
-            .assertTextContains("Objetivo 150${NBSP}g · 1,8${NBSP}g por kg", substring = true)
-        rule.onNodeWithTag("week_summary_nutrition_weight").assertTextContains("80,2", substring = true)
-        rule.onNodeWithTag("week_summary_nutrition_weight")
-            .assertTextContains("−0,3${NBSP}kg/semana", substring = true)
-        rule.onNodeWithTag("week_summary_nutrition_weigh_ins").assertTextEquals("Registraste 3 pesajes.")
-        rule.onAllNodesWithTag("week_summary_nutrition_missing").assertCountEquals(0)
-    }
-
-    @Test
-    fun proteinWithoutPerKg_dropsThePerKgFigure() {
-        show(content(weekSummary(nutrition = weekNutrition(proteinGPerKg = null))))
-
-        rule.onNodeWithTag("week_summary_nutrition_protein")
-            .assertTextContains("Objetivo 150${NBSP}g", substring = true)
-        rule.onNodeWithTag("week_summary_nutrition_protein")
-            .assert(hasText("por kg", substring = true).not())
-    }
-
-    @Test
-    fun fourCompleteDays_showTheMissingLineAndNoAverages() {
-        show(content(weekSummary(nutrition = weekNutrition(completeDays = 4))))
-
-        rule.onNodeWithTag("week_summary_nutrition_missing").assertTextEqualsIgnoringNbsp(
-            "Faltan registros: solo 4 de 7 días completos. " +
-                "Con menos de 5 no sacamos conclusiones sobre tus calorías.",
-        )
-        rule.onAllNodesWithTag("week_summary_nutrition_days").assertCountEquals(0)
-        rule.onAllNodesWithTag("week_summary_nutrition_kcal").assertCountEquals(0)
-        rule.onAllNodesWithTag("week_summary_nutrition_protein").assertCountEquals(0)
-        rule.onNodeWithTag("week_summary_nutrition_weight").assertIsDisplayed()
-    }
-
-    @Test
-    fun decisions_showTheirReasonAndStatus() {
-        val decisions = listOf(
-            weekDecision(ProposalStatus.Applied, "a"),
-            weekDecision(ProposalStatus.Declined, "d"),
-            weekDecision(ProposalStatus.Pending, "p"),
-        )
-        show(content(weekSummary(nutrition = weekNutrition(decisions = decisions))))
-
-        val reason = "Te proponemos subir 100 kcal: en las últimas 2 semanas tu peso ha bajado más de lo previsto."
-        rule.onNodeWithTag("week_summary_nutrition_decision_a")
-            .assertTextEqualsIgnoringNbsp("Calorías: +100 kcal · Aplicada. $reason")
-        rule.onNodeWithTag("week_summary_nutrition_decision_d")
-            .assertTextEqualsIgnoringNbsp("Calorías: +100 kcal · Pospuesta. $reason")
-        rule.onNodeWithTag("week_summary_nutrition_decision_p")
-            .assertTextEqualsIgnoringNbsp("Calorías: +100 kcal · Pendiente. $reason")
-        rule.onAllNodesWithText("Aplicar").assertCountEquals(0)
-    }
-
-    @Test
-    fun noDecisions_showNoDecisionLine() {
-        show(content())
-
-        rule.onAllNodesWithTag("week_summary_nutrition_decision_prop-1").assertCountEquals(0)
-    }
-
-    @Test
-    fun nutrition_livesInsideTheSummaryScreenAsOneCard() {
-        show(content())
-
-        rule.onNodeWithTag("week_summary_screen").assertIsDisplayed()
-        rule.onAllNodesWithTag("week_summary_section_nutrition").assertCountEquals(1)
-        rule.onAllNodesWithTag("week_summary_section_weight").assertCountEquals(0)
-        rule.onAllNodesWithTag("week_summary_section_records").assertCountEquals(0)
-        rule.onAllNodesWithTag("week_summary_section_proposal").assertCountEquals(0)
-    }
-
-    @Test
-    fun summaryFromBeforeTheMigration_hidesTheSection() {
-        show(content(weekSummary(nutrition = null)))
-
-        rule.onAllNodesWithTag("week_summary_section_nutrition").assertCountEquals(0)
-        rule.onNodeWithTag(
-            "week_summary_section_sessions_headline",
-            useUnmergedTree = true,
-        ).assertTextEquals("3${NBSP}de${NBSP}4")
-    }
-
-    @Test
     fun pausedWeek_showsOnlyItsLabel() {
         val paused = WeekSummary.pausedWeek("plan-1", LocalDate(2026, 11, 3), LocalDate(2026, 11, 9))
         show(content(paused))
 
         rule.onNodeWithTag("week_summary_paused").assertIsDisplayed()
-        rule.onAllNodesWithTag("week_summary_section_nutrition").assertCountEquals(0)
+        rule.onAllNodesWithTag("week_summary_coach_card").assertCountEquals(0)
     }
 
     @Test
@@ -390,6 +272,7 @@ class WeekSummaryScreenTest {
             RecordPausedWeekReport(FakeReportRepository()),
             coordinator,
             ExerciseNameResolver(FakeExerciseRepository(), FakeExerciseLibrary(emptyMap())),
+            LoadDiscomfortFollowUpsUseCase(FakeDiscomfortFollowUpRepository()),
             env.clock,
         )
 
@@ -401,10 +284,7 @@ class WeekSummaryScreenTest {
         rule.waitUntil(5_000) { summaries.seen.isNotEmpty() }
         rule.waitForIdle()
 
-        rule.onNodeWithTag(
-            "week_summary_section_sessions_headline",
-            useUnmergedTree = true,
-        ).performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("week_summary_coach_card").performScrollTo().assertIsDisplayed()
         assertEquals(listOf("plan-1" to 2), summaries.seen)
         rule.waitUntil(5_000) { coordinator.reminders.value.isEmpty() }
         assertTrue(coordinator.reminders.value.isEmpty())

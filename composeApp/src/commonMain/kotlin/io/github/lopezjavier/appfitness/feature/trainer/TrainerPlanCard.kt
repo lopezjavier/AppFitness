@@ -392,7 +392,7 @@ private fun PaceFigure(text: String, color: Color, dashed: Boolean, tag: String)
 
 /** The verdict sentence of `07` §5 (5): up to three lines, never a chip, icon or colour (C-133). */
 @Composable
-private fun PaceVerdict(pace: WeightPace) {
+internal fun PaceVerdict(pace: WeightPace, testTag: String = "trainer_box_plan_verdict") {
     val cut = pace.planRateKgWeek < 0.0
     val slope = pace.slopeKgWeek ?: 0.0
     val text = when (pace.state) {
@@ -422,7 +422,7 @@ private fun PaceVerdict(pace: WeightPace) {
             text = text,
             style = AppTheme.typography.bodyMedium,
             color = AppTheme.colors.textPrimary,
-            modifier = Modifier.testTag("trainer_box_plan_verdict"),
+            modifier = Modifier.testTag(testTag),
         )
         if (pace.earlyCutNote) {
             Text(

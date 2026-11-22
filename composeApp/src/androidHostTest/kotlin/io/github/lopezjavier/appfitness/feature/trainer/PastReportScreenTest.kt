@@ -21,8 +21,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.test.assertEquals
 
-private val NBSP = 160.toChar().toString()
-
 /** US-129: a stored report opens read-only with the live content, its title and its period. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
@@ -43,9 +41,12 @@ class PastReportScreenTest {
 
     private fun week(paused: Boolean = false): PastReportUiState.Week {
         val summary = weekSummary(seen = true).copy(paused = paused)
+        val names = mapOf("id-bench" to "Press banca")
+        val report = weekReportOf(summary, names, live = false)
         return PastReportUiState.Week(
             reportItem("week-1", paused = paused),
-            WeekSummaryUiState.Content(summary, mapOf("id-bench" to "Press banca")),
+            WeekSummaryUiState.Content(summary, names),
+            report,
         )
     }
 
@@ -63,15 +64,14 @@ class PastReportScreenTest {
 
         rule.onNodeWithTag("past_report_title").assertTextEquals("Resumen semanal")
         rule.onNodeWithTag("past_report_subtitle").assertTextContains("3 al 9 nov", substring = true)
-        rule.onNodeWithTag("week_summary_section_sessions_headline", useUnmergedTree = true)
-            .assertTextEquals("3${NBSP}de${NBSP}4")
+        rule.onNodeWithTag("week_summary_coach_card").assertIsDisplayed()
     }
 
     @Test
     fun pausedWeek_showsSemanaEnPausa() {
         show(week(paused = true))
 
-        rule.onNodeWithTag("week_summary_paused").assertTextEquals("Semana en pausa")
+        rule.onNodeWithTag("week_summary_paused").assertTextContains("Semana en pausa", substring = true)
     }
 
     @Test

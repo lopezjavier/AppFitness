@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.trainer
 
+import io.github.lopezjavier.appfitness.app.FakeDiscomfortFollowUpRepository
 import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.app.ReminderEnv
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -11,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.DecideCalorieProposalUseC
 import io.github.lopezjavier.appfitness.domain.usecase.DecidePhaseChangeUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.LoadBlockReviewUseCase
+import io.github.lopezjavier.appfitness.domain.usecase.LoadDiscomfortFollowUpsUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.LoadPastReport
 import io.github.lopezjavier.appfitness.domain.usecase.MarkBlockReviewSeen
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
@@ -34,6 +36,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -65,9 +68,34 @@ class PastReportViewModelTest {
         advanceUntilIdle()
 
         val state = assertIs<PastReportUiState.Week>(model.uiState.value)
-        assertEquals(live, state.content)
+        assertEquals(live.copy(report = null), state.content)
         assertEquals("w1", state.item.id)
         assertEquals("Press banca", state.content.exerciseNames["id-bench"])
+    }
+
+    @Test
+    fun v2Week_hasTheFullNotLiveReportAndNeverAHealthNote() = runTest(dispatcher) {
+        reports.reports["w2"] = Result.success(weekReport("w2", v2Summary()))
+
+        val model = viewModel("w2")
+        advanceUntilIdle()
+
+        val report = assertNotNull(assertIs<PastReportUiState.Week>(model.uiState.value).report)
+        assertEquals(false, report.live)
+        assertNotNull(report.progress)
+        assertTrue(report.progress!!.strength.groups.flatMap { it.exercises }.all { it.healthNote == null })
+    }
+
+    @Test
+    fun v1Week_opensWithOnlyTheCoachCard() = runTest(dispatcher) {
+        reports.reports["w1"] = Result.success(weekReport("w1", weekSummary(seen = true)))
+
+        val model = viewModel("w1")
+        advanceUntilIdle()
+
+        val report = assertNotNull(assertIs<PastReportUiState.Week>(model.uiState.value).report)
+        assertNull(report.progress)
+        assertNull(report.coach.sentence)
     }
 
     @Test
@@ -179,6 +207,7 @@ class PastReportViewModelTest {
             recordPausedWeek = RecordPausedWeekReport(reports),
             reminders = ReminderCoordinator(env.load, backgroundScope),
             names = resolver(),
+            discomfortFollowUps = LoadDiscomfortFollowUpsUseCase(FakeDiscomfortFollowUpRepository()),
             clock = env.clock,
         )
         advanceUntilIdle()

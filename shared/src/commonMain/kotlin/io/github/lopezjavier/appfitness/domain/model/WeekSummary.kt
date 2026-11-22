@@ -63,6 +63,10 @@ data class WeekSummary(
      * meaningful, [week] is 0 and every other field is empty.
      */
     val paused: Boolean = false,
+    /** The progress-first part (snapshot v2); null for a v1 snapshot and for a paused week. */
+    val progress: WeekProgress? = null,
+    /** 1 for a snapshot stored before the progress-first report, 2 from then on. */
+    val schemaVersion: Int = 1,
 ) {
     /** The unseen-notice view of this summary, or null when it was already opened or the week is paused. */
     fun toNotice(): WeekSummaryNotice? = if (seen || paused) null else WeekSummaryNotice(planId, week, endDate)

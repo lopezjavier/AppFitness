@@ -105,7 +105,7 @@ private fun blockPreviewSheets(): List<GalleryEntry> {
     )
 }
 
-/** The week summary (WeekSummaryRoute): data, empty and the failures. */
+/** The week summary (WeekSummaryRoute): loading, empty and the failures; data states: TrainerWeekReportGallery. */
 private fun weekSummary(): List<GalleryEntry> {
     fun summary(state: String, ui: WeekSummaryUiState, online: Boolean = true, wide: Boolean = false) = GalleryEntry(
         TRAINER_AREA,
@@ -117,35 +117,11 @@ private fun weekSummary(): List<GalleryEntry> {
         WeekSummaryScreen(state = ui, isOnline = flowOf(online), onEvent = {}, onBack = {})
     }
 
-    val content = WeekSummaryUiState.Content(
-        TrainerFixtures.weekSummary(),
-        exerciseNames = TrainerFixtures.exerciseNames,
-    )
     return listOf(
         summary("loading", WeekSummaryUiState.Loading),
-        summary("data", content),
-        summary(
-            "data, seen",
-            WeekSummaryUiState.Content(TrainerFixtures.weekSummary(seen = true), TrainerFixtures.exerciseNames),
-        ),
         summary("empty", WeekSummaryUiState.Empty),
         summary("failed", WeekSummaryUiState.Error),
-        summary(
-            "nutrition, five complete days",
-            WeekSummaryUiState.Content(
-                TrainerFixtures.weekSummary(nutrition = TrainerFixtures.nutrition(complete = true)),
-                TrainerFixtures.exerciseNames,
-            ),
-        ),
-        summary(
-            "nutrition, incomplete week",
-            WeekSummaryUiState.Content(
-                TrainerFixtures.weekSummary(nutrition = TrainerFixtures.nutrition(complete = false)),
-                TrainerFixtures.exerciseNames,
-            ),
-        ),
         summary("offline", WeekSummaryUiState.Offline, online = false),
-        summary("tablet width", content, wide = true),
     )
 }
 
@@ -200,7 +176,7 @@ private fun blockReview(): List<GalleryEntry> {
 }
 
 internal fun trainerBlockEntries(): List<GalleryEntry> =
-    blockPreview() + blockPreviewSheets() + weekSummary() + blockReview()
+    blockPreview() + blockPreviewSheets() + weekSummary() + trainerWeekReportEntries() + blockReview()
 
 /** Renders the Trainer block, review and week entries (US-131); skipped unless `-Pgallery`. */
 @OptIn(ExperimentalRoborazziApi::class)

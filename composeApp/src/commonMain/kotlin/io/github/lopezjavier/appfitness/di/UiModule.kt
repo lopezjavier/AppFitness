@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.app.AppViewModel
 import io.github.lopezjavier.appfitness.app.HealthSyncCoordinator
 import io.github.lopezjavier.appfitness.app.ReminderCoordinator
 import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
+import io.github.lopezjavier.appfitness.domain.usecase.LoadDiscomfortFollowUpsUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.MarkWeekSummarySeen
 import io.github.lopezjavier.appfitness.domain.usecase.ReviewFolderUseCase
 import io.github.lopezjavier.appfitness.feature.about.AboutViewModel
@@ -458,6 +459,7 @@ val uiModule =
                 recordPausedWeek = get(),
                 reminders = get(),
                 names = get(),
+                discomfortFollowUps = LoadDiscomfortFollowUpsUseCase(get()),
                 clock = get(),
                 savedState = get(),
                 timeZone = TimeZone.currentSystemDefault(),
