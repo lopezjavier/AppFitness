@@ -3,7 +3,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
 
-select plan(56);
+select plan(66);
 
 -- ---------------------------------------------------------------------------
 -- Fixture helpers (run as the migration owner)
@@ -202,6 +202,51 @@ select is((public.list_coach_reports())->0->>'phase_decision', 'kept', 'a block 
 select is((public.list_coach_reports())->1->>'week', '1', 'a weekly report carries its plan week');
 select ok((public.list_coach_reports())->0->>'period_end' = (pg_temp.d0() - 4)::text,
   'a block report ends on the last day of the block');
+select is((public.list_coach_reports())->0->'teaser', 'null'::jsonb, 'a block review stored without progress has a null teaser');
+select is((public.list_coach_reports())->1->'teaser'->'total', 'null'::jsonb,
+  'a week built in plan week 1 reads null ups and total (nothing compared)');
+
+-- 5b. Teasers (T-317): user 7 has paused rows, a v1 week row and, added here, v2 weeks and a v2 block review.
+reset role;
+insert into public.coach_week_reports (user_id, plan_id, week, period_start, period_end, snapshot)
+values
+  (pg_temp.u(7), pg_temp.plan_of(7), 2, pg_temp.d0() - 100, pg_temp.d0() - 94,
+   '{"schema_version": 2, "progress": {"strength": {"block_week": 2, "groups": [
+       {"muscle_group": "chest", "exercises": [{"state": "up"}, {"state": "same"}, {"state": "uncompared"}]},
+       {"muscle_group": "back", "exercises": [{"state": "up"}]}]}, "weight": {"change_kg": -0.4}}}'),
+  (pg_temp.u(7), pg_temp.plan_of(7), 3, pg_temp.d0() - 90, pg_temp.d0() - 84,
+   '{"schema_version": 2, "progress": {"strength": {"block_week": 3, "groups": []}, "weight": {"change_kg": null}}}'),
+  (pg_temp.u(7), pg_temp.plan_of(7), 4, pg_temp.d0() - 80, pg_temp.d0() - 74,
+   '{"schema_version": 2, "progress": {"strength": {"block_week": 1, "groups": [
+       {"muscle_group": "chest", "exercises": [{"state": "uncompared"}]}]}, "weight": {"change_kg": null}}}');
+insert into public.coach_block_reviews (user_id, plan_id, ended_on, inputs)
+values (pg_temp.u(7), pg_temp.plan_of(7), pg_temp.d0() - 70,
+        '{"schema_version": 2, "progress": {"headline": {"ups": 12, "total": 15, "weight_change_kg": -1.8,
+          "main_lift": {"exercise_id": "c9610000-0000-4000-8000-0000000000ee", "change_kg": 5, "change_pct": 6.0}}}}');
+create function pg_temp.teaser(p_week int) returns jsonb language sql as $$
+  select e->'teaser' from jsonb_array_elements(public.list_coach_reports()) e where (e->>'week')::int = p_week $$;
+grant execute on function pg_temp.teaser(int) to authenticated;
+set local role authenticated;
+select pg_temp.as_user(7);
+select is(pg_temp.teaser(2), '{"ups": 2, "total": 3, "weight_change_kg": -0.4}'::jsonb,
+  'a week teaser counts the exercises that went up among the compared ones, with the weight change');
+select is(pg_temp.teaser(3), '{"ups": 0, "total": 0, "weight_change_kg": null}'::jsonb,
+  'a weight change that did not pass its gate is null in the teaser');
+select is(pg_temp.teaser(4), '{"ups": null, "total": null, "weight_change_kg": null}'::jsonb, 'plan week 1: ups and total are null');
+select is(pg_temp.teaser(1), 'null'::jsonb, 'a week stored without progress (v1) has a null teaser');
+select is((select count(*)::int from jsonb_array_elements(public.list_coach_reports()) e
+           where e->>'paused' = 'true' and e->'teaser' <> 'null'::jsonb), 0, 'a paused week has a null teaser');
+select is((select e->'teaser' from jsonb_array_elements(public.list_coach_reports()) e where e->>'kind' = 'block_review'),
+  '{"ups": 12, "total": 15, "weight_change_kg": -1.8}'::jsonb, 'a block teaser is the stored headline without the main lift');
+select is((select count(*)::int from jsonb_array_elements(public.list_coach_reports()) e where e->'teaser' ? 'main_lift'), 0,
+  'no teaser carries the main lift');
+reset role;
+select ok(has_function_privilege('authenticated', 'public.list_coach_reports()', 'execute')
+          and not has_function_privilege('anon', 'public.list_coach_reports()', 'execute')
+          and not has_function_privilege('public', 'public.list_coach_reports()', 'execute'),
+  'the list keeps its grants: authenticated only');
+set local role authenticated;
+select pg_temp.as_user(1);
 
 -- ---------------------------------------------------------------------------
 -- 6. One report by id.
@@ -270,7 +315,7 @@ reset role;
 -- 10. Reminders are not stored.
 -- ---------------------------------------------------------------------------
 select hasnt_column('public', 'coach_week_reports', 'kind', 'the table has no reminder kind: only weekly summaries are stored');
-select is((select count(*)::int from public.coach_week_reports), 7, 'rows exist only for the summaries that were built');
+select is((select count(*)::int from public.coach_week_reports), 10, 'rows exist only for the summaries that were built (7 plus the 3 teaser fixtures)');
 
 select * from finish();
 rollback;
