@@ -178,8 +178,8 @@ select throws_ok(
 reset role;
 select results_eq(
   $$select id, label, position, enabled, code from public.meal_slots
-    where user_id = '22222222-2222-4222-8222-222222222222'$$,
-  $$select id, label, position, enabled, code from bea_before$$,
+    where user_id = '22222222-2222-4222-8222-222222222222' order by id$$,
+  $$select id, label, position, enabled, code from bea_before order by id$$,
   'Bea''s meals are untouched');
 
 select * from finish();
