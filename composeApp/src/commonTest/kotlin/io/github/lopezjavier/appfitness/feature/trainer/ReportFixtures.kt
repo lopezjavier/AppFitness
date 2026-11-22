@@ -5,6 +5,7 @@ import io.github.lopezjavier.appfitness.domain.model.PastReport
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
 import io.github.lopezjavier.appfitness.domain.model.ReportItem
 import io.github.lopezjavier.appfitness.domain.model.ReportKind
+import io.github.lopezjavier.appfitness.domain.model.ReportTeaser
 import io.github.lopezjavier.appfitness.domain.model.WeekSummary
 import io.github.lopezjavier.appfitness.domain.repository.ReportRepository
 import kotlinx.datetime.LocalDate
@@ -17,16 +18,19 @@ internal fun reportItem(
     paused: Boolean = false,
     phaseDecision: PhaseDecision? = null,
     createdAt: Instant = Instant.parse("2026-11-10T08:00:00Z"),
+    planId: String = "plan-1",
+    teaser: ReportTeaser? = null,
 ) = ReportItem(
     id = id,
     kind = kind,
-    planId = "plan-1",
+    planId = planId,
     week = week,
     paused = paused,
     periodStart = LocalDate(2026, 11, 3),
     periodEnd = LocalDate(2026, 11, 9),
     createdAt = createdAt,
     phaseDecision = phaseDecision,
+    teaser = teaser,
 )
 
 internal fun weekReport(id: String = "report-1", summary: WeekSummary = weekSummary(seen = true)) =

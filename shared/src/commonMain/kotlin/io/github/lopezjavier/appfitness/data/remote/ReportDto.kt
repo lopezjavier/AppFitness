@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.data.remote
 import io.github.lopezjavier.appfitness.domain.model.PastReport
 import io.github.lopezjavier.appfitness.domain.model.ReportItem
 import io.github.lopezjavier.appfitness.domain.model.ReportKind
+import io.github.lopezjavier.appfitness.domain.model.reportTeaserOf
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -37,6 +38,9 @@ internal fun reportItemOf(obj: JsonObject): ReportItem? {
             periodEnd = requireNotNull(obj.day("period_end")),
             createdAt = requireNotNull(createdAt),
             phaseDecision = DECISIONS[obj.text("phase_decision")],
+            teaser = obj["teaser"]?.obj()?.let {
+                reportTeaserOf(it.int("ups"), it.int("total"), it.number("weight_change_kg"))
+            },
         )
     }.getOrNull()
 }

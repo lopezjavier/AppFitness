@@ -2427,7 +2427,17 @@
     <string name="block_targets_help_cd">Ayuda: objetivo por grupo</string>
     <string name="block_targets_help_body">Cada grupo muscular tiene una cantidad de series a la semana. “Priorizar” sube esa cantidad para que ese grupo progrese más rápido. “Mantener” la deja como está para conservar lo que ya tienes. Prioriza pocos grupos a la vez.</string>
     <string name="reports_title">Informes</string>
-    <string name="reports_row_paused">%1$s · Semana en pausa</string>
+    <!-- T-319 (US-144): "Informes" rows grouped by block, each with a progress teaser. -->
+    <string name="reports_row_week">Semana %1$d</string>
+    <string name="reports_group_title">Bloque %1$d</string>
+    <plurals name="reports_teaser_up">
+        <item quantity="one">%1$d&#160;sube</item>
+        <item quantity="other">%1$d&#160;suben</item>
+    </plurals>
+    <string name="reports_teaser_up_none">Ninguno sube</string>
+    <string name="reports_teaser_up_of">%1$d&#160;de&#160;%2$d suben</string>
+    <string name="reports_teaser_weight">%1$s&#160;kg</string>
+    <string name="reports_teaser_weight_same">Peso igual</string>
     <string name="reports_row_open_week">Abrir el resumen semanal</string>
     <string name="reports_row_open_block">Abrir la revisión del bloque</string>
     <string name="reports_empty_title">Aún no hay informes</string>

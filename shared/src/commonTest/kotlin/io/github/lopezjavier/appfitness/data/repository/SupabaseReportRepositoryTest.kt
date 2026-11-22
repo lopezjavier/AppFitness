@@ -12,6 +12,7 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.PastReport
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
 import io.github.lopezjavier.appfitness.domain.model.ReportKind
+import io.github.lopezjavier.appfitness.domain.model.ReportTeaser
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -125,6 +126,18 @@ class SupabaseReportRepositoryTest {
         assertEquals(LocalDate(2027, 1, 4), items[1].periodStart)
         assertEquals(LocalDate(2027, 1, 10), items[1].periodEnd)
         assertEquals(Instant.parse("2027-01-11T08:00:00Z"), items[1].createdAt)
+    }
+
+    @Test
+    fun list_mapsTheTeaserWhenPresentAndNullWhenAbsent() = runTest {
+        val withTeaser = row("w2", "week_summary").dropLast(1) +
+            ""","teaser":{"ups":3,"total":null,"weight_change_kg":-0.3}}"""
+        body = "[" + listOf(withTeaser, row("w1", "week_summary")).joinToString(",") + "]"
+
+        val items = repo().list().getOrThrow()
+
+        assertEquals(ReportTeaser(3, null, -0.3), items[0].teaser)
+        assertNull(items[1].teaser)
     }
 
     @Test

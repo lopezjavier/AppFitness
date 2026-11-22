@@ -3,14 +3,19 @@ package io.github.lopezjavier.appfitness.gallery
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import io.github.lopezjavier.appfitness.domain.model.PhaseDecision
+import io.github.lopezjavier.appfitness.domain.model.ReportGroup
+import io.github.lopezjavier.appfitness.domain.model.ReportItem
 import io.github.lopezjavier.appfitness.domain.model.ReportKind
+import io.github.lopezjavier.appfitness.domain.model.ReportTeaser
 import io.github.lopezjavier.appfitness.feature.trainer.BlockReportUi
 import io.github.lopezjavier.appfitness.feature.trainer.PastReportScreen
 import io.github.lopezjavier.appfitness.feature.trainer.PastReportUiState
 import io.github.lopezjavier.appfitness.feature.trainer.ReportsScreen
 import io.github.lopezjavier.appfitness.feature.trainer.ReportsUiState
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,35 +28,64 @@ private const val PAST_REPORT_SCREEN = "Informe pasado"
 
 /** The stored reports list (ReportsRoute): loading, empty, the list of weekly and block reports and the failures. */
 private fun reports(): List<GalleryEntry> {
-    fun list(state: String, ui: ReportsUiState, online: Boolean = true, wide: Boolean = false) = GalleryEntry(
-        TRAINER_AREA,
-        REPORTS_SCREEN,
-        state,
-        covers = setOf("ReportsRoute"),
-        wide = wide,
-    ) {
-        ReportsScreen(
-            state = ui,
-            isOnline = flowOf(online),
-            onEvent = {},
-            onOpen = {},
-            onBack = {},
-        )
-    }
+    fun list(state: String, ui: ReportsUiState, online: Boolean = true, wide: Boolean = false, tall: Boolean = false) =
+        GalleryEntry(
+            TRAINER_AREA,
+            REPORTS_SCREEN,
+            state,
+            covers = setOf("ReportsRoute"),
+            wide = wide,
+            tall = tall,
+        ) {
+            ReportsScreen(
+                state = ui,
+                isOnline = flowOf(online),
+                onEvent = {},
+                onOpen = {},
+                onBack = {},
+            )
+        }
 
-    val items = ReportsUiState.Content(
+    fun item(id: String, plan: String, kind: ReportKind, week: Int?, start: LocalDate, days: Int = 6): ReportItem =
+        TrainerFixtures.reportItem(id = id, kind = kind, week = week).copy(
+            planId = plan,
+            periodStart = start,
+            periodEnd = start.plus(days, DateTimeUnit.DAY),
+        )
+
+    fun week(id: String, plan: String, week: Int, start: LocalDate, teaser: ReportTeaser?) =
+        item(id, plan, ReportKind.WeekSummary, week, start).copy(teaser = teaser)
+
+    // Block 2 (open): two weeks, no review yet. Block 1: review first, then its weeks, one paused, one v1.
+    val open = ReportGroup(
+        "plan-2",
+        2,
         listOf(
-            TrainerFixtures.reportItem(id = "report-2", kind = ReportKind.WeekSummary, week = 2),
-            TrainerFixtures.reportItem(id = "report-1", kind = ReportKind.BlockReview, week = null),
+            week("w-2-3", "plan-2", 3, LocalDate(2026, 11, 17), ReportTeaser(3, null, -0.3)),
+            week("w-2-2", "plan-2", 2, LocalDate(2026, 11, 10), ReportTeaser(0, null, 0.0)),
         ),
     )
+    val closed = ReportGroup(
+        "plan-1",
+        1,
+        listOf(
+            item("b-1", "plan-1", ReportKind.BlockReview, null, LocalDate(2026, 10, 13), days = 27)
+                .copy(teaser = ReportTeaser(12, 15, -1.8)),
+            week("w-1-4", "plan-1", 4, LocalDate(2026, 11, 3), ReportTeaser(1, null, null)),
+            item("w-1-3", "plan-1", ReportKind.WeekSummary, null, LocalDate(2026, 10, 27)).copy(paused = true),
+            week("w-1-2", "plan-1", 2, LocalDate(2026, 10, 20), null),
+        ),
+    )
+    val mixed = ReportsUiState.Content(listOf(open, closed))
+    val onlyWeeks = ReportsUiState.Content(listOf(open))
     return listOf(
         list("loading", ReportsUiState.Loading),
         list("empty", ReportsUiState.Empty),
-        list("weekly and block reports", items),
+        list("blocks and weeks, grouped", mixed, tall = true),
+        list("only weeks", onlyWeeks),
         list("failed", ReportsUiState.Error),
         list("offline", ReportsUiState.Offline, online = false),
-        list("tablet width", items, wide = true),
+        list("tablet width", mixed, wide = true),
     )
 }
 

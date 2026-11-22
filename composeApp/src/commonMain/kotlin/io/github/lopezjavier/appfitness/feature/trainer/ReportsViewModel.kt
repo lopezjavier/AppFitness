@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.groupReportsByBlock
 import io.github.lopezjavier.appfitness.domain.usecase.LoadReports
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,8 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * "Informes" (US-129): the stored weekly summaries and block reviews, newest first as the server orders them (the
- * order is kept, never re-sorted). Opening a row is plain navigation in the UI; nothing is stored here.
+ * "Informes" (US-129, US-144): the stored weekly summaries and block reviews grouped by block, in the order the server
+ * serves them (newest first; never re-sorted). Opening a row is plain navigation in the UI; nothing is stored here.
  */
 class ReportsViewModel(private val loadReports: LoadReports) : ViewModel() {
     private val _uiState = MutableStateFlow<ReportsUiState>(ReportsUiState.Loading)
@@ -42,7 +43,7 @@ class ReportsViewModel(private val loadReports: LoadReports) : ViewModel() {
 
                 items.isNullOrEmpty() -> ReportsUiState.Empty
 
-                else -> ReportsUiState.Content(items)
+                else -> ReportsUiState.Content(groupReportsByBlock(items))
             }
         }
     }
