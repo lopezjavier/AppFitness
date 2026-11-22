@@ -14,6 +14,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
+import io.github.lopezjavier.appfitness.composeapp.resources.block_report_weight_avg_label
+import io.github.lopezjavier.appfitness.composeapp.resources.block_report_weight_change
+import io.github.lopezjavier.appfitness.composeapp.resources.block_report_weight_gate
+import io.github.lopezjavier.appfitness.composeapp.resources.block_report_weight_help_body
+import io.github.lopezjavier.appfitness.composeapp.resources.block_report_weight_same
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_flag
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_monitor_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_straighten
@@ -62,7 +67,6 @@ import kotlinx.datetime.daysUntil
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
-private const val TAG = "week_summary"
 private const val DAYS_PER_WEEK = 7
 
 /**
@@ -71,26 +75,34 @@ private const val DAYS_PER_WEEK = 7
  * shared pace. Under the weigh-in gate the change is replaced by three gate dots: how many weigh-ins there are.
  */
 @Composable
-internal fun WeekReportWeightCard(weight: WeightUi, reportEnd: LocalDate, live: Boolean) {
+internal fun WeekReportWeightCard(
+    weight: WeightUi,
+    reportEnd: LocalDate,
+    live: Boolean,
+    scope: ReportScope = ReportScope.Week,
+) {
+    val block = scope == ReportScope.Block
     val title = stringResource(Res.string.week_report_weight_title)
     SectionCard(
         title,
-        testTag = "${TAG}_section_weight",
+        testTag = "${scope.tag}_section_weight",
         help = {
             HelpButton(
                 contentDescription = stringResource(Res.string.week_report_weight_help_cd),
                 title = title,
-                body = stringResource(Res.string.week_report_weight_help_body),
-                testTag = "${TAG}_weight_help",
+                body = stringResource(
+                    if (block) Res.string.block_report_weight_help_body else Res.string.week_report_weight_help_body,
+                ),
+                testTag = "${scope.tag}_weight_help",
             )
         },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             val avg = weight.avgKg
             when {
-                avg == null || weight.days == 0 -> NoWeighIns(live)
-                weight.changeKg == null -> GateState(avg, weight.days)
-                else -> AverageAndChange(weight, avg)
+                avg == null || weight.days == 0 -> NoWeighIns(live, scope)
+                weight.changeKg == null -> GateState(avg, weight, scope)
+                else -> AverageAndChange(weight, avg, scope)
             }
             weight.sinceStartKg?.let { kg ->
                 Text(
@@ -106,31 +118,34 @@ internal fun WeekReportWeightCard(weight: WeightUi, reportEnd: LocalDate, live: 
                     ),
                     style = AppTheme.typography.bodyMedium,
                     color = AppTheme.colors.textSecondary,
-                    modifier = Modifier.testTag("${TAG}_weight_since_start"),
+                    modifier = Modifier.testTag("${scope.tag}_weight_since_start"),
                 )
             }
             if (weight.series.isNotEmpty()) {
                 WeightPaceChart(
                     data = chartData(weight, reportEnd),
                     height = ReportMarks.CompactChartHeight,
-                    modifier = Modifier.testTag("${TAG}_weight_chart"),
+                    modifier = Modifier.testTag("${scope.tag}_weight_chart"),
                     valueLabel = { AppNumberFormat.decimal(it) },
                 )
             }
-            weight.goal?.let { GoalLegend(it) }
-            weight.pace?.let { PaceVerdict(it, testTag = "${TAG}_weight_verdict") }
+            weight.goal?.let { GoalLegend(it, scope) }
+            weight.pace?.let { PaceVerdict(it, testTag = "${scope.tag}_weight_verdict") }
         }
     }
 }
 
 @Composable
-private fun AverageAndChange(weight: WeightUi, avg: Double) {
+private fun AverageAndChange(weight: WeightUi, avg: Double, scope: ReportScope) {
+    val block = scope == ReportScope.Block
     val change = weight.changeKg ?: return
     val text = WeekSummaryText.signedKg(change)
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(
-                text = stringResource(Res.string.week_report_weight_avg_label).uppercase(),
+                text = stringResource(
+                    if (block) Res.string.block_report_weight_avg_label else Res.string.week_report_weight_avg_label,
+                ).uppercase(),
                 style = AppTheme.typography.labelTechnical,
                 color = AppTheme.colors.textSecondary,
             )
@@ -138,21 +153,26 @@ private fun AverageAndChange(weight: WeightUi, avg: Double) {
                 text = "${WeekSummaryText.kg(avg)} kg",
                 style = AppTheme.typography.headlineMetric,
                 color = AppTheme.colors.textPrimary,
-                modifier = Modifier.testTag("${TAG}_weight_avg"),
+                modifier = Modifier.testTag("${scope.tag}_weight_avg"),
             )
         }
         if (text == "0") {
             TrendPill(
-                stringResource(Res.string.week_report_weight_same_as_last),
+                stringResource(
+                    if (block) Res.string.block_report_weight_same else Res.string.week_report_weight_same_as_last,
+                ),
                 TrendTone.Neutral,
-                Modifier.testTag("${TAG}_weight_change"),
+                Modifier.testTag("${scope.tag}_weight_change"),
                 direction = TrendDirection.Flat,
             )
         } else {
             TrendPill(
-                stringResource(Res.string.week_report_weight_vs_last, text),
+                stringResource(
+                    if (block) Res.string.block_report_weight_change else Res.string.week_report_weight_vs_last,
+                    text,
+                ),
                 TrendTone.Neutral,
-                Modifier.testTag("${TAG}_weight_change"),
+                Modifier.testTag("${scope.tag}_weight_change"),
                 direction = TrendPillDefaults.direction(change),
             )
         }
@@ -161,16 +181,19 @@ private fun AverageAndChange(weight: WeightUi, avg: Double) {
 
 /** Below the gate: dots for the weigh-in days there are against the three needed, and the plain sentence. */
 @Composable
-private fun GateState(avg: Double, days: Int) {
+private fun GateState(avg: Double, weight: WeightUi, scope: ReportScope) {
+    // Block: the gate needs 3 days in the first AND the last plan week, so the dots show the scarcer one.
+    val block = scope == ReportScope.Block
+    val days = if (block) minOf(weight.days, weight.prevDays) else weight.days
     Row(
-        Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.testTag("${TAG}_weight_gate"),
+        Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.testTag("${scope.tag}_weight_gate"),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        GateDots(days)
+        GateDots(days, scope)
         Text(
             text = stringResource(
-                Res.string.week_report_weight_gate,
+                if (block) Res.string.block_report_weight_gate else Res.string.week_report_weight_gate,
                 WeekSummaryText.kg(avg),
                 pluralStringResource(Res.plurals.week_summary_weigh_ins, days, days),
             ),
@@ -182,9 +205,9 @@ private fun GateState(avg: Double, days: Int) {
 }
 
 @Composable
-private fun NoWeighIns(live: Boolean) {
+private fun NoWeighIns(live: Boolean, scope: ReportScope) {
     Row(
-        Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.testTag("${TAG}_weight_none"),
+        Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}.testTag("${scope.tag}_weight_none"),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -207,13 +230,13 @@ private fun NoWeighIns(live: Boolean) {
                 color = AppTheme.colors.textSecondary,
             )
         }
-        GateDots(0)
+        GateDots(0, scope)
     }
 }
 
 /** Three slots, one per weigh-in day the gate needs: lit when logged, hollow when missing (shape and count). */
 @Composable
-private fun GateDots(have: Int) {
+private fun GateDots(have: Int, scope: ReportScope) {
     WeighInGateDots(
         have = have,
         total = WEIGH_IN_GATE,
@@ -222,12 +245,12 @@ private fun GateDots(have: Int) {
             have.coerceAtMost(WEIGH_IN_GATE),
             WEIGH_IN_GATE,
         ),
-        modifier = Modifier.testTag("${TAG}_weight_gate_dots"),
+        modifier = Modifier.testTag("${scope.tag}_weight_gate_dots"),
     )
 }
 
 @Composable
-private fun GoalLegend(goal: WeightGoalUi) {
+private fun GoalLegend(goal: WeightGoalUi, scope: ReportScope) {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
         IconBadge(Res.drawable.ic_flag, AppTheme.colors.textSecondary, size = Spacing.xl, iconSize = Spacing.lg)
         Text(
@@ -238,7 +261,7 @@ private fun GoalLegend(goal: WeightGoalUi) {
             ),
             style = AppTheme.typography.bodyMedium,
             color = AppTheme.colors.textPrimary,
-            modifier = Modifier.testTag("${TAG}_weight_goal"),
+            modifier = Modifier.testTag("${scope.tag}_weight_goal"),
         )
     }
 }
@@ -265,7 +288,7 @@ private fun chartData(weight: WeightUi, reportEnd: LocalDate): WeightPaceChartDa
  * margen de medida".
  */
 @Composable
-internal fun WeekReportWaistCard(waist: WaistUi) {
+internal fun WeekReportWaistCard(waist: WaistUi, scope: ReportScope = ReportScope.Week) {
     val description = stringResource(
         Res.string.week_report_waist_cd,
         WeekSummaryText.kg(waist.cm),
@@ -273,7 +296,7 @@ internal fun WeekReportWaistCard(waist: WaistUi) {
         WeekSummaryText.kg(waist.refCm),
         AppDateFormat.shortDate(waist.refDate),
     )
-    SectionCard(stringResource(Res.string.week_report_waist_title), testTag = "${TAG}_section_waist") {
+    SectionCard(stringResource(Res.string.week_report_waist_title), testTag = "${scope.tag}_section_waist") {
         Column(
             Modifier.semantics(mergeDescendants = true) { contentDescription = description },
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -287,7 +310,7 @@ internal fun WeekReportWaistCard(waist: WaistUi) {
                     text = "${WeekSummaryText.kg(waist.cm)} cm",
                     style = AppTheme.typography.headlineMetric,
                     color = AppTheme.colors.textPrimary,
-                    modifier = Modifier.weight(1f).testTag("${TAG}_waist_value"),
+                    modifier = Modifier.weight(1f).testTag("${scope.tag}_waist_value"),
                 )
                 TrendPill(
                     stringResource(Res.string.week_report_waist_change, WeekSummaryText.signedKg(waist.changeCm)),
@@ -314,7 +337,7 @@ internal fun WeekReportWaistCard(waist: WaistUi) {
                     text = stringResource(Res.string.week_report_waist_margin),
                     style = AppTheme.typography.bodyMedium,
                     color = AppTheme.colors.textSecondary,
-                    modifier = Modifier.testTag("${TAG}_waist_margin"),
+                    modifier = Modifier.testTag("${scope.tag}_waist_margin"),
                 )
             }
         }

@@ -75,26 +75,40 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 internal fun WeekReportCoachCard(coach: CoachCardUi, onOpen: (() -> Unit)?) {
+    ReportCoachCard(coach.sentence?.let { sentenceText(it) }, actionLook(coach.action), onOpen)
+}
+
+/**
+ * The lit coach card shared by the weekly report and the block review: an optional [sentence] with the insight badge
+ * and one action row ([look]). Only the testTag prefix ([scope]) differs between the two.
+ */
+@Composable
+internal fun ReportCoachCard(
+    sentence: String?,
+    look: ActionLook,
+    onOpen: (() -> Unit)?,
+    scope: ReportScope = ReportScope.Week,
+) {
     AppCard(
-        Modifier.fillMaxWidth().testTag("week_summary_coach_card"),
+        Modifier.fillMaxWidth().testTag("${scope.tag}_coach_card"),
         glow = AppTheme.colors.athleticCyan,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            coach.sentence?.let { sentence ->
+            sentence?.let { text ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconBadge(Res.drawable.ic_insights, AppTheme.colors.athleticCyan)
                     Text(
-                        text = sentenceText(sentence),
+                        text = text,
                         style = AppTheme.typography.titleMedium,
                         color = AppTheme.colors.textPrimary,
-                        modifier = Modifier.weight(1f).testTag("week_summary_coach_sentence"),
+                        modifier = Modifier.weight(1f).testTag("${scope.tag}_coach_sentence"),
                     )
                 }
             }
-            CoachActionRow(coach.action, onOpen)
+            CoachActionRow(look, onOpen, scope)
         }
     }
 }
@@ -144,7 +158,7 @@ private fun sentenceBody(sentence: CoachSentenceUi): String {
     }
 }
 
-private class ActionLook(val icon: DrawableResource, val text: String)
+internal class ActionLook(val icon: DrawableResource, val text: String)
 
 @Composable
 private fun actionLook(action: WeekReportAction): ActionLook = when (action) {
@@ -171,7 +185,7 @@ private fun actionLook(action: WeekReportAction): ActionLook = when (action) {
         ActionLook(Res.drawable.ic_check, stringResource(Res.string.week_report_action_on_plan))
 }
 
-private fun missingRes(action: WeekReportAction.MissingData): StringResource = when (action.kind) {
+internal fun missingRes(action: WeekReportAction.MissingData): StringResource = when (action.kind) {
     MissingKind.WeighIns -> if (action.past) {
         Res.string.week_report_action_missing_weigh_ins_past
     } else {
@@ -190,7 +204,7 @@ private fun missingRes(action: WeekReportAction.MissingData): StringResource = w
 }
 
 @Composable
-private fun proposalText(proposal: CalorieProposal, status: ProposalStatus, unanswered: Boolean): String =
+internal fun proposalText(proposal: CalorieProposal, status: ProposalStatus, unanswered: Boolean): String =
     stringResource(
         Res.string.week_report_action_proposal,
         WeekSummaryText.kcalDelta(proposal),
@@ -205,8 +219,7 @@ private fun proposalText(proposal: CalorieProposal, status: ProposalStatus, unan
     )
 
 @Composable
-private fun CoachActionRow(action: WeekReportAction, onOpen: (() -> Unit)?) {
-    val look = actionLook(action)
+private fun CoachActionRow(look: ActionLook, onOpen: (() -> Unit)?, scope: ReportScope) {
     val colors = AppTheme.colors
     val openLabel = stringResource(Res.string.week_report_action_open_card)
     val tappable = onOpen != null
@@ -223,7 +236,7 @@ private fun CoachActionRow(action: WeekReportAction, onOpen: (() -> Unit)?) {
             .then(clickable)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm)
             .semantics(mergeDescendants = true) {}
-            .testTag("week_summary_coach_action"),
+            .testTag("${scope.tag}_coach_action"),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {

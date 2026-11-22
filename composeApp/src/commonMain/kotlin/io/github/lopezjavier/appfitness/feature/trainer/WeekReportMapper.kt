@@ -100,7 +100,7 @@ private fun noteOf(exerciseId: String, followUps: List<DiscomfortFollowUp>): Hea
         }
     }
 
-private fun glyphOf(state: ProgressState) = when (state) {
+internal fun glyphOf(state: ProgressState) = when (state) {
     ProgressState.Up -> ProgressGlyph.Up
     ProgressState.Same -> ProgressGlyph.Same
     ProgressState.Down -> ProgressGlyph.Down
@@ -110,10 +110,10 @@ private fun glyphOf(state: ProgressState) = when (state) {
 }
 
 // "80 kg × 8": the best set at the top load (the most reps); a session without reps has nothing to show.
-private fun loadReps(session: ProgressSession?): LoadReps? =
+internal fun loadReps(session: ProgressSession?): LoadReps? =
     session?.reps?.maxOrNull()?.let { LoadReps(session.loadKg, it, session.date) }
 
-private fun liftUi(lift: LiftSeries) = LiftUi(
+internal fun liftUi(lift: LiftSeries) = LiftUi(
     exerciseId = lift.exerciseId,
     points = lift.weeks.mapNotNull { week -> week.e1rmKg?.let { LiftPointUi(it, week.deload) } },
     state = when (lift.state) {
@@ -126,7 +126,7 @@ private fun liftUi(lift: LiftSeries) = LiftUi(
     changePct = lift.changePct,
 )
 
-private fun recordUi(record: WeekRecordBadge) = RecordUi(
+internal fun recordUi(record: WeekRecordBadge) = RecordUi(
     exerciseId = record.exerciseId,
     kind = if (record.kind == RecordType.E1rm) RecordKind.E1rm else RecordKind.Heaviest,
     valueKg = record.valueKg,

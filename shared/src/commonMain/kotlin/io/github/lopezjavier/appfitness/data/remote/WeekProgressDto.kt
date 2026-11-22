@@ -55,7 +55,7 @@ private val LIFT_STATES = mapOf(
 private val RECORD_KINDS = mapOf("e1rm" to RecordType.E1rm, "heaviest" to RecordType.Heaviest)
 
 // `diary` is the server's code for the 5-complete-days gate; `food` is accepted as its alias.
-private val MISSING_KINDS = mapOf(
+internal val MISSING_KINDS = mapOf(
     "weigh_ins" to MissingKind.WeighIns,
     "diary" to MissingKind.Food,
     "food" to MissingKind.Food,
@@ -63,7 +63,7 @@ private val MISSING_KINDS = mapOf(
     "deleted_weigh_ins" to MissingKind.DeletedWeighIns,
 )
 
-private val INTENTIONS = mapOf(
+internal val INTENTIONS = mapOf(
     "strength" to TrainingIntention.Strength,
     "muscle" to TrainingIntention.Muscle,
     "fat_loss" to TrainingIntention.FatLoss,
@@ -95,14 +95,14 @@ internal fun progressOf(element: JsonElement?): WeekProgress? {
     )
 }
 
-private fun contextOf(obj: JsonObject?) = ProgressContext(
+internal fun contextOf(obj: JsonObject?) = ProgressContext(
     sessionsDone = obj?.count("sessions_done") ?: 0,
     sessionsPlanned = obj?.count("sessions_planned") ?: 0,
     setsDone = obj?.count("sets_done") ?: 0,
     setsPlanned = obj?.int("sets_planned"),
 )
 
-private fun strengthOf(obj: JsonObject?) = StrengthProgress(
+internal fun strengthOf(obj: JsonObject?) = StrengthProgress(
     blockWeek = obj?.count("block_week") ?: 0,
     groups = obj?.get("groups").items().mapNotNull(::groupOf),
 )
@@ -146,7 +146,7 @@ private fun sessionOf(obj: JsonObject?): ProgressSession? {
     }
 }
 
-private fun liftOf(obj: JsonObject): LiftSeries? {
+internal fun liftOf(obj: JsonObject): LiftSeries? {
     val id = obj.text("exercise_id")
     val state = obj.text("state")?.let(LIFT_STATES::get)
     return if (id == null || state == null) {
@@ -165,7 +165,7 @@ private fun liftOf(obj: JsonObject): LiftSeries? {
 }
 
 @Suppress("ReturnCount") // One guard per required figure.
-private fun recordOf(obj: JsonObject): WeekRecordBadge? {
+internal fun recordOf(obj: JsonObject): WeekRecordBadge? {
     val id = obj.text("exercise_id") ?: return null
     val kind = obj.text("kind")?.let(RECORD_KINDS::get) ?: return null
     val value = obj.number("value_kg") ?: return null
@@ -200,7 +200,7 @@ private fun weightProgressOf(obj: JsonObject?): WeightProgress {
 }
 
 @Suppress("ReturnCount") // One guard per required figure.
-private fun waistOf(obj: JsonObject?): WaistProgress? {
+internal fun waistOf(obj: JsonObject?): WaistProgress? {
     if (obj == null) return null
     val cm = obj.number("cm") ?: return null
     val date = obj.day("date") ?: return null

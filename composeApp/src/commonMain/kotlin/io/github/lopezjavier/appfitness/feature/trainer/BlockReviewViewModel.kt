@@ -109,6 +109,8 @@ class BlockReviewViewModel(
                 // A failed read means no calorie card.
                 calorieProposal = plans.pendingCalorieProposal(today()).getOrNull(),
                 nextPlanId = savedState.get<String>(KEY_NEXT_PLAN_ID),
+                live = true,
+                today = today(),
             )
         }
     }
@@ -129,7 +131,7 @@ class BlockReviewViewModel(
                             review = fresh,
                             deciding = null,
                             nextPlanId = result.nextPlanId ?: state.nextPlanId,
-                        ) ?: state
+                        )?.withReport(live = true, today = today()) ?: state
                     }
                     effectChannel.send(BlockReviewEffect.PhaseDecided(decision))
                 }
@@ -159,7 +161,10 @@ class BlockReviewViewModel(
             _uiState.update { state ->
                 val loaded = state as? BlockReviewUiState.Content ?: return@update state
                 if (result.isSuccess) {
-                    loaded.copy(calorieProposal = null, decidingCalorie = false)
+                    loaded.copy(
+                        calorieProposal = null,
+                        decidingCalorie = false,
+                    ).withReport(live = true, today = today())
                 } else {
                     loaded.copy(decidingCalorie = false, calorieFailed = choice)
                 }

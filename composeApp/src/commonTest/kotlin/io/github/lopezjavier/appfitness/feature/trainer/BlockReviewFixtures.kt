@@ -4,6 +4,7 @@ import io.github.lopezjavier.appfitness.domain.model.BlockAdherence
 import io.github.lopezjavier.appfitness.domain.model.BlockLift
 import io.github.lopezjavier.appfitness.domain.model.BlockLiftWeek
 import io.github.lopezjavier.appfitness.domain.model.BlockOutcome
+import io.github.lopezjavier.appfitness.domain.model.BlockProgress
 import io.github.lopezjavier.appfitness.domain.model.BlockReview
 import io.github.lopezjavier.appfitness.domain.model.BlockWaist
 import io.github.lopezjavier.appfitness.domain.model.BlockWeight
@@ -51,6 +52,7 @@ internal fun blockReview(
     phaseProposal: PhaseProposal? = cutLengthProposal(),
     phaseDecision: PhaseDecision? = null,
     seen: Boolean = false,
+    progress: BlockProgress? = null,
 ) = BlockReview(
     id = id,
     planId = planId,
@@ -65,6 +67,7 @@ internal fun blockReview(
     phaseProposal = phaseProposal,
     phaseDecision = phaseDecision,
     seen = seen,
+    progress = progress,
 )
 
 /** Test double of [CoachReviewRepository]; an accepted or kept decision is stored like the server would. */

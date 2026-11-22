@@ -466,7 +466,9 @@ val uiModule =
             )
         }
         viewModel { ReportsViewModel(loadReports = get()) }
-        viewModel { params -> PastReportViewModel(reportId = params.get(), loadReport = get(), names = get()) }
+        viewModel { params ->
+            PastReportViewModel(reportId = params.get(), loadReport = get(), names = get(), clock = get())
+        }
         viewModel {
             TrainerViewModel(
                 repository = get(),
