@@ -292,6 +292,26 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-189 | T-297 Welcome value props: `ambientBackdrop`, `StartHeroStage` logo, `displayHero` brand title, tagline, three `StartValueProp` rows | 5 | ACCEPTED (user order 2026-11-17; built, pending the user's emulator verdict) | 05 R-121 |
 | C-190 | T-297 onboarding goals donut (`GoalsResult`): lime-glow card, `DonutChart` 1.3x with kcal in the centre, three `LegendRow`s; legend words ("Proteína", "Hidratos", "Grasas") differ from the glossary and are to be replaced by the `macro_*` strings (open ux finding) | 5 | ACCEPTED (user order 2026-11-17; built, pending the user's emulator verdict) | 05 R-121, §10 |
 | C-191 | T-306 routine part icons: user's supplied filled set `ic_part_*` (nine parts + generic dumbbell), 28 dp glyph in the 40 dp `IconBadge` (0.70), gallery section "Iconos de parte de entrenamiento"; `BlockRoutineCard` (BlockWeekTab.kt) not migrated (E9, owner none, optional). Attribution: all nine icons from flaticon.com, one general line in Acerca de "Iconos de entrenamiento|Iconos de Flaticon (flaticon.com)" (text only, no link, no per-author lines; user 2026-11-18). E9 candidate: Trainer session cards (`SessionCardText`, TrainerBlockCard.kt) could show the part icon, only with the user's OK, owner none | 5 | ADOPTED for the icon set and glyph size (user, gallery, 2026-11-18); the on-device look (routine card, details row) is still to be seen by the user | 05 §6.0k, R-125 |
+| C-198 | T-321 sets screen group header: drop the identical `IconBadge`, name never split mid-word, two-row header; test 1.0/1.3/2.0 | 5 | ACCEPTED (PM, 2026-11-23; not built) | 05 R-57 |
+| C-199 | T-321 record row: badge under the facts line from font 1.3 | 5 | ACCEPTED (PM; not built) | 05 R-93 |
+| C-200 | T-321 gallery: one coherent fixture across cards | 5 | ACCEPTED (PM; not built) | gallery |
+| C-201 | T-321 gallery captures not cut at 6600 px (radar, body map visible) | 5 | ACCEPTED (PM; not built) | gallery |
+| C-202 | T-321 gallery: empty-range fixture with body map content and a `bodyMap = Empty` entry | 5 | ACCEPTED (PM; not built) | gallery |
+| C-203 | T-321 progress and records both Error: one `ErrorState`, no records card | 5 | ACCEPTED (PM; not built) | 05 R-32 |
+| C-204 | T-321 margin row: no "Igual" pill; state line "Dentro del margen de un día a otro" with the flat glyph | 5 | ACCEPTED (PM; not built) | 05 §10 |
+| C-205 | T-321 sets screen label "Esta semana"; the "±N vs. semana anterior" pill removed (07 §3 D6: no week-over-week delta; partial vs full week misleads). Also closes C-216(b) | 5 | ACCEPTED (PM; not built) | 05 §10 |
+| C-206 | T-321 `showToneIcon = false` on Up rows | 5 | ACCEPTED (not built) | |
+| C-207 | T-321 single-group chart is `AppBarChart`, zero baseline, current week highlighted | 5 | ACCEPTED (not built) | |
+| C-208 | T-321 sets-groups card title row is the link (`stats_sets_groups_link`), separate link row removed | 5 | ACCEPTED (not built) | |
+| C-209 | Top-bar title wraps at font 1.3+ | 5 | DEFERRED (E9 row J) | |
+| C-210 | "1RM estimado" once under the hero; rows "95 → 101 kg" | 5 | ACCEPTED (not built) | 05 §10 |
+| C-211 | `TimeRangeSelector` "To-/do" | 5 | DEFERRED (E9 row K) | |
+| C-212 | Radar label collision | 5 | DEFERRED (E9 row L) | |
+| C-213 | Muscle detail sheet repeats the figure | 5 | DEFERRED (E9 row M) | |
+| C-214 | `TimeRangeSelector` max width on tablet | 5 | DEFERRED (E9 row N) | |
+| C-215 | Note only, no change | 5 | NOTE | |
+| C-216 | (a) record amount "101 kg (+6 kg)" via shared `week_report_record_amount`; (b) closed by C-205 | 5 | ACCEPTED (a, not built) | 05 R-93 |
+| R-123 T-321 | Progress/record rows carry no exercise picture (verdict glyph leads, weekly report precedent); optional E9 row O | 5 | DECIDED (PM; user may revisit) | 05 R-123 |
 
 Status values:
 - `PROPOSED`: reported by the critic, not decided yet.
