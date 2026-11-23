@@ -3,11 +3,15 @@ package io.github.lopezjavier.appfitness.feature.analytics.stats
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.lopezjavier.appfitness.designsystem.ProgressGlyph
 import io.github.lopezjavier.appfitness.domain.model.ExerciseNames
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSetCount
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
+import io.github.lopezjavier.appfitness.domain.model.RangeProgressResult
+import io.github.lopezjavier.appfitness.domain.model.RangeProgressState
+import io.github.lopezjavier.appfitness.domain.model.RangeRecordKind
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -111,6 +115,8 @@ class TrainingStatsViewModel(
         _uiState.update {
             it.copy(
                 summary = SectionState.Loading,
+                progress = SectionState.Loading,
+                records = SectionState.Loading,
                 setCounts = SectionState.Loading,
                 muscleSets = SectionState.Loading,
                 topExercises = SectionState.Loading,
@@ -127,14 +133,76 @@ class TrainingStatsViewModel(
             val current = async { stats.muscleGroupSets(window.from, window.to) }
             val before = previous?.let { async { stats.muscleGroupSets(it.from, it.to) } }
             val exercises = async { stats.exerciseSetCounts(window.from, window.to) }
+            val progress = async { stats.rangeProgress(window.from, window.to) }
             val lookup = async { exerciseLookup() }
 
             launch { publishSummary(summary.await()) }
             launch { publishSetCounts(range, weekly.await(), window, today) }
             launch { publishMuscles(current.await()) }
             launch { publishRadar(current.await(), before) }
-            launch { publishTopExercises(exercises.await(), lookup.await()) }
+            launch { publishProgress(progress.await(), lookup.await()) }
+            launch { publishTopExercises(exercises.await(), lookup.await(), progress.await()) }
         }
+    }
+
+    /**
+     * One call feeds the progress card and the records card (`07` section 3 D1, D2). A failed call or an exercise
+     * without a name fails both; no exercises or no records is an empty section.
+     */
+    private fun publishProgress(result: Result<RangeProgressResult>, lookup: ExerciseNames?) {
+        val value = result.getOrNull()
+        val progress = if (value == null || lookup == null) null else progressUi(value, lookup)
+        val records = if (value == null || lookup == null) null else recordsUi(value, lookup)
+        _uiState.update {
+            it.copy(
+                progress = when {
+                    progress == null -> SectionState.Error
+                    progress.exercises.isEmpty() -> SectionState.Empty
+                    else -> SectionState.Content(progress)
+                },
+                records = when {
+                    records == null -> SectionState.Error
+                    records.total == 0 -> SectionState.Empty
+                    else -> SectionState.Content(records)
+                },
+            )
+        }
+    }
+
+    private fun progressUi(value: RangeProgressResult, names: ExerciseNames): PeriodProgressUi? = PeriodProgressUi(
+        value.progress.exercises.map {
+            PeriodExerciseUi(
+                exerciseId = it.exerciseId,
+                name = names[it.exerciseId] ?: return null,
+                mainLift = it.mainLift,
+                sessions = it.sessions,
+                state = it.state.toGlyph(),
+                firstKg = it.firstKg,
+                lastKg = it.lastKg,
+                changePct = it.changePct,
+                imageKey = names.imageKeyOf(it.exerciseId),
+            )
+        },
+    )
+
+    private fun recordsUi(value: RangeProgressResult, names: ExerciseNames): PeriodRecordsUi? = PeriodRecordsUi(
+        items = value.records.items.map {
+            PeriodRecordUi(
+                exerciseId = it.exerciseId,
+                name = names[it.exerciseId] ?: return null,
+                e1rm = it.kind == RangeRecordKind.E1rm,
+                valueKg = it.valueKg,
+                previousKg = it.previousKg,
+            )
+        },
+        total = value.records.total,
+    )
+
+    private fun RangeProgressState.toGlyph() = when (this) {
+        RangeProgressState.Up -> ProgressGlyph.Up
+        RangeProgressState.Same -> ProgressGlyph.Same
+        RangeProgressState.Down -> ProgressGlyph.Down
+        RangeProgressState.Uncompared -> ProgressGlyph.Uncompared
     }
 
     private fun publishSummary(result: Result<TrainingSummary>) {
@@ -202,12 +270,25 @@ class TrainingStatsViewModel(
         _uiState.update { it.copy(radar = state) }
     }
 
-    private fun publishTopExercises(result: Result<List<ExerciseSetCount>>, lookup: ExerciseNames?) {
+    /** The change of each principal row comes from [progress]; a failed progress call only leaves it uncompared. */
+    private fun publishTopExercises(
+        result: Result<List<ExerciseSetCount>>,
+        lookup: ExerciseNames?,
+        progress: Result<RangeProgressResult>,
+    ) {
         val rows = result.getOrNull()
+        val byId = progress.getOrNull()?.progress?.exercises.orEmpty().associateBy { it.exerciseId }
         val named = if (rows == null || lookup == null) {
             null
         } else {
-            namedOrNull(rows.sortedByDescending { it.sets }.take(TOP_EXERCISES), lookup)
+            namedOrNull(rows.sortedByDescending { it.sets }.take(TOP_EXERCISES), lookup)?.map { row ->
+                val found = byId[row.exerciseId]
+                if (found == null || found.state == RangeProgressState.Uncompared) {
+                    row
+                } else {
+                    row.copy(changeKg = found.changeKg, compared = true)
+                }
+            }
         }
         val state = when {
             // A failed read or an exercise without a name is a failed section, never a generic row.

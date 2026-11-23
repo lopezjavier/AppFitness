@@ -46,9 +46,9 @@ class StrengthNavigationTest {
     private val muscleVolumeSlot: MuscleVolumeSlot = { modifier, _, onBack ->
         AppScreen(
             "Volumen",
-            modifier.testTag("muscle_volume_screen"),
+            modifier.testTag("muscle_sets_screen"),
             onBack = onBack,
-            testTagPrefix = "muscle_volume",
+            testTagPrefix = "muscle_sets",
         ) {
             Box(Modifier.fillMaxSize())
         }

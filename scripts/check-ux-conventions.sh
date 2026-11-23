@@ -420,9 +420,9 @@ if [ "${#strings_files[@]}" -gt 0 ]; then
     exit "$rc"
   fi
   [ "$rc" -eq 0 ] && report G25 "the word coach in strings.xml (R-100: entrenador)" "$hits"
-  # G26 (R-93): in the Trainer strings and every px_ (premium) string a number and its unit are joined with U+00A0 (&#160;), never a plain space.
+  # G26 (R-93): in the Trainer strings, the stats progress and week report record strings and every px_ (premium) string a number and its unit are joined with U+00A0 (&#160;), never a plain space.
   rc=0
-  hits=$(grep -HnE '<string name="(trainer|block|plan|week_summary|report|px)_[^"]*"[^>]*>[^<]*(%[0-9]\$[sd]|[0-9]) (kg|kcal|min|g|%)([^[:alnum:]]|$)' "${strings_files[@]}") || rc=$?
+  hits=$(grep -HnE '<string name="(trainer|block|plan|week_summary|report|px|stats_progress|week_report_record)_[^"]*"[^>]*>[^<]*(%[0-9]\$[sd]|[0-9]) (kg|kcal|min|g|%)([^[:alnum:]]|$)' "${strings_files[@]}") || rc=$?
   if [ "$rc" -ge 2 ]; then
     echo "UX conventions guard ERROR: grep failed with exit code $rc (G26)." >&2
     exit "$rc"

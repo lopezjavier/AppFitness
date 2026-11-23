@@ -9,7 +9,7 @@ import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.ExerciseProgress
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
-import io.github.lopezjavier.appfitness.domain.model.MuscleVolumeHistory
+import io.github.lopezjavier.appfitness.domain.model.MuscleSetsHistory
 import io.github.lopezjavier.appfitness.domain.model.ProgressMetric
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
 import io.github.lopezjavier.appfitness.domain.model.StrengthSummary
@@ -25,11 +25,6 @@ import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeUiState
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthChip
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthScreen
 import io.github.lopezjavier.appfitness.feature.analytics.StrengthUiState
-import io.github.lopezjavier.appfitness.feature.analytics.stats.MuscleDetail
-import io.github.lopezjavier.appfitness.feature.analytics.stats.SectionState
-import io.github.lopezjavier.appfitness.feature.analytics.stats.StatsExercise
-import io.github.lopezjavier.appfitness.feature.analytics.stats.TrainingStatsScreen
-import io.github.lopezjavier.appfitness.feature.analytics.stats.TrainingStatsUiState
 import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryContent
 import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryDay
 import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryScreen
@@ -37,7 +32,6 @@ import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryUiState
 import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryView
 import io.github.lopezjavier.appfitness.feature.weight.HealthSyncStatus
 import io.github.lopezjavier.appfitness.feature.weight.HealthSyncUiState
-import io.github.lopezjavier.appfitness.quality.qualityStatsState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
@@ -45,7 +39,7 @@ import kotlinx.datetime.YearMonth
 private val Today = GalleryFixtures.today
 private val Chips =
     listOf(
-        StrengthChip("bench", "Press de banca", imageKey = "barbell-bench-press"),
+        StrengthChip("bench", "Press banca", imageKey = "barbell-bench-press"),
         StrengthChip("squat", "Sentadilla", imageKey = "barbell-squat"),
         StrengthChip("row", "Remo"),
     )
@@ -81,20 +75,24 @@ private fun strength(): List<GalleryEntry> {
 
 private fun muscleVolume(): List<GalleryEntry> {
     val weeks = (0..7).map { LocalDate.fromEpochDays(LocalDate(2026, 9, 1).toEpochDays() + 7 * it) }
-    val history = MuscleVolumeHistory(
+    val history = MuscleSetsHistory(
         weeks,
         mapOf(
-            MuscleGroup.Chest to listOf(0.0, 1000.0, 0.0, 2500.0, 0.0, 0.0, 4260.0, 5400.0),
-            MuscleGroup.Back to listOf(100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 300.0),
+            MuscleGroup.Chest to listOf(0.0, 8.0, 0.0, 12.5, 14.0, 10.0, 16.0, 18.5),
+            MuscleGroup.Back to listOf(6.0, 0.0, 0.0, 9.0, 11.0, 10.5, 12.0, 8.0),
+            MuscleGroup.Quads to listOf(10.0, 12.0, 12.0, 14.0, 0.0, 16.0, 16.0, 16.0),
         ),
     )
 
-    fun entry(state: String, ui: MuscleVolumeUiState) = GalleryEntry(
+    fun entry(state: String, ui: MuscleVolumeUiState, wide: Boolean = false, fontScale: Float = 1f) = GalleryEntry(
         PERFIL_AREA,
-        "Volumen",
+        "Series por grupo muscular",
         state,
         covers = setOf("MuscleVolumeRoute"),
         alsoOpenedFrom = listOf("Entreno"),
+        wide = wide,
+        tall = ui is MuscleVolumeUiState.Content,
+        fontScale = fontScale,
     ) {
         MuscleVolumeScreen(ui, onEvent = {}, onStartWorkout = {}, onBack = {})
     }
@@ -104,6 +102,8 @@ private fun muscleVolume(): List<GalleryEntry> {
         entry("error", MuscleVolumeUiState.Error),
         entry("all groups", MuscleVolumeUiState.Content(history, null)),
         entry("one group", MuscleVolumeUiState.Content(history, MuscleGroup.Chest)),
+        entry("all groups, large font (1.3)", MuscleVolumeUiState.Content(history, null), fontScale = 1.3f),
+        entry("all groups, tablet", MuscleVolumeUiState.Content(history, null), wide = true),
     )
 }
 
@@ -128,60 +128,10 @@ private fun exerciseProgress(): List<GalleryEntry> {
     }
     return listOf(
         entry("loading", ExerciseProgressUiState.Loading),
-        entry("empty", ExerciseProgressUiState.Empty("Press de banca")),
+        entry("empty", ExerciseProgressUiState.Empty("Press banca")),
         entry("error", ExerciseProgressUiState.Error),
-        entry("data", ExerciseProgressUiState.Content("Press de banca", ProgressRange.ThreeMonths, two)),
-        entry("one session only", ExerciseProgressUiState.Content("Press de banca", ProgressRange.ThreeMonths, one)),
-    )
-}
-
-private fun trainingStats(): List<GalleryEntry> {
-    val bench = StatsExercise("bench", "Press de banca", 9.0, 3, imageKey = "barbell-bench-press")
-    val full = qualityStatsState() as TrainingStatsUiState
-
-    fun entry(state: String, ui: TrainingStatsUiState, kind: GalleryKind = GalleryKind.Screen, vararg covers: String) =
-        GalleryEntry(
-            PERFIL_AREA,
-            "Estadísticas",
-            state,
-            kind,
-            covers = setOf("StatsRoute") + covers,
-            alsoOpenedFrom = listOf("Entreno"),
-        ) {
-            TrainingStatsScreen(ui, onEvent = {}, onOpenExercise = {}, onBack = {})
-        }
-    return listOf(
-        entry("loading", TrainingStatsUiState()),
-        entry("empty", TrainingStatsUiState(summary = SectionState.Empty)),
-        entry("data", full),
-        entry(
-            "every section failed",
-            TrainingStatsUiState(
-                summary = SectionState.Error,
-                setCounts = SectionState.Error,
-                muscleSets = SectionState.Error,
-                topExercises = SectionState.Error,
-                radar = SectionState.Error,
-                bodyMap = SectionState.Error,
-            ),
-        ),
-        entry(
-            "muscle detail sheet",
-            full.copy(
-                openMuscle = MuscleGroup.Chest,
-                muscleDetail = SectionState.Content(MuscleDetail(MuscleGroup.Chest, 3.0, listOf(bench))),
-            ),
-            GalleryKind.Sheet,
-            "MuscleDetailSheet",
-        ),
-        entry(
-            "muscle detail sheet, not trained",
-            full.copy(
-                openMuscle = MuscleGroup.Quads,
-                muscleDetail = SectionState.Content(MuscleDetail(MuscleGroup.Quads, 0.0, emptyList())),
-            ),
-            GalleryKind.Sheet,
-        ),
+        entry("data", ExerciseProgressUiState.Content("Press banca", ProgressRange.ThreeMonths, two)),
+        entry("one session only", ExerciseProgressUiState.Content("Press banca", ProgressRange.ThreeMonths, one)),
     )
 }
 
@@ -276,4 +226,4 @@ private fun diaryHistory(): List<GalleryEntry> {
 }
 
 internal fun perfilStatsEntries(): List<GalleryEntry> =
-    strength() + muscleVolume() + exerciseProgress() + trainingStats() + activity() + diaryHistory()
+    strength() + muscleVolume() + exerciseProgress() + perfilTrainingStats() + activity() + diaryHistory()

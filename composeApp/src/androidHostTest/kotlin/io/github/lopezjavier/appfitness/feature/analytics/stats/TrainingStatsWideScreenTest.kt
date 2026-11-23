@@ -39,14 +39,17 @@ class TrainingStatsWideScreenTest {
     )
 
     @Test
-    fun wideWindow_showsTheRadarInASecondColumnNextToTheSummary() {
+    fun wideWindow_showsTheRadarInASecondColumnNextToTheProgress() {
         rule.setContent { AppTheme { TrainingStatsScreen(state, {}, {}, {}) } }
         rule.waitForIdle()
 
         rule.onNodeWithTag("stats_radar").performScrollTo()
         val radar = rule.onNodeWithTag("stats_radar").getUnclippedBoundsInRoot()
-        val tiles = rule.onNodeWithTag("stats_tile_workouts").getUnclippedBoundsInRoot()
+        val progress = rule.onNodeWithTag("stats_progress_card").getUnclippedBoundsInRoot()
 
-        assertTrue("radar ${radar.left} should be right of tiles ${tiles.left}", radar.left > tiles.right - 1.dp)
+        assertTrue(
+            "radar ${radar.left} should be right of progress ${progress.left}",
+            radar.left > progress.right - 1.dp,
+        )
     }
 }

@@ -15,5 +15,7 @@ class UnconfiguredTrainingStatsRepositoryTest {
         assertEquals(AppError.Unknown, repository.weeklySetCounts(null, null).appErrorOrNull())
         assertEquals(AppError.Unknown, repository.muscleGroupSets(null, null).appErrorOrNull())
         assertEquals(AppError.Unknown, repository.exerciseSetCounts(null, null).appErrorOrNull())
+        assertEquals(AppError.Unknown, repository.rangeProgress(null, null).appErrorOrNull())
+        assertEquals(AppError.Unknown, repository.weeklyMuscleSets().appErrorOrNull())
     }
 }

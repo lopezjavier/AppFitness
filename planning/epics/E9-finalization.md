@@ -218,6 +218,13 @@ A presentation-only pass (FR-6) over the screens built in E2…E8. Items collect
 | H | Folder-review result rows kept by T-223: `folder_review_result_days_*` ("… Si puedes, reparte…"), `folder_review_result_reps_line` ("… Cámbialo a %4$s-8.") and `folder_review_result_order_line` ("… Pon primero %4$s.") still carry the advice inline (R-57) | Closed by T-225: the figure stays inline, the advice moved into `helpText()` behind the row's `HelpButton` (`folder_review_result_*_help`); the builder/folder-block rows (T-222, T-223) were checked and carry no `_helper`/`_hint` keys. Guard G18 covers the key-named lines. |
 | I | Plain space before "kg" in the shared weekly strings that the block review cards also use (T-318 sweep, R-93): `week_report_sentence_weight`, `week_report_strength_load_reps`, `week_report_lift_up`, `week_report_lift_margin`, `week_report_lift_e1rm`, `week_report_record_e1rm`, `week_report_record_heaviest`, `week_report_record_amount`, `week_report_weight_vs_last`, `week_report_weight_goal`, `week_report_weight_gate`, and the plain space around the dot of `week_report_lift_margin`, `week_report_weight_vs_last`, `week_report_weight_goal`. The block strings are already tied; the weekly ones were left unchanged so the weekly output stays byte-equal | Owner T-319 (next report task, shared weekly strings): NBSP before "kg" and around "·" in these keys and the weekly goldens that quote them. The T-318 grep for `StatusChip(` with a truncating headline found no other instance in `feature/` |
 
+| J | Top-bar title wraps at font scale 1.3+ (C-209, T-321 gallery) | owner: E9. Shared `AppScreen` title: shrink or ellipsis rule. |
+| K | `TimeRangeSelector` "Todo" splits as "To-/do" (C-211, T-321 gallery) | owner: E9. Shared component. |
+| L | Radar chart label collision (C-212, T-321 gallery) | owner: E9. Shared radar component. |
+| M | Muscle detail sheet repeats the figure already in the card (C-213) | owner: E9. |
+| N | `TimeRangeSelector` max width on tablet (C-214) | owner: E9. |
+| O | Progress and record rows of Estadísticas > Entrenos have no exercise picture (R-123; T-321 decision: leading slot is the verdict glyph, as in the weekly report) | owner: E9, optional, only with the user's OK. |
+
 ---
 
 

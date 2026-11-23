@@ -5,7 +5,6 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.MaxRepsPoint
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
-import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleVolumeRow
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import io.github.lopezjavier.appfitness.feature.workout.doneSet
@@ -23,14 +22,6 @@ internal class FakeStrengthRepository : StrengthRepository {
     /** The `includeWarmUp` flag of every [maxRepsHistory] call. */
     val maxRepsWarmUpArgs = mutableListOf<Boolean>()
     var maxRepsWarmUp: Map<String, List<MaxRepsPoint>> = emptyMap()
-    var volumeRows: List<WeeklyMuscleVolumeRow> = emptyList()
-    var volumeFailure: AppError? = null
-    var volumeFromArgs = mutableListOf<LocalDate>()
-
-    override suspend fun weeklyMuscleVolume(from: LocalDate): Result<List<WeeklyMuscleVolumeRow>> {
-        volumeFromArgs += from
-        return volumeFailure?.let { Result.failure(AppException(it)) } ?: Result.success(volumeRows)
-    }
 
     override suspend fun recentSessions(since: Instant): Result<List<WorkoutSession>> =
         sessionsFailure?.let { Result.failure(AppException(it)) } ?: Result.success(sessions)

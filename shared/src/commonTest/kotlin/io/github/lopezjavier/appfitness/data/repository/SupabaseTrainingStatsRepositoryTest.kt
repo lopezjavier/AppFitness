@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.appErrorOrNull
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSetCount
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
+import io.github.lopezjavier.appfitness.domain.model.RangeProgressState
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
 import io.github.lopezjavier.appfitness.domain.model.TestLoginCredentials
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
@@ -146,6 +147,44 @@ class SupabaseTrainingStatsRepositoryTest {
     }
 
     @Test
+    fun rangeProgress_callsTheRpcWithBothBoundsAndMapsTheAnswer() = runTest {
+        val repository = repo()
+        body = """{"exercises":[{"exercise_id":"bench","main_lift":true,"sessions":3,""" +
+            """"first":{"date":"2026-10-01","e1rm_kg":100},"last":{"date":"2026-10-20","e1rm_kg":106},""" +
+            """"change_kg":6,"change_pct":6.0,"state":"up"}],"records":{"items":[],"total":0}}"""
+
+        val result = repository.rangeProgress(LocalDate(2026, 10, 1), LocalDate(2026, 10, 25)).getOrThrow()
+
+        assertTrue(path().endsWith("/rest/v1/rpc/training_range_progress"), path())
+        assertEquals("""{"p_from":"2026-10-01","p_to":"2026-10-25"}""", payload())
+        assertEquals(RangeProgressState.Up, result.progress.exercises.single().state)
+    }
+
+    @Test
+    fun rangeProgress_todoSendsNullFrom() = runTest {
+        val repository = repo()
+        body = """{"exercises":[],"records":{"items":[],"total":0}}"""
+
+        repository.rangeProgress(null, null).getOrThrow()
+
+        assertEquals("""{"p_from":null,"p_to":null}""", payload())
+    }
+
+    @Test
+    fun weeklyMuscleSets_callsTheRpcWithTheWeeksAndMapsTheRows() = runTest {
+        val repository = repo()
+        body = """[{"week_start":"2026-10-12","groups":[{"muscle_group":"chest","sets":4.5}]},""" +
+            """{"week_start":"2026-10-19","groups":[]}]"""
+
+        val weeks = repository.weeklyMuscleSets(8).getOrThrow()
+
+        assertTrue(path().endsWith("/rest/v1/rpc/weekly_muscle_sets"), path())
+        assertEquals("""{"p_weeks":8}""", payload())
+        assertEquals(2, weeks.size)
+        assertEquals(listOf(MuscleGroupSets(MuscleGroup.Chest, 4.5)), weeks.first().groups)
+    }
+
+    @Test
     fun emptyResults_mapToEmptyLists() = runTest {
         val repository = repo()
 
@@ -162,6 +201,8 @@ class SupabaseTrainingStatsRepositoryTest {
         assertEquals(AppError.Unauthorized, repository.weeklySetCounts(null, null).appErrorOrNull())
         assertEquals(AppError.Unauthorized, repository.muscleGroupSets(null, null).appErrorOrNull())
         assertEquals(AppError.Unauthorized, repository.exerciseSetCounts(null, null).appErrorOrNull())
+        assertEquals(AppError.Unauthorized, repository.rangeProgress(null, null).appErrorOrNull())
+        assertEquals(AppError.Unauthorized, repository.weeklyMuscleSets().appErrorOrNull())
         assertTrue(rest().isEmpty())
     }
 
@@ -174,6 +215,8 @@ class SupabaseTrainingStatsRepositoryTest {
         assertEquals(AppError.Network, repository.weeklySetCounts(null, null).appErrorOrNull())
         assertEquals(AppError.Network, repository.muscleGroupSets(null, null).appErrorOrNull())
         assertEquals(AppError.Network, repository.exerciseSetCounts(null, null).appErrorOrNull())
+        assertEquals(AppError.Network, repository.rangeProgress(null, null).appErrorOrNull())
+        assertEquals(AppError.Network, repository.weeklyMuscleSets().appErrorOrNull())
     }
 
     @Test

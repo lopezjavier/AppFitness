@@ -8,10 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_bar_chart
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_insights
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_timer
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_open
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_chart_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_chart_empty
@@ -21,94 +17,22 @@ import io.github.lopezjavier.appfitness.composeapp.resources.stats_exercise_row_
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_exercises_empty
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_exercises_title
 import io.github.lopezjavier.appfitness.composeapp.resources.stats_muscle_row_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.stats_muscles_title
-import io.github.lopezjavier.appfitness.composeapp.resources.stats_tile_duration
-import io.github.lopezjavier.appfitness.composeapp.resources.stats_tile_sets
-import io.github.lopezjavier.appfitness.composeapp.resources.stats_tile_volume
-import io.github.lopezjavier.appfitness.composeapp.resources.stats_tile_workouts
-import io.github.lopezjavier.appfitness.composeapp.resources.stats_unit_kg
-import io.github.lopezjavier.appfitness.composeapp.resources.stats_unit_tonne
 import io.github.lopezjavier.appfitness.designsystem.AppBarChart
-import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
-import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ExerciseRow
-import io.github.lopezjavier.appfitness.designsystem.MetricTile
-import io.github.lopezjavier.appfitness.designsystem.MetricTileRow
 import io.github.lopezjavier.appfitness.designsystem.MuscleSplitBar
-import io.github.lopezjavier.appfitness.designsystem.NavigationRow
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.durationText
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
-import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.label
 import io.github.lopezjavier.appfitness.feature.exercises.tagName
 import io.github.lopezjavier.appfitness.feature.workout.shortLabel
 import org.jetbrains.compose.resources.stringResource
 
-private val TilesHeight = Spacing.xl * 6
 private val ChartHeight = Spacing.xl * 8
 private val RowsHeight = Spacing.xl * 12
 private val ExercisesHeight = Spacing.xl * 6
-
-/** The four key values of the frame as a 2x2 grid of tiles. */
-@Composable
-internal fun SummaryTiles(summary: SectionState<TrainingSummary>, onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    val colors = AppTheme.colors
-    StatsBlock(summary, StatsSection.Summary, TilesHeight, onRetry, modifier) { data ->
-        val volume = AppNumberFormat.volume(
-            data.volume,
-            stringResource(Res.string.stats_unit_kg),
-            stringResource(Res.string.stats_unit_tonne),
-        )
-        val tiles = listOf<@Composable (Modifier) -> Unit>(
-            { m ->
-                MetricTile(
-                    stringResource(Res.string.stats_tile_workouts),
-                    AppNumberFormat.integer(data.workouts),
-                    m.testTag("stats_tile_workouts"),
-                    accent = colors.neonLime,
-                    icon = Res.drawable.ic_fitness_center,
-                )
-            },
-            { m ->
-                MetricTile(
-                    stringResource(Res.string.stats_tile_sets),
-                    AppNumberFormat.integer(data.sets),
-                    m.testTag("stats_tile_sets"),
-                    accent = colors.athleticCyan,
-                    icon = Res.drawable.ic_bar_chart,
-                )
-            },
-            { m ->
-                MetricTile(
-                    stringResource(Res.string.stats_tile_volume),
-                    volume.first,
-                    m.testTag("stats_tile_volume"),
-                    unit = volume.second,
-                    accent = colors.energyAmber,
-                    icon = Res.drawable.ic_insights,
-                )
-            },
-            { m ->
-                MetricTile(
-                    stringResource(Res.string.stats_tile_duration),
-                    durationText(data.durationSeconds),
-                    m.testTag("stats_tile_duration"),
-                    accent = colors.macroFat,
-                    icon = Res.drawable.ic_timer,
-                )
-            },
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            tiles.chunked(2).forEach { pair ->
-                MetricTileRow(pair, spacing = Spacing.md)
-            }
-        }
-    }
-}
 
 /** Set-count bar chart: weekly buckets up to 6M, monthly for 1A and "Todo". */
 @Composable
@@ -153,7 +77,6 @@ internal fun SetCountCard(
                 labels = labels,
                 description = description,
                 modifier = Modifier.fillMaxWidth().testTag("stats_set_chart"),
-                valueLabel = { AppNumberFormat.integer(it) },
             )
         }
     }
@@ -167,7 +90,12 @@ internal fun MuscleRowsCard(
     modifier: Modifier = Modifier,
     onOpenMuscleVolume: () -> Unit = {},
 ) {
-    StatsCard(stringResource(Res.string.stats_muscles_title), modifier) {
+    StatsCard(
+        title = stringResource(Res.string.muscle_volume_open),
+        modifier = modifier,
+        onTitleClick = onOpenMuscleVolume,
+        titleTag = "stats_sets_groups_link",
+    ) {
         StatsBlock(muscleSets, StatsSection.Muscles, RowsHeight, onRetry) { rows ->
             val max = rows.maxOfOrNull { it.sets } ?: 0.0
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
@@ -182,17 +110,12 @@ internal fun MuscleRowsCard(
                         modifier = Modifier.testTag("stats_muscle_row_${row.muscleGroup.tagName()}"),
                     )
                 }
-                NavigationRow(
-                    label = stringResource(Res.string.muscle_volume_open),
-                    onClick = onOpenMuscleVolume,
-                    modifier = Modifier.testTag("stats_open_muscle_volume"),
-                )
             }
         }
     }
 }
 
-/** Top exercises of the frame; a row opens the progress of the exercise. */
+/** "Ejercicios principales" of the frame with their change; a row opens the progress of the exercise. */
 @Composable
 internal fun TopExercisesCard(
     exercises: SectionState<List<StatsExercise>>,
@@ -211,9 +134,7 @@ internal fun TopExercisesCard(
             },
         ) { rows ->
             Column {
-                rows.forEach {
-                    StatsExerciseRow(it, "stats_exercise_row_${it.exerciseId}", { onOpenExercise(it.exerciseId) })
-                }
+                rows.forEach { PrincipalExerciseRow(it) { onOpenExercise(it.exerciseId) } }
             }
         }
     }

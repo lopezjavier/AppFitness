@@ -3,7 +3,6 @@ package io.github.lopezjavier.appfitness.data.repository
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.MaxRepsPoint
-import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleVolumeRow
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
 import kotlinx.datetime.LocalDate
@@ -20,6 +19,4 @@ class UnconfiguredStrengthRepository : StrengthRepository {
         from: LocalDate?,
         includeWarmUp: Boolean,
     ): Result<List<MaxRepsPoint>> = fail()
-
-    override suspend fun weeklyMuscleVolume(from: LocalDate): Result<List<WeeklyMuscleVolumeRow>> = fail()
 }

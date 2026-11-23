@@ -5,8 +5,10 @@ import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSetCount
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
+import io.github.lopezjavier.appfitness.domain.model.RangeProgressResult
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
+import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleSets
 import io.github.lopezjavier.appfitness.domain.repository.TrainingStatsRepository
 import kotlinx.datetime.LocalDate
 
@@ -25,4 +27,8 @@ class UnconfiguredTrainingStatsRepository : TrainingStatsRepository {
         to: LocalDate?,
         muscleGroup: MuscleGroup?,
     ): Result<List<ExerciseSetCount>> = fail()
+
+    override suspend fun rangeProgress(from: LocalDate?, to: LocalDate?): Result<RangeProgressResult> = fail()
+
+    override suspend fun weeklyMuscleSets(weeks: Int): Result<List<WeeklyMuscleSets>> = fail()
 }

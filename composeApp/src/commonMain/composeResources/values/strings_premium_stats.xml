@@ -9,5 +9,4 @@
     <string name="px_stats_tile_last">Última</string>
     <string name="px_stats_tile_best">Mejor</string>
     <string name="px_stats_tile_change">Cambio</string>
-    <string name="px_stats_week_delta">%1$s&#160;kg vs. semana anterior</string>
 </resources>

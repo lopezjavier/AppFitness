@@ -80,7 +80,7 @@ class WideWindowTest {
         rule.onNodeWithTag("training_stats_two_column").performScrollTo().assertIsDisplayed()
         assertNoWiderThan("training_stats_two_column", WindowWidthClassDefaults.TwoColumnContentMaxWidth)
         rule.onNodeWithTag("stats_radar").performScrollTo()
-        assertLeftOfRight("stats_tile_workouts", "stats_radar")
+        assertLeftOfRight("stats_progress_card", "stats_radar")
     }
 
     @Test

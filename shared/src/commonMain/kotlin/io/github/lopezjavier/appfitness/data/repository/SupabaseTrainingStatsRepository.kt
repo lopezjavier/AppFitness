@@ -8,14 +8,20 @@ import io.github.lopezjavier.appfitness.data.remote.ExerciseSetCountsParams
 import io.github.lopezjavier.appfitness.data.remote.MuscleGroupSetsRowDto
 import io.github.lopezjavier.appfitness.data.remote.StatsWindowParams
 import io.github.lopezjavier.appfitness.data.remote.TrainingSummaryRowDto
+import io.github.lopezjavier.appfitness.data.remote.WeeklyMuscleSetsParams
 import io.github.lopezjavier.appfitness.data.remote.WeeklySetCountRowDto
+import io.github.lopezjavier.appfitness.data.remote.rangeProgressOf
+import io.github.lopezjavier.appfitness.data.remote.weeklyMuscleSetsOf
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSetCount
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
+import io.github.lopezjavier.appfitness.domain.model.RangeProgressResult
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
+import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleSets
 import io.github.lopezjavier.appfitness.domain.repository.TrainingStatsRepository
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.json.JsonElement
 
 /** Training statistics of the signed-in user through the read-only statistics RPCs (RLS scopes them). */
 class SupabaseTrainingStatsRepository(private val auth: Auth, private val postgrest: Postgrest) :
@@ -47,5 +53,13 @@ class SupabaseTrainingStatsRepository(private val auth: Auth, private val postgr
         postgrest.rpc("exercise_set_counts", ExerciseSetCountsParams(from, to, muscleGroup))
             .decodeList<ExerciseSetCountRowDto>()
             .map { it.toDomain() }
+    }
+
+    override suspend fun rangeProgress(from: LocalDate?, to: LocalDate?): Result<RangeProgressResult> = auth.ownRow {
+        rangeProgressOf(postgrest.rpc("training_range_progress", StatsWindowParams(from, to)).decodeAs<JsonElement>())
+    }
+
+    override suspend fun weeklyMuscleSets(weeks: Int): Result<List<WeeklyMuscleSets>> = auth.ownRow {
+        weeklyMuscleSetsOf(postgrest.rpc("weekly_muscle_sets", WeeklyMuscleSetsParams(weeks)).decodeAs<JsonElement>())
     }
 }

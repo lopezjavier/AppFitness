@@ -787,12 +787,6 @@
     <string name="strength_title">Fuerza</string>
     <string name="stats_title">Entrenos</string>
     <string name="profile_training_stats_row">Entrenos</string>
-    <string name="stats_tile_workouts">Entrenos</string>
-    <string name="stats_tile_sets">Series</string>
-    <string name="stats_tile_volume">Volumen</string>
-    <string name="stats_tile_duration">Duración</string>
-    <string name="stats_unit_kg">kg</string>
-    <string name="stats_unit_tonne">t</string>
     <string name="stats_duration_hm">%1$d h %2$d min</string>
     <string name="stats_duration_h">%1$d h</string>
     <string name="stats_duration_m">%1$d min</string>
@@ -829,8 +823,21 @@
     <string name="stats_chart_title_month">Series por mes</string>
     <string name="stats_chart_cd">%1$s en el periodo, máximo %2$s en %3$s</string>
     <string name="stats_chart_empty">Sin series en este periodo</string>
-    <string name="stats_muscles_title">Series por grupo muscular</string>
     <string name="stats_muscle_row_cd">%1$s: %2$s</string>
+    <string name="stats_progress_title">Tu progreso en este periodo</string>
+    <string name="stats_progress_none">Con dos entrenos de un ejercicio en este periodo, verás si sube.</string>
+    <string name="stats_progress_up">Sube +%1$s&#160;%</string>
+    <string name="stats_progress_down">Baja −%1$s&#160;%</string>
+    <string name="stats_progress_margin">Dentro del margen de un día a otro</string>
+    <string name="stats_progress_compare">%1$s&#160;→&#160;%2$s&#160;kg</string>
+    <string name="stats_progress_e1rm_caption">1RM estimado</string>
+    <string name="stats_progress_row_cd">%1$s: %2$s</string>
+    <string name="stats_records_title">Récords de este periodo</string>
+    <plurals name="stats_records_total">
+        <item quantity="one">%1$d récord en este periodo</item>
+        <item quantity="other">%1$d récords en este periodo</item>
+    </plurals>
+    <string name="stats_principal_change">%1$s&#160;kg</string>
     <string name="stats_exercises_title">Ejercicios principales</string>
     <string name="stats_exercises_empty">Aún no hay ejercicios en este periodo</string>
     <string name="stats_exercise_row_detail">%1$s · %2$s</string>
@@ -856,7 +863,7 @@
     <string name="body_view_back">Espalda</string>
     <string name="stats_sheet_subtitle">Últimos 7 días · %1$s</string>
     <string name="stats_sheet_empty">No has entrenado este músculo en los últimos 7 días.</string>
-    <string name="muscle_volume_title">Kilos por grupo muscular</string>
+    <string name="muscle_volume_title">Series por grupo muscular</string>
     <string name="strength_card_title">1RM estimado</string>
     <string name="strength_record">Récord 1RM estimado: %1$s kg</string>
     <string name="strength_record_none">Sin récord de 1RM todavía</string>
@@ -892,17 +899,18 @@
     <string name="chart_date_short">%1$d %2$s</string>
 
     <!-- T-048b weekly muscle volume -->
-    <string name="muscle_volume_open">Kilos por grupo muscular</string>
+    <string name="muscle_volume_open">Series por grupo muscular</string>
     <string name="muscle_volume_all">Todos</string>
     <string name="muscle_volume_caption">Últimas 8 semanas, de lunes a domingo.</string>
-    <string name="muscle_volume_last_week">Última semana</string>
-    <string name="muscle_volume_current_value">%1$s kg</string>
-    <string name="muscle_volume_card_cd">%1$s, semana actual %2$s kg</string>
-    <string name="muscle_volume_chart_title">%1$s: kg por semana</string>
-    <string name="muscle_volume_chart_cd">%1$s, kg por semana: %2$s</string>
+    <string name="muscle_volume_help_cd">Ayuda: series por grupo muscular</string>
+    <string name="muscle_volume_help_body">Cada serie cuenta una serie para el músculo principal y media serie para cada músculo secundario.</string>
+    <string name="muscle_volume_last_week">Esta semana</string>
+    <string name="muscle_volume_card_cd">%1$s. Esta semana: %2$s</string>
+    <string name="muscle_volume_chart_title">%1$s: series por semana</string>
+    <string name="muscle_volume_chart_cd">%1$s, series por semana: %2$s</string>
     <string name="muscle_volume_chart_cd_week">semana del %1$s, %2$s</string>
-    <string name="muscle_volume_empty_message">Aún no hay volumen en las últimas 8 semanas. Entrena para verlo por grupo muscular.</string>
-    <string name="muscle_volume_error_message">No se pudo cargar el volumen por grupo muscular.</string>
+    <string name="muscle_volume_empty_message">Aún no hay series en las últimas 8 semanas. Entrena para verlas por grupo muscular.</string>
+    <string name="muscle_volume_error_message">No se han podido cargar las series por grupo muscular.</string>
     <string name="diary_prev_day">Día anterior</string>
     <string name="diary_next_day">Día siguiente</string>
     <string name="diary_goals_prompt_title">Configura tu objetivo</string>
@@ -2569,9 +2577,9 @@
     <string name="week_report_lift_provisional">Provisional: aún pocas semanas</string>
     <string name="week_report_lift_e1rm">1RM est. %1$s kg</string>
     <string name="week_report_records_title">Récords</string>
-    <string name="week_report_record_e1rm">1RM estimado · antes %1$s kg</string>
-    <string name="week_report_record_heaviest">Más peso · antes %1$s kg</string>
-    <string name="week_report_record_amount">%1$s kg (+%2$s)</string>
+    <string name="week_report_record_e1rm">1RM estimado&#160;·&#160;antes %1$s&#160;kg</string>
+    <string name="week_report_record_heaviest">Más peso&#160;·&#160;antes %1$s&#160;kg</string>
+    <string name="week_report_record_amount">%1$s&#160;kg (+%2$s&#160;kg)</string>
     <string name="week_report_weight_title">Peso</string>
     <string name="week_report_weight_help_cd">Ayuda: Peso</string>
     <string name="week_report_weight_help_body">De una semana a otra el peso sube y baja por agua y comida; tu ritmo es la tendencia de varias semanas.</string>
