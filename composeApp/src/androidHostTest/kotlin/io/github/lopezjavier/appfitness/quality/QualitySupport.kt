@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.width
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.ProgressGlyph
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.MealCode
@@ -21,6 +22,7 @@ import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
+import io.github.lopezjavier.appfitness.domain.model.MuscleSetsHistory
 import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
 import io.github.lopezjavier.appfitness.domain.port.Clock
@@ -29,7 +31,12 @@ import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.feature.activity.ActivityUiState
 import io.github.lopezjavier.appfitness.feature.activity.activityContent
+import io.github.lopezjavier.appfitness.feature.analytics.MuscleVolumeUiState
 import io.github.lopezjavier.appfitness.feature.analytics.stats.MuscleRadar
+import io.github.lopezjavier.appfitness.feature.analytics.stats.PeriodExerciseUi
+import io.github.lopezjavier.appfitness.feature.analytics.stats.PeriodProgressUi
+import io.github.lopezjavier.appfitness.feature.analytics.stats.PeriodRecordUi
+import io.github.lopezjavier.appfitness.feature.analytics.stats.PeriodRecordsUi
 import io.github.lopezjavier.appfitness.feature.analytics.stats.SectionState
 import io.github.lopezjavier.appfitness.feature.analytics.stats.StatsExercise
 import io.github.lopezjavier.appfitness.feature.analytics.stats.TrainingStatsUiState
@@ -128,15 +135,31 @@ internal fun qualityLiveState(): LiveSessionUiState.Active {
 
 internal fun qualityActivityState(): ActivityUiState.Content = activityContent()
 
+internal fun qualityMuscleSetsState(): MuscleVolumeUiState.Content {
+    val weeks = (0..7).map { LocalDate.fromEpochDays(LocalDate(2026, 9, 7).toEpochDays() + 7 * it) }
+    val chest = listOf(0.0, 8.0, 0.0, 12.5, 14.0, 10.0, 16.0, 18.5)
+    return MuscleVolumeUiState.Content(MuscleSetsHistory(weeks, mapOf(MuscleGroup.Chest to chest)), null)
+}
+
 internal fun qualityStatsState(): TrainingStatsUiState {
     val groups = MuscleGroup.entries.map { MuscleGroupSets(it, if (it == MuscleGroup.Chest) 3.0 else 0.0) }
     val state = TrainingStatsUiState(
         summary = SectionState.Content(
-            TrainingSummary(workouts = 124, sets = 4_520, volume = 1_250_500.0, durationSeconds = 360_000),
+            TrainingSummary(workouts = 24, sets = 412, volume = 0.0, durationSeconds = 0),
         ),
-        setCounts = SectionState.Content(listOf(SetCountPoint(LocalDate(2026, 10, 5), 24))),
+        progress = SectionState.Content(
+            PeriodProgressUi(
+                listOf(PeriodExerciseUi("bench", "Press banca", true, 3, ProgressGlyph.Up, 95.0, 101.0, 6.3)),
+            ),
+        ),
+        records = SectionState.Content(
+            PeriodRecordsUi(listOf(PeriodRecordUi("bench", "Press banca", true, 101.0, 95.0)), 1),
+        ),
+        setCounts = SectionState.Content(listOf(SetCountPoint(LocalDate(2026, 10, 5), 412))),
         muscleSets = SectionState.Content(groups),
-        topExercises = SectionState.Content(listOf(StatsExercise("bench", "Press banca", 9.0, 3))),
+        topExercises = SectionState.Content(
+            listOf(StatsExercise("bench", "Press banca", 36.0, 3, changeKg = 6.0, compared = true)),
+        ),
         radar = SectionState.Content(MuscleRadar(groups, null)),
         bodyMap = SectionState.Content(groups.filter { it.muscleGroup != MuscleGroup.FullBody }),
     )

@@ -1,142 +1,81 @@
 package io.github.lopezjavier.appfitness.domain.usecase
 
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
-import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleVolumeRow
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
+import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleSets
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class BuildMuscleVolumeHistoryTest {
-    // 2026-10-19 is a Monday.
-    private val monday = LocalDate(2026, 10, 19)
+class BuildMuscleSetsHistoryTest {
+    // 2026-08-31 is a Monday: eight consecutive weeks end on 2026-10-19.
+    private val first = LocalDate(2026, 8, 31)
 
-    private fun row(week: LocalDate, group: MuscleGroup, volume: Double) = WeeklyMuscleVolumeRow(week, group, volume)
+    private fun weeks(vararg groupsPerWeek: List<MuscleGroupSets>): List<WeeklyMuscleSets> =
+        groupsPerWeek.mapIndexed { i, groups -> WeeklyMuscleSets(first.plus(i, DateTimeUnit.WEEK), groups) }
 
-    @Test
-    fun windowStart_isSevenWeeksBeforeTheCurrentMonday() {
-        assertEquals(LocalDate(2026, 8, 31), BuildMuscleVolumeHistory.windowStart(monday))
-        assertEquals(LocalDate(2026, 8, 31), BuildMuscleVolumeHistory.windowStart(LocalDate(2026, 10, 25)))
-    }
+    private fun eight(last: List<MuscleGroupSets>, firstWeek: List<MuscleGroupSets> = emptyList()) =
+        weeks(firstWeek, emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), last)
 
     @Test
-    fun firstSessionTwoWeeksAgo_givesThreeWeeks() {
-        val history = BuildMuscleVolumeHistory(listOf(row(LocalDate(2026, 10, 5), MuscleGroup.Chest, 10.0)), monday)
-
-        assertEquals(3, history.weeks.size)
-        assertEquals(LocalDate(2026, 10, 5), history.weeks.first())
-        assertEquals(monday, history.weeks.last())
-    }
-
-    @Test
-    fun firstSessionThisWeek_givesOneWeek() {
-        val history = BuildMuscleVolumeHistory(listOf(row(monday, MuscleGroup.Chest, 10.0)), LocalDate(2026, 10, 25))
-
-        assertEquals(listOf(monday), history.weeks)
-    }
-
-    @Test
-    fun firstSessionTenWeeksAgo_isCappedAtEightWeeksAndOlderRowsDoNotLeak() {
-        val rows = listOf(
-            row(LocalDate(2026, 8, 10), MuscleGroup.Chest, 999.0),
-            row(monday, MuscleGroup.Chest, 3000.0),
-        )
-
-        val history = BuildMuscleVolumeHistory(rows, monday)
+    fun weeks_areTheMondaysOfTheInputInOrder() {
+        val history = BuildMuscleSetsHistory(eight(emptyList()))
 
         assertEquals(8, history.weeks.size)
-        assertEquals(LocalDate(2026, 8, 31), history.weeks.first())
-        assertEquals(listOf(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3000.0), history.series.getValue(MuscleGroup.Chest))
+        assertEquals(first, history.weeks.first())
+        assertEquals(LocalDate(2026, 10, 19), history.weeks.last())
     }
 
     @Test
-    fun firstSessionOlderThanTheCap_keepsEightWeeksEvenWithZerosInTheOldestOnes() {
-        val rows = listOf(row(LocalDate(2026, 1, 5), MuscleGroup.Back, 1.0), row(monday, MuscleGroup.Chest, 5.0))
+    fun halfSets_areKept() {
+        val history = BuildMuscleSetsHistory(eight(listOf(MuscleGroupSets(MuscleGroup.Triceps, 4.5))))
 
-        assertEquals(8, BuildMuscleVolumeHistory(rows, monday).weeks.size)
+        assertEquals(4.5, history.series.getValue(MuscleGroup.Triceps).last())
     }
 
     @Test
-    fun gapWeekAfterTheFirstSession_isZero() {
-        val rows = listOf(row(LocalDate(2026, 10, 5), MuscleGroup.Chest, 7.0), row(monday, MuscleGroup.Chest, 3.0))
-
-        val history = BuildMuscleVolumeHistory(rows, monday)
-
-        assertEquals(listOf(7.0, 0.0, 3.0), history.series.getValue(MuscleGroup.Chest))
-    }
-
-    @Test
-    fun emptyRows_giveNoWeeksAndNoSeries() {
-        val history = BuildMuscleVolumeHistory(emptyList(), monday)
-
-        assertTrue(history.weeks.isEmpty())
-        assertTrue(history.series.isEmpty())
-    }
-
-    @Test
-    fun weeks_endOnTheMondayOfTheCurrentWeekWhenTodayIsSunday() {
-        val history =
-            BuildMuscleVolumeHistory(
-                listOf(row(LocalDate(2026, 8, 31), MuscleGroup.Chest, 1.0)),
-                LocalDate(2026, 10, 25),
-            )
-
-        assertEquals(monday, history.weeks.last())
-        assertEquals(LocalDate(2026, 8, 31), history.weeks.first())
-    }
-
-    @Test
-    fun series_fillsZeroWeeksAndKeepsTheGaps() {
-        val rows = listOf(
-            row(LocalDate(2026, 9, 7), MuscleGroup.Chest, 5400.0),
-            row(monday, MuscleGroup.Chest, 3000.0),
+    fun emptyWeeks_areZeroAndKeepTheGaps() {
+        val history = BuildMuscleSetsHistory(
+            eight(listOf(MuscleGroupSets(MuscleGroup.Chest, 3.0)), listOf(MuscleGroupSets(MuscleGroup.Chest, 6.5))),
         )
 
-        val history = BuildMuscleVolumeHistory(rows, monday)
-
-        assertEquals(listOf(5400.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3000.0), history.series.getValue(MuscleGroup.Chest))
+        assertEquals(listOf(6.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0), history.series.getValue(MuscleGroup.Chest))
     }
 
     @Test
-    fun series_dropsGroupsWithOnlyZeros() {
-        val rows = listOf(row(monday, MuscleGroup.Chest, 100.0), row(monday, MuscleGroup.Back, 0.0))
-
-        val history = BuildMuscleVolumeHistory(rows, monday)
+    fun groupWithoutAnySets_isAbsent() {
+        val history = BuildMuscleSetsHistory(
+            eight(listOf(MuscleGroupSets(MuscleGroup.Chest, 2.0), MuscleGroupSets(MuscleGroup.Back, 0.0))),
+        )
 
         assertEquals(listOf(MuscleGroup.Chest), history.series.keys.toList())
     }
 
     @Test
-    fun series_areOrderedByTheEnum() {
-        val rows = listOf(row(monday, MuscleGroup.Quads, 1.0), row(monday, MuscleGroup.Chest, 1.0))
-
-        val history = BuildMuscleVolumeHistory(rows, monday)
+    fun series_followTheEnumOrder() {
+        val history = BuildMuscleSetsHistory(
+            eight(listOf(MuscleGroupSets(MuscleGroup.Quads, 1.0), MuscleGroupSets(MuscleGroup.Chest, 1.0))),
+        )
 
         assertEquals(listOf(MuscleGroup.Chest, MuscleGroup.Quads), history.series.keys.toList())
     }
 
     @Test
-    fun series_ignoreRowsOutsideTheWindowOrOffMondays() {
-        val rows = listOf(
-            row(LocalDate(2026, 8, 24), MuscleGroup.Chest, 999.0),
-            row(LocalDate(2026, 10, 26), MuscleGroup.Chest, 999.0),
-            row(LocalDate(2026, 10, 20), MuscleGroup.Chest, 999.0),
-        )
+    fun allWeeksEmpty_giveWeeksButNoSeries() {
+        val history = BuildMuscleSetsHistory(eight(emptyList()))
 
-        assertTrue(BuildMuscleVolumeHistory(rows, monday).series.isEmpty())
+        assertEquals(8, history.weeks.size)
+        assertTrue(history.series.isEmpty())
     }
 
     @Test
-    fun series_sumRowsOfTheSameGroupAndWeek() {
-        val rows = listOf(row(monday, MuscleGroup.Back, 100.0), row(monday, MuscleGroup.Back, 50.0))
+    fun noWeeks_giveAnEmptyHistory() {
+        val history = BuildMuscleSetsHistory(emptyList())
 
-        val history = BuildMuscleVolumeHistory(rows, monday)
-
-        assertEquals(150.0, history.series.getValue(MuscleGroup.Back).last())
-    }
-
-    @Test
-    fun emptyRows_giveEmptySeries() {
-        assertTrue(BuildMuscleVolumeHistory(emptyList(), monday).series.isEmpty())
+        assertTrue(history.weeks.isEmpty())
+        assertTrue(history.series.isEmpty())
     }
 }

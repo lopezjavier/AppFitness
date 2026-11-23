@@ -38,16 +38,16 @@ class TrainingStatsNavigationTest {
         AppScreen("Entrenos", modifier.testTag("stats_screen"), onBack = onBack, testTagPrefix = "stats") {
             Column {
                 Box(Modifier.size(48.dp).testTag("stats_open_exercise").clickable { onOpenExercise("bench") })
-                Box(Modifier.size(48.dp).testTag("stats_open_muscle_volume").clickable(onClick = onOpenMuscleVolume))
+                Box(Modifier.size(48.dp).testTag("stats_sets_groups_link").clickable(onClick = onOpenMuscleVolume))
             }
         }
     }
     private val muscleVolumeSlot: MuscleVolumeSlot = { modifier, _, onBack ->
         AppScreen(
-            "Kilos por grupo muscular",
-            modifier.testTag("muscle_volume_screen"),
+            "Series por grupo muscular",
+            modifier.testTag("muscle_sets_screen"),
             onBack = onBack,
-            testTagPrefix = "muscle_volume",
+            testTagPrefix = "muscle_sets",
         ) {}
     }
     private val progressSlot: ExerciseProgressSlot = { modifier, exerciseId, _ ->
@@ -86,15 +86,15 @@ class TrainingStatsNavigationTest {
     }
 
     @Test
-    fun kilosPorGrupoRow_opensTheScreen_andBackReturnsToEstadisticas() {
+    fun setsGroupsLink_opensTheScreen_andBackReturnsToEstadisticas() {
         showShell()
         rule.onNodeWithTag("nav_tab_profile").performClick()
         rule.onNodeWithTag("profile_open_stats").performClick()
-        rule.onNodeWithTag("stats_open_muscle_volume").performClick()
+        rule.onNodeWithTag("stats_sets_groups_link").performClick()
         rule.waitForIdle()
 
-        rule.onNodeWithTag("muscle_volume_screen").assertExists()
-        rule.onNodeWithTag("muscle_volume_back").performClick()
+        rule.onNodeWithTag("muscle_sets_screen").assertExists()
+        rule.onNodeWithTag("muscle_sets_back").performClick()
         rule.waitForIdle()
         rule.onNodeWithTag("stats_screen").assertExists()
     }

@@ -264,5 +264,5 @@ class PerfilGallery {
     fun rendersWeight() = rule.renderGallery(perfilWeightEntries().filter { !it.wide && !it.tall })
 
     @Test
-    fun rendersStatistics() = rule.renderGallery(perfilStatsEntries().filter { !it.wide && !it.tall })
+    fun rendersStatistics() = rule.renderGallery(perfilStatsEntries().filter { !it.wide && !it.tall && !it.tallest })
 }

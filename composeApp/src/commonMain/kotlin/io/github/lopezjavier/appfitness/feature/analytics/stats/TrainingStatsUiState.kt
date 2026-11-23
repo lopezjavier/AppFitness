@@ -29,6 +29,9 @@ data class StatsExercise(
     val sets: Double,
     val sessions: Int,
     val imageKey: String? = null,
+    /** "Ejercicios principales" (D4): the change of the estimated 1RM over the range; null when [compared] is false. */
+    val changeKg: Double? = null,
+    val compared: Boolean = false,
 )
 
 /**
@@ -51,6 +54,8 @@ data class MuscleDetail(val group: MuscleGroup, val sets: Double, val exercises:
 data class TrainingStatsUiState(
     val range: ProgressRange = TrainingStatsViewModel.DEFAULT_RANGE,
     val summary: SectionState<TrainingSummary> = SectionState.Loading,
+    val progress: SectionState<PeriodProgressUi> = SectionState.Loading,
+    val records: SectionState<PeriodRecordsUi> = SectionState.Loading,
     val setCounts: SectionState<List<SetCountPoint>> = SectionState.Loading,
     val muscleSets: SectionState<List<MuscleGroupSets>> = SectionState.Loading,
     val topExercises: SectionState<List<StatsExercise>> = SectionState.Loading,
@@ -63,7 +68,16 @@ data class TrainingStatsUiState(
 
     /** Every block failed to load (R-114): the screen shows one error instead of one per block. */
     val allFailed: Boolean
-        get() = listOf(summary, setCounts, muscleSets, topExercises, radar, bodyMap).all { it == SectionState.Error }
+        get() = listOf(summary, progress, records, setCounts, muscleSets, topExercises, radar, bodyMap).all {
+            it ==
+                SectionState.Error
+        }
+
+    /** The records card exists only with records: an Error or Empty records section hides it (no error card). */
+    val recordsCardVisible: Boolean get() = records is SectionState.Content
+
+    /** One error covers progress and records together; the screen never shows a second one for the records. */
+    val progressErrorVisible: Boolean get() = progress == SectionState.Error
 
     /** The frame is empty and the 7-day body map has no sets either: one empty state says it all (R-31). */
     val isFullyEmpty: Boolean
@@ -74,7 +88,7 @@ data class TrainingStatsUiState(
         }
 }
 
-enum class StatsSection { Summary, Chart, Muscles, Exercises, Radar, Body, Sheet }
+enum class StatsSection { Summary, Progress, Records, Chart, Muscles, Exercises, Radar, Body, Sheet }
 
 sealed interface TrainingStatsEvent {
     data class SelectRange(val range: ProgressRange) : TrainingStatsEvent

@@ -27,6 +27,8 @@ internal class GalleryEntry(
     val wide: Boolean = false,
     /** Renders the entry on a 2200 dp tall window (a long screen such as the design system catalog). */
     val tall: Boolean = false,
+    /** Renders the entry on a 4400 dp tall window (a screen longer than 2200 dp whose last cards must show). */
+    val tallest: Boolean = false,
     val fontScale: Float = 1f,
     val interact: (ComposeContentTestRule.() -> Unit)? = null,
     val content: @Composable () -> Unit,

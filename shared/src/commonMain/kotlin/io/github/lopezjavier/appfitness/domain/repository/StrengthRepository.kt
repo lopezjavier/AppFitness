@@ -1,7 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
 import io.github.lopezjavier.appfitness.domain.model.MaxRepsPoint
-import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleVolumeRow
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSession
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
@@ -17,7 +16,4 @@ interface StrengthRepository {
         from: LocalDate? = null,
         includeWarmUp: Boolean = false,
     ): Result<List<MaxRepsPoint>>
-
-    /** Volume per muscle group and ISO week since [from]; weeks and groups without data are absent. */
-    suspend fun weeklyMuscleVolume(from: LocalDate): Result<List<WeeklyMuscleVolumeRow>>
 }

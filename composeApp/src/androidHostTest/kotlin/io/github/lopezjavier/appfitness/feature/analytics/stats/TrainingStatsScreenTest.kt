@@ -5,13 +5,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -20,6 +25,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.ProgressGlyph
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
 import io.github.lopezjavier.appfitness.domain.model.ProgressRange
@@ -27,8 +33,11 @@ import io.github.lopezjavier.appfitness.domain.model.SetCountPoint
 import io.github.lopezjavier.appfitness.domain.model.TrainingSummary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
+import io.github.lopezjavier.appfitness.feature.trainer.assertTextContainsIgnoringNbsp
+import io.github.lopezjavier.appfitness.feature.trainer.hasTextIgnoringNbsp
 import kotlinx.datetime.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,13 +53,51 @@ private val Weeks = listOf(
     SetCountPoint(LocalDate(2026, 10, 5), 24),
     SetCountPoint(LocalDate(2026, 10, 12), 0),
 )
-private val Bench = StatsExercise("bench", "Press banca", 9.0, 3, imageKey = "barbell-bench-press")
+private val Bench = StatsExercise(
+    "bench",
+    "Press banca",
+    9.0,
+    3,
+    imageKey = "barbell-bench-press",
+    changeKg = 5.0,
+    compared = true,
+)
 private val Custom = StatsExercise("custom-1", "Dominadas lastradas", 4.0, 2)
 private val Squat = StatsExercise("squat", "Sentadilla", 6.0, 1)
+
+private fun lift(id: String, name: String, state: ProgressGlyph, pct: Double? = null, last: Double? = null) =
+    PeriodExerciseUi(id, name, false, 4, state, 90.0, last, pct)
+
+/** 11 compared exercises, 8 of them up. */
+private val Progress = PeriodProgressUi(
+    listOf(
+        PeriodExerciseUi("bench", "Press banca", true, 11, ProgressGlyph.Up, 95.0, 101.0, 6.0),
+        PeriodExerciseUi("row", "Remo con barra", true, 9, ProgressGlyph.Same, 82.5, 84.0, 1.8),
+        PeriodExerciseUi("ohp", "Press militar", true, 7, ProgressGlyph.Down, 62.0, 58.0, -6.5),
+        lift("u1", "Curl", ProgressGlyph.Up, 3.0, 93.0),
+        lift("u2", "Fondos", ProgressGlyph.Up, 3.0, 93.0),
+        lift("u3", "Remo mancuerna", ProgressGlyph.Up, 3.0, 93.0),
+        lift("u4", "Press inclinado", ProgressGlyph.Up, 3.0, 93.0),
+        lift("u5", "Elevaciones", ProgressGlyph.Up, 3.0, 93.0),
+        lift("u6", "Zancadas", ProgressGlyph.Up, 3.0, 93.0),
+        lift("u7", "Hip thrust", ProgressGlyph.Up, 3.0, 93.0),
+        lift("d1", "Dominadas", ProgressGlyph.Down, -3.0, 87.0),
+    ),
+)
+private val Records = PeriodRecordsUi(
+    listOf(
+        PeriodRecordUi("bench", "Press banca", true, 101.0, 95.0),
+        PeriodRecordUi("squat", "Sentadilla", true, 120.0, 110.0),
+        PeriodRecordUi("curl", "Curl", false, 28.0, 25.0),
+    ),
+    total = 5,
+)
 
 private fun content(range: ProgressRange = ProgressRange.OneMonth) = TrainingStatsUiState(
     range = range,
     summary = SectionState.Content(Summary),
+    progress = SectionState.Content(Progress),
+    records = SectionState.Content(Records),
     setCounts = SectionState.Content(Weeks),
     muscleSets = SectionState.Content(groups(MuscleGroup.Chest to 3.0, MuscleGroup.Triceps to 1.5)),
     topExercises = SectionState.Content(listOf(Bench, Squat)),
@@ -104,14 +151,14 @@ class TrainingStatsScreenTest {
     }
 
     @Test
-    fun timeRanges_tilesShowTheKeyValuesOfTheFrame() {
+    fun contextLine_showsWorkoutsAndSetsInOneLine_withNoVolumeOrDuration() {
         show(content(ProgressRange.AllTime))
 
         rule.onNodeWithTag("stats_range_all").assertIsSelected()
-        rule.onNodeWithTag("stats_tile_workouts").assertTextContains("4", substring = true)
-        rule.onNodeWithTag("stats_tile_sets").assertTextContains("1.240", substring = true)
-        rule.onNodeWithTag("stats_tile_volume").assertTextContains("12.500", substring = true)
-        rule.onNodeWithTag("stats_tile_duration").assertTextContains("1 h 30 min", substring = true)
+        rule.onNodeWithTag("stats_context_line").assertTextContains("4 entrenos · 1.240 series")
+        rule.onNodeWithText("Volumen", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("Duración", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("Kilos por grupo muscular", substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -154,27 +201,27 @@ class TrainingStatsScreenTest {
     }
 
     @Test
-    fun mainExercises_rowShowsSetsAndSessions_andClickOpensTheExercise() {
+    fun principalExercises_rowShowsTheChangeAndSessions_andClickOpensTheExercise() {
         show(content())
 
-        scrollTo("stats_exercise_row_bench")
-        rule.onNodeWithTag("stats_exercise_row_bench").assertHeightIsAtLeast(48.dp)
-            .assertTextContains("Press banca").assertTextContains("9 series · 3 entrenos")
-        rule.onNodeWithTag("stats_exercise_row_squat")
-            .assertTextContains("Sentadilla").assertTextContains("6 series · 1 entreno")
-        rule.onNodeWithTag("stats_exercise_row_bench").performClick()
+        scrollTo("stats_principal_bench")
+        rule.onNodeWithTag("stats_principal_bench").assertHeightIsAtLeast(48.dp)
+            .assertTextContains("Press banca").assertTextContainsIgnoringNbsp("+5 kg · 3 entrenos")
+        rule.onNodeWithTag("stats_principal_squat")
+            .assertTextContains("Sentadilla").assertTextContains("Sin comparar · 1 entreno")
+        rule.onNodeWithTag("stats_principal_bench").performClick()
 
         assertEquals(listOf("bench"), opened)
     }
 
     @Test
-    fun mainExercises_rowsShowTheirPicture_orThePlaceholderWhenCustom() {
+    fun principalExercises_rowsShowTheirPicture_orThePlaceholderWhenCustom() {
         show(content().copy(topExercises = SectionState.Content(listOf(Bench, Custom))))
 
-        scrollTo("stats_exercise_row_bench")
-        rule.onNodeWithTag("stats_exercise_row_bench_thumbnail_image", useUnmergedTree = true).assertExists()
-        rule.onNodeWithTag("stats_exercise_row_custom-1_thumbnail_image", useUnmergedTree = true).assertDoesNotExist()
-        rule.onNodeWithTag("stats_exercise_row_custom-1_thumbnail_placeholder", useUnmergedTree = true).assertExists()
+        scrollTo("stats_principal_bench")
+        rule.onNodeWithTag("stats_principal_bench_thumbnail_image", useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("stats_principal_custom-1_thumbnail_image", useUnmergedTree = true).assertDoesNotExist()
+        rule.onNodeWithTag("stats_principal_custom-1_thumbnail_placeholder", useUnmergedTree = true).assertExists()
     }
 
     @Test
@@ -189,7 +236,7 @@ class TrainingStatsScreenTest {
     }
 
     @Test
-    fun mainExercises_rowsStayReadable_atFontScale2() {
+    fun principalExercises_rowsStayReadable_atFontScale2() {
         rule.setContent {
             CompositionLocalProvider(
                 LocalDensity provides Density(LocalDensity.current.density, fontScale = 2f),
@@ -199,9 +246,9 @@ class TrainingStatsScreenTest {
             }
         }
 
-        scrollTo("stats_exercise_row_bench")
-        rule.onNodeWithTag("stats_exercise_row_bench").assertIsDisplayed()
-            .assertTextContains("9 series · 3 entrenos")
+        scrollTo("stats_principal_bench")
+        rule.onNodeWithTag("stats_principal_bench").assertIsDisplayed()
+            .assertTextContains("3 entrenos", substring = true)
     }
 
     @Test
@@ -377,7 +424,7 @@ class TrainingStatsScreenTest {
     fun loading_showsASkeletonPerSection() {
         show(TrainingStatsUiState())
 
-        listOf("summary", "chart", "muscles", "exercises", "radar", "body").forEach {
+        listOf("progress", "records", "summary", "chart", "muscles", "exercises", "radar", "body").forEach {
             scrollTo("stats_skeleton_$it")
             rule.onNodeWithTag("stats_skeleton_$it").assertExists()
         }
@@ -390,7 +437,7 @@ class TrainingStatsScreenTest {
         scrollTo("stats_retry_chart")
         rule.onNodeWithText("No se han podido cargar las estadísticas.").assertExists()
         rule.onNodeWithTag("stats_retry_chart").performClick()
-        rule.onNodeWithTag("stats_tile_workouts").assertExists()
+        rule.onNodeWithTag("stats_context_line").assertExists()
         rule.onNodeWithTag("stats_retry_summary").assertDoesNotExist()
 
         assertEquals(listOf<TrainingStatsEvent>(TrainingStatsEvent.Retry(StatsSection.Chart)), events)
@@ -415,6 +462,8 @@ class TrainingStatsScreenTest {
         show(
             TrainingStatsUiState(
                 summary = SectionState.Error,
+                progress = SectionState.Error,
+                records = SectionState.Error,
                 setCounts = SectionState.Error,
                 muscleSets = SectionState.Error,
                 topExercises = SectionState.Error,
@@ -441,18 +490,152 @@ class TrainingStatsScreenTest {
     }
 
     @Test
-    fun muscleVolumeRow_endsTheMuscleGroupCard_andOpensTheKilosScreen() {
-        var volumeOpens = 0
+    fun setsGroupsCard_titleRowIsTheLinkToTheSetsScreen() {
+        var opens = 0
         rule.setContent {
-            AppTheme { TrainingStatsScreen(content(), {}, {}, {}, onOpenMuscleVolume = { volumeOpens++ }) }
+            AppTheme { TrainingStatsScreen(content(), {}, {}, {}, onOpenMuscleVolume = { opens++ }) }
         }
-        scrollTo("stats_open_muscle_volume")
+        scrollTo("stats_sets_groups_link")
 
-        rule.onNodeWithTag("stats_open_muscle_volume").assertTextEquals("Kilos por grupo muscular")
+        rule.onNodeWithTag("stats_sets_groups_link").assertTextContains("Series por grupo muscular")
             .assertHeightIsAtLeast(48.dp)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
             .performClick()
 
-        assertEquals(1, volumeOpens)
+        assertEquals(1, opens)
+    }
+
+    @Test
+    fun progressCard_isOnTopWithTheSummaryAndTheStateOfEachExercise() {
+        show(content())
+
+        rule.onNode(hasTextIgnoringNbsp("8 de 11"), useUnmergedTree = true).assertExists()
+        rule.onNode(hasText("ejercicios suben", substring = true), useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("1RM estimado").assertExists()
+        scrollTo("stats_progress_row_bench")
+        rule.onNodeWithTag("stats_progress_row_bench").assertTextContainsIgnoringNbsp("95 → 101 kg")
+        rule.onNode(hasTextIgnoringNbsp("Sube +6 %"), useUnmergedTree = true).assertExists()
+        scrollTo("stats_progress_row_row")
+        rule.onNodeWithTag("stats_progress_row_row").assertTextContains("Dentro del margen de un día a otro")
+        scrollTo("stats_progress_row_ohp")
+        rule.onNode(hasTextIgnoringNbsp("Baja −6"), useUnmergedTree = true).assertExists()
+        rule.onNodeWithText("Igual").assertDoesNotExist()
+    }
+
+    @Test
+    fun progressCard_mainLiftsComeFirst_andARowOpensTheExercise() {
+        show(content())
+
+        scrollTo("stats_progress_row_ohp")
+        val bench = rule.onNodeWithTag("stats_progress_row_bench").getUnclippedBoundsInRoot()
+        val curl = rule.onNodeWithTag("stats_progress_row_u1").getUnclippedBoundsInRoot()
+        assertTrue(bench.top < curl.top)
+        rule.onNodeWithTag("stats_progress_row_ohp").performClick()
+
+        assertEquals(listOf("ohp"), opened)
+    }
+
+    @Test
+    fun progressCard_aSingleSessionExerciseReadsSinComparar() {
+        val single = PeriodExerciseUi("face", "Face pull", false, 1, ProgressGlyph.Uncompared, 30.0)
+        show(content().copy(progress = SectionState.Content(PeriodProgressUi(listOf(single)))))
+
+        rule.onNodeWithTag("stats_progress_row_face").assertTextContains("Sin comparar", substring = true)
+        rule.onNodeWithTag("stats_progress_none").assertExists()
+    }
+
+    @Test
+    fun progressCard_withNothingToCompare_explainsWhenItWillShow() {
+        show(content().copy(progress = SectionState.Empty))
+
+        rule.onNodeWithTag("stats_progress_none")
+            .assertTextEquals("Con dos entrenos de un ejercicio en este periodo, verás si sube.")
+    }
+
+    @Test
+    fun recordsCard_showsThreeBadges_andTheTotalOnlyWhenThereAreMore() {
+        show(content())
+
+        scrollTo("stats_records_card")
+        listOf(1, 2, 3).forEach { rule.onNodeWithTag("stats_record_$it").assertExists() }
+        rule.onNodeWithTag("stats_record_1").assertTextContainsIgnoringNbsp("1RM estimado · antes 95 kg")
+        rule.onNode(hasTextIgnoringNbsp("101 kg (+6 kg)"), useUnmergedTree = true).assertExists()
+        rule.onNodeWithTag("stats_records_total").assertTextContains("5 récords en este periodo")
+    }
+
+    @Test
+    fun recordsCard_withExactlyThreeRecords_hasNoTotalLine() {
+        show(content().copy(records = SectionState.Content(Records.copy(total = 3))))
+
+        scrollTo("stats_records_card")
+        rule.onNodeWithTag("stats_records_total").assertDoesNotExist()
+    }
+
+    @Test
+    fun recordsCard_isAbsentWithNoRecords() {
+        show(content().copy(records = SectionState.Empty))
+
+        rule.onNodeWithTag("stats_records_card").assertDoesNotExist()
+        rule.onNodeWithTag("stats_progress_card").assertExists()
+    }
+
+    @Test
+    fun progressFailure_showsOneRetry_noRecordsCard_andTheRestStaysIntact() {
+        show(content().copy(progress = SectionState.Error, records = SectionState.Error))
+
+        rule.onNodeWithTag("stats_retry_progress").performClick()
+        rule.onNodeWithTag("stats_retry_records").assertDoesNotExist()
+        rule.onNodeWithTag("stats_records_card").assertDoesNotExist()
+        rule.onNodeWithTag("stats_context_line").assertExists()
+
+        assertEquals(listOf<TrainingStatsEvent>(TrainingStatsEvent.Retry(StatsSection.Progress)), events)
+    }
+
+    @Test
+    fun recordsFailureAlone_hidesTheCardWithoutAnErrorCard() {
+        show(content().copy(records = SectionState.Error))
+
+        rule.onNodeWithTag("stats_records_card").assertDoesNotExist()
+        rule.onNodeWithTag("stats_retry_records").assertDoesNotExist()
+        rule.onNodeWithTag("stats_progress_row_bench").assertExists()
+    }
+
+    @Test
+    fun distribution_staysBelowInOrder_progressRecordsContextChartGroupsPrincipalRadarBody() {
+        show(content())
+
+        val tops = listOf(
+            "stats_progress_card",
+            "stats_records_card",
+            "stats_context_line",
+            "stats_set_chart",
+            "stats_sets_groups_link",
+            "stats_principal_bench",
+            "stats_radar",
+            "stats_body_front",
+        ).map { tag ->
+            tag to rule.onNodeWithTag(tag).getUnclippedBoundsInRoot().top
+        }
+
+        assertEquals(tops.sortedBy { it.second }.map { it.first }, tops.map { it.first })
+    }
+
+    @Test
+    fun noScreenTextSaysVolumenDuracionOrKilosPorGrupoMuscular() {
+        show(content())
+
+        listOf("Volumen", "Duración", "Kilos por grupo muscular").forEach {
+            rule.onNodeWithText(it, substring = true, useUnmergedTree = true).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun emptyRange_keepsTheEmptyStateAndHidesTheProgressCards() {
+        show(content().copy(summary = SectionState.Empty))
+
+        rule.onNodeWithTag("stats_empty_title").assertExists()
+        rule.onNodeWithTag("stats_progress_card").assertDoesNotExist()
+        rule.onNodeWithTag("stats_records_card").assertDoesNotExist()
     }
 
     @Test
@@ -465,7 +648,7 @@ class TrainingStatsScreenTest {
                 }
             }
         }
-        scrollTo("stats_exercise_row_custom-1")
+        scrollTo("stats_principal_custom-1")
         rule.onNodeWithText("Dominadas lastradas").assertExists()
 
         top = listOf(StatsExercise("custom-1", "Dominadas con lastre", 4.0, 2))

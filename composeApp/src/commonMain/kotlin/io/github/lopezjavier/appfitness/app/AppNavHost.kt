@@ -627,7 +627,7 @@ internal val DefaultStrengthSlot: StrengthSlot = { modifier, _, _, _ ->
 
 /** Empty weekly muscle volume for previews and shell tests; the real one is wired by `AppRoot`. */
 internal val DefaultMuscleVolumeSlot: MuscleVolumeSlot = { modifier, _, _ ->
-    Box(modifier.fillMaxSize().testTag("muscle_volume_screen"))
+    Box(modifier.fillMaxSize().testTag("muscle_sets_screen"))
 }
 
 /** Empty "Estadisticas" for previews and shell tests; the real one is wired by `AppRoot`. */

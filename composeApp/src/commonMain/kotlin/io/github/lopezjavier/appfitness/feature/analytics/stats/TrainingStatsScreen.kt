@@ -62,8 +62,9 @@ fun TrainingStatsRoot(
 }
 
 /**
- * "Estadisticas" (US-40, US-41): the range selector stays pinned; below it the key values, set-count chart, sets per
- * muscle group and top exercises of the range, the radar and the 7-day body map. Two columns from 600 dp.
+ * "Estadisticas" (US-40, US-41): the range selector stays pinned; below it the progress and records of the range,
+ * one context line, the set-count chart, sets per muscle group, principal exercises, the radar and the 7-day body
+ * map. Two columns from 600 dp.
  */
 @Composable
 fun TrainingStatsScreen(
@@ -137,55 +138,53 @@ private fun retry(onEvent: (TrainingStatsEvent) -> Unit, section: StatsSection):
     { onEvent(TrainingStatsEvent.Retry(section)) }
 
 @Composable
-private fun CompactContent(
-    state: TrainingStatsUiState,
-    onEvent: (TrainingStatsEvent) -> Unit,
-    onOpenExercise: (String) -> Unit,
-    onOpenMuscleVolume: () -> Unit,
-) {
-    FrameSections(state, onEvent, onOpenExercise, onOpenMuscleVolume)
-    DistributionSections(state, onEvent)
-}
-
-@Composable
 private fun WideContent(
     state: TrainingStatsUiState,
     onEvent: (TrainingStatsEvent) -> Unit,
     onOpenExercise: (String) -> Unit,
     onOpenMuscleVolume: () -> Unit,
 ) {
+    if (state.isEmpty) {
+        FrameEmpty()
+        BodySection(state, onEvent)
+        return
+    }
     Row(
         Modifier.fillMaxWidth().testTag("training_stats_two_column"),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xl),
     ) {
+        // Progress on the left (it can be long); the effort line, distribution and body map on the right.
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
-            LeftSections(state, onEvent, onOpenMuscleVolume)
+            ProgressSections(state, onEvent, onOpenExercise)
+            TopExercisesCard(state.topExercises, retry(onEvent, StatsSection.Exercises), onOpenExercise)
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.blockGap)) {
-            if (!state.isEmpty) {
-                TopExercisesCard(state.topExercises, retry(onEvent, StatsSection.Exercises), onOpenExercise)
-                RadarCard(state.radar, retry(onEvent, StatsSection.Radar))
-            }
-            if (!state.isFullyEmpty) {
-                BodyMapCard(state.bodyMap, retry(onEvent, StatsSection.Body), {
-                    onEvent(TrainingStatsEvent.OpenMuscle(it))
-                })
-            }
+            StatsContextLine(state.summary, retry(onEvent, StatsSection.Summary))
+            DistributionTop(state, onEvent, onOpenMuscleVolume)
+            RadarCard(state.radar, retry(onEvent, StatsSection.Radar))
+            BodySection(state, onEvent)
         }
     }
 }
 
+/** Progress of the range and its records: the top of the screen (`07` §3 (D1), (D2)). */
 @Composable
-private fun LeftSections(
+private fun ProgressSections(
+    state: TrainingStatsUiState,
+    onEvent: (TrainingStatsEvent) -> Unit,
+    onOpenExercise: (String) -> Unit,
+) {
+    PeriodProgressCard(state.progress, retry(onEvent, StatsSection.Progress), onOpenExercise)
+    // C-203: a failure is shown once, by the progress card; the records card only exists with records.
+    PeriodRecordsCard(state.records)
+}
+
+@Composable
+private fun DistributionTop(
     state: TrainingStatsUiState,
     onEvent: (TrainingStatsEvent) -> Unit,
     onOpenMuscleVolume: () -> Unit,
 ) {
-    if (state.isEmpty) {
-        FrameEmpty()
-        return
-    }
-    SummaryTiles(state.summary, retry(onEvent, StatsSection.Summary))
     SetCountCard(state.range, state.setCounts, retry(onEvent, StatsSection.Chart))
     MuscleRowsCard(
         state.muscleSets,
@@ -194,21 +193,31 @@ private fun LeftSections(
     )
 }
 
-/** Compact order: tiles, chart, groups, exercises, then the distribution. An empty frame keeps only the body map. */
+/**
+ * Compact order (`07` §3 (D)): progress, records, the context line, sets per week, sets per muscle group, principal
+ * exercises, radar, body map. An empty range keeps only the empty state and the body map.
+ */
 @Composable
-private fun FrameSections(
+private fun CompactContent(
     state: TrainingStatsUiState,
     onEvent: (TrainingStatsEvent) -> Unit,
     onOpenExercise: (String) -> Unit,
     onOpenMuscleVolume: () -> Unit,
 ) {
-    LeftSections(state, onEvent, onOpenMuscleVolume)
-    if (!state.isEmpty) TopExercisesCard(state.topExercises, retry(onEvent, StatsSection.Exercises), onOpenExercise)
+    if (state.isEmpty) {
+        FrameEmpty()
+    } else {
+        ProgressSections(state, onEvent, onOpenExercise)
+        StatsContextLine(state.summary, retry(onEvent, StatsSection.Summary))
+        DistributionTop(state, onEvent, onOpenMuscleVolume)
+        TopExercisesCard(state.topExercises, retry(onEvent, StatsSection.Exercises), onOpenExercise)
+        RadarCard(state.radar, retry(onEvent, StatsSection.Radar))
+    }
+    BodySection(state, onEvent)
 }
 
 @Composable
-private fun DistributionSections(state: TrainingStatsUiState, onEvent: (TrainingStatsEvent) -> Unit) {
-    if (!state.isEmpty) RadarCard(state.radar, retry(onEvent, StatsSection.Radar))
+private fun BodySection(state: TrainingStatsUiState, onEvent: (TrainingStatsEvent) -> Unit) {
     if (!state.isFullyEmpty) {
         BodyMapCard(state.bodyMap, retry(onEvent, StatsSection.Body), { onEvent(TrainingStatsEvent.OpenMuscle(it)) })
     }

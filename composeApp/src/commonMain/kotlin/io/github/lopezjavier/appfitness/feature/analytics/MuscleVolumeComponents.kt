@@ -20,30 +20,22 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.chart_date_short
-import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_card_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_chart_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_chart_cd_week
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_chart_title
-import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_current_value
 import io.github.lopezjavier.appfitness.composeapp.resources.muscle_volume_last_week
-import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_week_delta
 import io.github.lopezjavier.appfitness.designsystem.AppBarChart
 import io.github.lopezjavier.appfitness.designsystem.AppCard
-import io.github.lopezjavier.appfitness.designsystem.AppLineChart
 import io.github.lopezjavier.appfitness.designsystem.AppLineChartBlock
-import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
-import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.TrendDirection
-import io.github.lopezjavier.appfitness.designsystem.TrendPill
-import io.github.lopezjavier.appfitness.designsystem.TrendPillDefaults
-import io.github.lopezjavier.appfitness.designsystem.TrendTone
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
-import io.github.lopezjavier.appfitness.domain.model.MuscleVolumeHistory
+import io.github.lopezjavier.appfitness.domain.model.MuscleSetsHistory
+import io.github.lopezjavier.appfitness.feature.analytics.stats.formatSetsNumber
+import io.github.lopezjavier.appfitness.feature.analytics.stats.setsText
 import io.github.lopezjavier.appfitness.feature.exercises.label
 import io.github.lopezjavier.appfitness.feature.exercises.tagName
 import io.github.lopezjavier.appfitness.feature.workout.shortLabel
@@ -53,100 +45,96 @@ import kotlin.math.roundToInt
 
 private const val COMPACT_COLUMNS = 4
 private const val WIDE_COLUMNS = 8
+private const val HALF_SETS_PER_SET = 2.0
 private val OverviewChartHeight = Spacing.lg * 4
 
 @Composable
 private fun LocalDate.weekLabel(): String = stringResource(Res.string.chart_date_short, day, month.shortLabel())
 
-/** One card per group with its current-week volume and the 8 weekly values; the whole card selects the group. */
+/**
+ * One card per group: the name on its own row (it wraps by word, never cut), then "Esta semana" with the current-week
+ * sets, and the 8 weekly bars; the whole card selects the group.
+ */
 @Composable
 internal fun GroupOverviewCard(
     group: MuscleGroup,
-    history: MuscleVolumeHistory,
+    history: MuscleSetsHistory,
     onSelect: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val values = history.series.getValue(group)
     val name = stringResource(group.label)
-    val current = formatVolume(values.last())
+    val current = setsText(values.last())
     val description = stringResource(Res.string.muscle_volume_card_cd, name, current)
     AppCard(
         modifier
             .heightIn(min = Spacing.minTouchTarget)
             .clickable(role = Role.Button, onClick = onSelect)
             .semantics { contentDescription = description }
-            .testTag("muscle_volume_card_${group.tagName()}"),
+            .testTag("muscle_sets_group_${group.tagName()}"),
     ) {
+        Text(
+            text = name,
+            style = AppTheme.typography.titleMedium,
+            color = AppTheme.colors.textPrimary,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconBadge(Res.drawable.ic_fitness_center, AppTheme.colors.athleticCyan)
-            Column(Modifier.weight(1f)) {
-                Text(name, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
-                Text(
-                    text = stringResource(Res.string.muscle_volume_last_week),
-                    style = AppTheme.typography.bodySmall,
-                    color = AppTheme.colors.textSecondary,
-                )
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = stringResource(Res.string.muscle_volume_current_value, current),
-                    style = AppTheme.typography.headlineMetric,
-                    color = AppTheme.colors.athleticCyan,
-                    modifier = Modifier.testTag("muscle_volume_current_${group.tagName()}"),
-                )
-                WeekTrend(values)
-            }
+            Text(
+                text = stringResource(Res.string.muscle_volume_last_week),
+                style = AppTheme.typography.bodyMedium,
+                color = AppTheme.colors.textSecondary,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = current,
+                style = AppTheme.typography.headlineMetric,
+                color = AppTheme.colors.athleticCyan,
+                modifier = Modifier.testTag("muscle_sets_current_${group.tagName()}"),
+            )
         }
         val labels = history.weeks.map { it.weekLabel() }
-        val perWeek = labels.zip(values).map { (label, value) ->
-            stringResource(Res.string.muscle_volume_chart_cd_week, label, formatVolume(value))
-        }.joinToString("; ")
         AppBarChart(
             values = values.map { it.roundToInt() },
+            highlightIndex = values.lastIndex,
             labels = labels,
-            description = stringResource(Res.string.muscle_volume_chart_cd, name, perWeek),
+            description = stringResource(Res.string.muscle_volume_chart_cd, name, weeklyDescription(labels, values)),
             modifier = Modifier.fillMaxWidth().height(OverviewChartHeight).padding(top = Spacing.md)
-                .testTag("muscle_volume_overview_chart_${group.tagName()}"),
+                .testTag("muscle_sets_overview_chart_${group.tagName()}"),
         )
     }
 }
 
-/** The change of the latest week against the one before it; flat or lower stays neutral, never red. */
 @Composable
-private fun WeekTrend(values: List<Double>) {
-    if (values.size < 2) return
-    val delta = values.last() - values[values.size - 2]
-    val direction = TrendPillDefaults.direction(delta)
-    val rounded = delta.roundToInt()
-    val text = stringResource(
-        Res.string.px_stats_week_delta,
-        (if (rounded > 0) "+" else "") + AppNumberFormat.integer(rounded),
-    )
-    val tone = if (direction == TrendDirection.Up) TrendTone.Favorable else TrendTone.Neutral
-    TrendPill(text, tone, Modifier, direction, showToneIcon = false)
-}
+private fun weeklyDescription(labels: List<String>, values: List<Double>): String =
+    labels.zip(values).map { (label, value) ->
+        stringResource(Res.string.muscle_volume_chart_cd_week, label, formatSetsNumber(value))
+    }.joinToString("; ")
 
-/** The chart of one group over the 8 weeks with its values underneath. */
+/** The chart of one group over the 8 weeks (zero baseline, current week lit) with its values underneath. */
 @Composable
-internal fun GroupChartCard(group: MuscleGroup, history: MuscleVolumeHistory, modifier: Modifier = Modifier) {
+internal fun GroupChartCard(group: MuscleGroup, history: MuscleSetsHistory, modifier: Modifier = Modifier) {
     val values = history.series.getValue(group)
     val name = stringResource(group.label)
     val labels = history.weeks.map { it.weekLabel() }
-    val perWeek = labels.zip(values).map { (label, value) ->
-        stringResource(Res.string.muscle_volume_chart_cd_week, label, formatVolume(value))
-    }.joinToString("; ")
     AppCard(modifier) {
         AppLineChartBlock(stringResource(Res.string.muscle_volume_chart_title, name)) {
-            AppLineChart(
-                values = values,
+            // Bars count in half sets so the 0,5 steps of secondary muscles keep their height.
+            AppBarChart(
+                values = values.map { (it * HALF_SETS_PER_SET).roundToInt() },
                 labels = labels,
-                description = stringResource(Res.string.muscle_volume_chart_cd, name, perWeek),
-                valueLabel = { formatVolume(it) },
-                modifier = Modifier.fillMaxWidth().testTag("muscle_volume_chart"),
+                description = stringResource(
+                    Res.string.muscle_volume_chart_cd,
+                    name,
+                    weeklyDescription(labels, values),
+                ),
+                valueLabel = { formatSetsNumber(it / HALF_SETS_PER_SET) },
+                highlightIndex = values.lastIndex,
+                modifier = Modifier.fillMaxWidth().testTag("muscle_sets_chart"),
             )
         }
         WeekGrid(group, history, Modifier.fillMaxWidth().padding(top = Spacing.md))
@@ -155,7 +143,7 @@ internal fun GroupChartCard(group: MuscleGroup, history: MuscleVolumeHistory, mo
 
 /** Week label over value, 4 columns by 2 rows on compact widths and 8 by 1 on wider ones; zero weeks are dimmed. */
 @Composable
-private fun WeekGrid(group: MuscleGroup, history: MuscleVolumeHistory, modifier: Modifier = Modifier) {
+private fun WeekGrid(group: MuscleGroup, history: MuscleSetsHistory, modifier: Modifier = Modifier) {
     val values = history.series.getValue(group)
     BoxWithConstraints(modifier) {
         val columns = if (windowWidthClassFor(maxWidth) == WindowWidthClass.Compact) COMPACT_COLUMNS else WIDE_COLUMNS
@@ -176,11 +164,11 @@ private fun WeekCell(group: MuscleGroup, index: Int, week: LocalDate, value: Dou
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(week.weekLabel(), style = AppTheme.typography.labelTechnical, color = AppTheme.colors.textSecondary)
         Text(
-            text = formatVolume(value),
+            text = formatSetsNumber(value),
             style = AppTheme.typography.bodyMedium,
             color = if (value > 0.0) AppTheme.colors.textPrimary else AppTheme.colors.textSecondary,
             textAlign = TextAlign.Center,
-            modifier = Modifier.testTag("muscle_volume_week_${group.tagName()}_$index"),
+            modifier = Modifier.testTag("muscle_sets_week_${group.tagName()}_$index"),
         )
     }
 }

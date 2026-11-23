@@ -3,9 +3,9 @@ package io.github.lopezjavier.appfitness.feature.analytics
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
-import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleVolumeRow
-import io.github.lopezjavier.appfitness.domain.usecase.BuildMuscleVolumeHistory
-import io.github.lopezjavier.appfitness.feature.workout.MutableClock
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroupSets
+import io.github.lopezjavier.appfitness.domain.model.WeeklyMuscleSets
+import io.github.lopezjavier.appfitness.feature.analytics.stats.FakeTrainingStatsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -13,7 +13,9 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.plus
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -23,10 +25,10 @@ import kotlin.test.assertIs
 @OptIn(ExperimentalCoroutinesApi::class)
 class MuscleVolumeViewModelTest {
     private val dispatcher = StandardTestDispatcher()
-    private val strength = FakeStrengthRepository()
+    private val stats = FakeTrainingStatsRepository()
 
-    // MutableClock is on Monday 2026-10-19.
-    private val monday = LocalDate(2026, 10, 19)
+    // Eight consecutive Mondays ending on 2026-10-19.
+    private val firstMonday = LocalDate(2026, 8, 31)
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -34,47 +36,36 @@ class MuscleVolumeViewModelTest {
     @AfterTest
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun viewModel(savedState: SavedStateHandle = SavedStateHandle()) =
-        MuscleVolumeViewModel(strength, MutableClock(), savedState)
+    private fun viewModel(savedState: SavedStateHandle = SavedStateHandle()) = MuscleVolumeViewModel(stats, savedState)
 
     private fun MuscleVolumeViewModel.content() = assertIs<MuscleVolumeUiState.Content>(uiState.value)
 
-    private fun row(group: MuscleGroup, volume: Double) = WeeklyMuscleVolumeRow(monday, group, volume)
+    /** Eight weeks where only the current (last) one has [groups]. */
+    private fun weeks(vararg groups: MuscleGroupSets) = List(8) { i ->
+        WeeklyMuscleSets(firstMonday.plus(i, DateTimeUnit.WEEK), if (i == 7) groups.toList() else emptyList())
+    }
+
+    private fun sets(group: MuscleGroup, value: Double) = MuscleGroupSets(group, value)
 
     @Test
-    fun startsLoadingThenShowsEveryGroupWithVolumeFromTheFirstSession() = runTest(dispatcher) {
-        strength.volumeRows = listOf(
-            WeeklyMuscleVolumeRow(LocalDate(2026, 10, 5), MuscleGroup.Chest, 5400.0),
-            row(MuscleGroup.Back, 3000.0),
-        )
+    fun startsLoadingThenShowsEveryGroupWithSetsOverEightWeeks() = runTest(dispatcher) {
+        stats.weeklyMuscleSetsResult = weeks(sets(MuscleGroup.Back, 6.0), sets(MuscleGroup.Chest, 4.5))
         val model = viewModel()
         assertEquals(MuscleVolumeUiState.Loading, model.uiState.value)
 
         advanceUntilIdle()
 
         val content = model.content()
-        assertEquals(3, content.history.weeks.size)
+        assertEquals(8, content.history.weeks.size)
         assertEquals(listOf(MuscleGroup.Chest, MuscleGroup.Back), content.history.series.keys.toList())
-        assertEquals(listOf(5400.0, 0.0, 0.0), content.history.series.getValue(MuscleGroup.Chest))
+        assertEquals(4.5, content.history.series.getValue(MuscleGroup.Chest).last())
         assertEquals(null, content.selected)
-        assertEquals(listOf(BuildMuscleVolumeHistory.FIRST_QUERY_DATE), strength.volumeFromArgs)
+        assertEquals(listOf(8), stats.weeklyMuscleSetsCalls)
     }
 
     @Test
-    fun firstSessionLongAgo_isCappedAtEightWeeks() = runTest(dispatcher) {
-        strength.volumeRows = listOf(
-            WeeklyMuscleVolumeRow(LocalDate(2026, 6, 1), MuscleGroup.Chest, 100.0),
-            row(MuscleGroup.Chest, 50.0),
-        )
-        val model = viewModel()
-
-        advanceUntilIdle()
-
-        assertEquals(8, model.content().history.weeks.size)
-    }
-
-    @Test
-    fun withoutVolumeInTheWindow_isEmpty() = runTest(dispatcher) {
+    fun withoutSetsInTheWindow_isEmpty() = runTest(dispatcher) {
+        stats.weeklyMuscleSetsResult = weeks()
         val model = viewModel()
 
         advanceUntilIdle()
@@ -84,13 +75,13 @@ class MuscleVolumeViewModelTest {
 
     @Test
     fun failureShowsErrorAndRetryRecovers() = runTest(dispatcher) {
-        strength.volumeFailure = AppError.Network
+        stats.weeklyMuscleSetsFailure = AppError.Network
         val model = viewModel()
         advanceUntilIdle()
         assertEquals(MuscleVolumeUiState.Error, model.uiState.value)
 
-        strength.volumeFailure = null
-        strength.volumeRows = listOf(row(MuscleGroup.Chest, 100.0))
+        stats.weeklyMuscleSetsFailure = null
+        stats.weeklyMuscleSetsResult = weeks(sets(MuscleGroup.Chest, 3.0))
         model.onEvent(MuscleVolumeEvent.Retry)
         assertEquals(MuscleVolumeUiState.Loading, model.uiState.value)
         advanceUntilIdle()
@@ -100,7 +91,7 @@ class MuscleVolumeViewModelTest {
 
     @Test
     fun selectGroupIsolatesItAndNullReturnsToAll() = runTest(dispatcher) {
-        strength.volumeRows = listOf(row(MuscleGroup.Chest, 5400.0), row(MuscleGroup.Back, 3000.0))
+        stats.weeklyMuscleSetsResult = weeks(sets(MuscleGroup.Chest, 5.0), sets(MuscleGroup.Back, 3.0))
         val model = viewModel()
         advanceUntilIdle()
 
@@ -112,8 +103,8 @@ class MuscleVolumeViewModelTest {
     }
 
     @Test
-    fun selectionIsKeptWhenReloadingAndTheGroupStillHasVolume() = runTest(dispatcher) {
-        strength.volumeRows = listOf(row(MuscleGroup.Chest, 100.0), row(MuscleGroup.Back, 100.0))
+    fun selectionIsKeptWhenReloadingAndTheGroupStillHasSets() = runTest(dispatcher) {
+        stats.weeklyMuscleSetsResult = weeks(sets(MuscleGroup.Chest, 1.0), sets(MuscleGroup.Back, 1.0))
         val model = viewModel()
         advanceUntilIdle()
         model.onEvent(MuscleVolumeEvent.SelectGroup(MuscleGroup.Back))
@@ -126,7 +117,7 @@ class MuscleVolumeViewModelTest {
 
     @Test
     fun selectionSurvivesRecreationFromTheSameSavedState() = runTest(dispatcher) {
-        strength.volumeRows = listOf(row(MuscleGroup.Chest, 100.0), row(MuscleGroup.Back, 100.0))
+        stats.weeklyMuscleSetsResult = weeks(sets(MuscleGroup.Chest, 1.0), sets(MuscleGroup.Back, 1.0))
         val saved = SavedStateHandle()
         val first = viewModel(saved)
         advanceUntilIdle()
@@ -140,7 +131,7 @@ class MuscleVolumeViewModelTest {
 
     @Test
     fun clearingTheSelectionIsAlsoRestored() = runTest(dispatcher) {
-        strength.volumeRows = listOf(row(MuscleGroup.Chest, 100.0), row(MuscleGroup.Back, 100.0))
+        stats.weeklyMuscleSetsResult = weeks(sets(MuscleGroup.Chest, 1.0), sets(MuscleGroup.Back, 1.0))
         val saved = SavedStateHandle()
         val first = viewModel(saved)
         advanceUntilIdle()
@@ -155,12 +146,12 @@ class MuscleVolumeViewModelTest {
 
     @Test
     fun selectionResetsWhenTheGroupDisappearsOnReload() = runTest(dispatcher) {
-        strength.volumeRows = listOf(row(MuscleGroup.Chest, 100.0), row(MuscleGroup.Back, 100.0))
+        stats.weeklyMuscleSetsResult = weeks(sets(MuscleGroup.Chest, 1.0), sets(MuscleGroup.Back, 1.0))
         val model = viewModel()
         advanceUntilIdle()
         model.onEvent(MuscleVolumeEvent.SelectGroup(MuscleGroup.Back))
 
-        strength.volumeRows = listOf(row(MuscleGroup.Chest, 100.0))
+        stats.weeklyMuscleSetsResult = weeks(sets(MuscleGroup.Chest, 1.0))
         model.onEvent(MuscleVolumeEvent.Retry)
         advanceUntilIdle()
 
@@ -168,8 +159,8 @@ class MuscleVolumeViewModelTest {
     }
 
     @Test
-    fun selectingAGroupWithoutVolumeIsIgnored() = runTest(dispatcher) {
-        strength.volumeRows = listOf(row(MuscleGroup.Chest, 100.0))
+    fun selectingAGroupWithoutSetsIsIgnored() = runTest(dispatcher) {
+        stats.weeklyMuscleSetsResult = weeks(sets(MuscleGroup.Chest, 1.0))
         val model = viewModel()
         advanceUntilIdle()
 
