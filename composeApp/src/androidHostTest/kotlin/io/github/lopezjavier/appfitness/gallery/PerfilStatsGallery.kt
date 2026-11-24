@@ -68,6 +68,10 @@ private fun strength(): List<GalleryEntry> {
                 listOf(98.0, 101.5, 100.0, 104.0, 108.5, 107.0, 111.0, 113.5),
             ),
         ),
+        entry(
+            "data, change inside the margin",
+            StrengthUiState.Content(Chips, "bench", StrengthSummary(113.5, 1.5, withinMargin = true)),
+        ),
         entry("data, no change", StrengthUiState.Content(Chips, "squat", StrengthSummary(140.0, 0.0))),
         entry("record loading", StrengthUiState.Content(Chips, "row", null)),
     )
@@ -188,6 +192,8 @@ private fun diaryHistory(): List<GalleryEntry> {
         view: DiaryHistoryView = DiaryHistoryView.Day,
         selected: DiaryHistoryDay? = DiaryHistoryDay(eighteenth, MealTotals(1840.0, 142.0, 210.0, 48.0), goals),
         goalsSet: DiaryGoals? = goals,
+        week: PeriodAverage? = PeriodAverage(7, 5, 2000.0, 150.0, 220.0, 60.0),
+        monthSummary: MonthSummary? = MonthSummary(20, 19, 38000.0, 1900.0, 140.0, 200.0, 55.0),
     ) = DiaryHistoryUiState.Content(
         DiaryHistoryContent(
             month = YearMonth(2026, 10),
@@ -196,10 +202,10 @@ private fun diaryHistory(): List<GalleryEntry> {
             markedDays = setOf(eighteenth, LocalDate(2026, 10, 20)),
             view = view,
             selectedDay = selected,
-            week = PeriodAverage(3, 2000.0, 150.0, 220.0, 60.0),
-            monthSummary = MonthSummary(20, 38000.0, 1900.0, 140.0, 200.0, 55.0),
+            week = week,
+            monthSummary = monthSummary,
             goals = goalsSet,
-            weekKcal = listOf(2100f, 2350f, 2600f, 1900f, 2250f, 2480f, 1840f),
+            weekKcal = listOf(2100f, 2350f, 2600f, 1900f, 2250f, 2480f, 1840f, 900f),
             monthKcal = listOf(2050f, 2300f, 1950f, 0f),
         ),
     )
@@ -221,7 +227,12 @@ private fun diaryHistory(): List<GalleryEntry> {
             ),
         ),
         entry("week", content(DiaryHistoryView.Week)),
+        entry("week, no complete days", content(DiaryHistoryView.Week, week = PeriodAverage(2, 0, 0.0, 0.0, 0.0, 0.0))),
         entry("month", content(DiaryHistoryView.Month)),
+        entry(
+            "month, no complete days",
+            content(DiaryHistoryView.Month, monthSummary = MonthSummary(1, 0, 0.0, 0.0, 0.0, 0.0, 0.0)),
+        ),
     )
 }
 

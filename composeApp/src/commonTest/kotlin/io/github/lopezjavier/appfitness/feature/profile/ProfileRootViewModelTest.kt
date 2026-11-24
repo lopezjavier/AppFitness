@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.profile
 
 import io.github.lopezjavier.appfitness.app.FakeBodyMeasurementRepository
 import io.github.lopezjavier.appfitness.app.FakeClock
+import io.github.lopezjavier.appfitness.app.FakeNutritionGoalsRepository
 import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.app.FakeTrainingPreferencesRepository
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -11,12 +12,19 @@ import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.ProfileSummary
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.feature.analytics.FakeStrengthRepository
 import io.github.lopezjavier.appfitness.feature.analytics.completedWith
+import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryUiState
+import io.github.lopezjavier.appfitness.feature.diary.DiaryHistoryViewModel
 import io.github.lopezjavier.appfitness.feature.diary.FakeFoodDiaryRepository
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseLibrary
+import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseRepository
+import io.github.lopezjavier.appfitness.feature.exercises.exerciseInfo
+import io.github.lopezjavier.appfitness.feature.exercises.exerciseRow
 import io.github.lopezjavier.appfitness.feature.workout.FakeWorkoutSessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -27,6 +35,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
+import kotlin.math.roundToInt
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -48,6 +57,20 @@ class ProfileRootViewModelTest {
     private val workouts = FakeWorkoutSessionRepository()
     private val diary = FakeFoodDiaryRepository()
     private val training = FakeTrainingPreferencesRepository()
+    private val exercises = FakeExerciseRepository(
+        listOf(
+            exerciseRow("bench", "bench"),
+            exerciseRow("squat", "squat"),
+            exerciseRow("bike", "bike", pattern = MovementPattern.Cardio),
+        ),
+    )
+    private val library = FakeExerciseLibrary(
+        mapOf(
+            "bench" to exerciseInfo("bench", "Press banca"),
+            "squat" to exerciseInfo("squat", "Sentadilla"),
+            "bike" to exerciseInfo("bike", "Bicicleta"),
+        ),
+    )
 
     @BeforeTest
     fun setUp() {
@@ -80,6 +103,8 @@ class ProfileRootViewModelTest {
         foodDiaryRepository = diary,
         clock = FakeClock(today, now),
         trainingPreferences = training,
+        exerciseRepository = exercises,
+        exerciseLibrary = library,
     )
 
     @Test
@@ -193,7 +218,59 @@ class ProfileRootViewModelTest {
 
         assertEquals(79.4, state().weightKg)
         assertEquals(113.5, state().strengthRecordKg)
+        assertEquals("Press banca", state().strengthExerciseName)
         assertEquals(1950, state().avgKcal)
+    }
+
+    @Test
+    fun aFailedNameRead_hidesTheWholeStrengthHighlight() = runTest {
+        exercises.failure = AppError.Network
+
+        val (_, state) = loaded()
+
+        assertNull(state().strengthRecordKg)
+        assertNull(state().strengthExerciseName)
+    }
+
+    @Test
+    fun aCardioExerciseTrainedMoreOften_isNotTheStrengthHighlight() = runTest {
+        strength.sessions += listOf(
+            completedWith("c", "2026-10-09T10:00:00Z", "bike"),
+            completedWith("d", "2026-10-10T10:00:00Z", "bike"),
+            completedWith("e", "2026-10-11T10:00:00Z", "bike"),
+        )
+        workouts.history += ("bike" to listOf(ExerciseHistoryPoint("s3", LocalDate(2026, 10, 9), 10.0, 0.0)))
+
+        val (_, state) = loaded()
+
+        assertEquals("Press banca", state().strengthExerciseName)
+        assertEquals(113.5, state().strengthRecordKg)
+    }
+
+    @Test
+    fun avgKcal_excludesPartialDaysAndToday() = runTest {
+        diary.summaryDays.clear()
+        diary.summaryDays += DiaryDaySummary(LocalDate(2026, 10, 13), MealTotals(2000.0, 0.0, 0.0, 0.0))
+        diary.summaryDays += DiaryDaySummary(LocalDate(2026, 10, 12), MealTotals(2200.0, 0.0, 0.0, 0.0))
+        diary.summaryDays += DiaryDaySummary(LocalDate(2026, 10, 11), MealTotals(300.0, 0.0, 0.0, 0.0))
+        diary.summaryDays += DiaryDaySummary(today, MealTotals(9000.0, 0.0, 0.0, 0.0))
+
+        val (_, state) = loaded()
+
+        assertEquals(2100, state().avgKcal)
+    }
+
+    @Test
+    fun avgKcal_equalsTheCaloriesSemanaAverageOnTheSameData() = runTest {
+        diary.summaryDays += DiaryDaySummary(LocalDate(2026, 10, 10), MealTotals(250.0, 0.0, 0.0, 0.0))
+        diary.summaryDays += DiaryDaySummary(today, MealTotals(7000.0, 0.0, 0.0, 0.0))
+        val (_, state) = loaded()
+        val history = DiaryHistoryViewModel(diary, FakeNutritionGoalsRepository(null), FakeClock(today, now))
+        advanceUntilIdle()
+
+        val week = assertIs<DiaryHistoryUiState.Content>(history.uiState.value).content.week
+
+        assertEquals(week?.kcal?.roundToInt(), state().avgKcal)
     }
 
     @Test

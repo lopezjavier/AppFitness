@@ -54,7 +54,15 @@ private fun profileRoot(): List<GalleryEntry> {
         GalleryEntry(PERFIL_AREA, "Perfil", state, covers = setOf("ProfileHome"), wide = wide) {
             ProfileRootScreen(ui, onEvent = {})
         }
-    val loaded = ProfileRootUiState.Loaded(GalleryFixtures.USER_NAME, null, 82.4, 113.5, 2150, TrainingIntention.Muscle)
+    val loaded = ProfileRootUiState.Loaded(
+        GalleryFixtures.USER_NAME,
+        null,
+        82.4,
+        113.5,
+        2150,
+        TrainingIntention.Muscle,
+        strengthExerciseName = "Press banca",
+    )
     return listOf(
         entry("loading", ProfileRootUiState.Loading),
         entry("load failed", ProfileRootUiState.LoadFailed),

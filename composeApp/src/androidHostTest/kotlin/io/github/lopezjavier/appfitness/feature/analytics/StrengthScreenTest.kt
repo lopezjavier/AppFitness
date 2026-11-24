@@ -148,6 +148,48 @@ class StrengthScreenTest {
     }
 
     @Test
+    fun delta_insideTheMargin_explainsTheChange() {
+        show(content(StrengthSummary(113.5, 1.5, withinMargin = true)))
+
+        rule.onNodeWithTag("strength_delta")
+            .assertTextEquals("+1,5 kg este mes · dentro del margen de un día a otro")
+    }
+
+    @Test
+    fun delta_negativeInsideTheMargin_keepsTheSameTail() {
+        show(content(StrengthSummary(113.5, -1.5, withinMargin = true)))
+
+        rule.onNodeWithTag("strength_delta")
+            .assertTextEquals("−1,5 kg este mes · dentro del margen de un día a otro")
+    }
+
+    @Test
+    fun delta_outsideTheMargin_showsTheAmountOnly() {
+        show(content(StrengthSummary(113.5, 5.0, withinMargin = false)))
+
+        rule.onNodeWithTag("strength_delta").assertTextEquals("+5,0 kg este mes")
+    }
+
+    @Test
+    fun delta_insideTheMargin_isFullyShownAtFontScale2() {
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(density.density, fontScale = 2f),
+                LocalExerciseMediaUris provides FakeExerciseMediaUris,
+            ) {
+                AppTheme {
+                    StrengthScreen(content(StrengthSummary(113.5, 1.5, withinMargin = true)), {}, {}, {}, {})
+                }
+            }
+        }
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("strength_delta").assertIsDisplayed()
+            .assertTextContains("dentro del margen de un día a otro", substring = true)
+    }
+
+    @Test
     fun delta_zero_saysNoChange() {
         show(content(StrengthSummary(113.5, 0.0)))
 

@@ -33,9 +33,9 @@ private const val KEY_MONTH = "history_month"
 private const val KEY_DAY = "history_day"
 private const val KEY_VIEW = "history_view"
 private const val NO_DAY = ""
-private const val WEEK_BACK_DAYS = 6
+private const val WINDOW_BACK_DAYS = 28
 
-/** Everything fetched for one viewed month, plus the last-7-days window that may cross months. */
+/** Everything fetched for one viewed month, plus the 28-day window (week figures, median of the complete days). */
 private class HistoryData(
     val month: YearMonth,
     val monthDays: List<DiaryDaySummary>,
@@ -53,9 +53,9 @@ private sealed interface HistoryLoad {
 
 /**
  * Diary history (US-24, read-only): a month calendar marking the days with entries, the summary of the selected day
- * and the week (last 7 days) and month figures, which average over logged days only. The viewed month, the selected
- * day and the panel live in [savedState]. A month change reloads that month; the week window and the goals are
- * fetched once and kept.
+ * and the week (7 days before today) and month figures, which average over complete days only. The viewed month,
+ * the selected day and the panel live in [savedState]. A month change reloads that month; the week window and the
+ * goals are fetched once and kept.
  */
 class DiaryHistoryViewModel(
     private val foodDiary: FoodDiaryRepository,
@@ -161,7 +161,7 @@ class DiaryHistoryViewModel(
 
     private suspend fun weekDays(today: LocalDate): Result<List<DiaryDaySummary>> {
         weekCache?.takeIf { it.first == today }?.let { return Result.success(it.second) }
-        val from = today.minus(WEEK_BACK_DAYS, DateTimeUnit.DAY)
+        val from = today.minus(WINDOW_BACK_DAYS, DateTimeUnit.DAY)
         return foodDiary.summaries(from, today).onSuccess { weekCache = today to it }
     }
 
@@ -197,9 +197,9 @@ class DiaryHistoryViewModel(
                 DiaryHistoryDay(it, DiaryHistorySummary.day(data.monthDays, it)?.totals, data.goals)
             },
             week = DiaryHistorySummary.week(data.weekDays, today),
-            monthSummary = DiaryHistorySummary.month(data.monthDays, data.month),
+            monthSummary = DiaryHistorySummary.month(unionByDate(data.monthDays, data.weekDays), data.month, today),
             goals = data.goals,
-            weekKcal = (WEEK_DAYS_SHOWN - 1 downTo 0).map { back ->
+            weekKcal = (WEEK_DAYS_SHOWN downTo 0).map { back ->
                 val day = today.minus(back, DateTimeUnit.DAY)
                 (data.weekDays.firstOrNull { it.date == day }?.totals?.kcal ?: 0.0).toFloat()
             },
@@ -207,6 +207,10 @@ class DiaryHistoryViewModel(
         )
     }
 }
+
+/** Month days plus the widened fetch (the current month's window reaches into the previous one), by date. */
+private fun unionByDate(first: List<DiaryDaySummary>, second: List<DiaryDaySummary>): List<DiaryDaySummary> =
+    (first + second).distinctBy { it.date }
 
 /** Average kcal of each block of [BLOCK_DAYS] days of the month, for the month chart. */
 private fun monthBlocks(data: HistoryData): List<Float> {
@@ -217,5 +221,5 @@ private fun monthBlocks(data: HistoryData): List<Float> {
     }
 }
 
-private const val WEEK_DAYS_SHOWN = 7
+private const val WEEK_DAYS_SHOWN = 7 // the 7 counted days before today; today is the extra 8th bar
 private const val BLOCK_DAYS = 7

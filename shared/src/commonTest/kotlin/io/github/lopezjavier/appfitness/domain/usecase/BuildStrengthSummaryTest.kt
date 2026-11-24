@@ -4,7 +4,9 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class BuildStrengthSummaryTest {
     private val today = LocalDate(2026, 10, 19)
@@ -65,5 +67,35 @@ class BuildStrengthSummaryTest {
 
         assertNull(summary.recordOneRepMax)
         assertNull(summary.monthlyDelta)
+    }
+
+    private fun withDelta(prior: Double, record: Double) = BuildStrengthSummary(
+        listOf(point(LocalDate(2026, 9, 1), prior), point(LocalDate(2026, 10, 15), record)),
+        today,
+    )
+
+    @Test
+    fun deltaUnderFourPercentOfThePriorIsWithinMargin() {
+        assertTrue(withDelta(100.0, 103.9).withinMargin)
+    }
+
+    @Test
+    fun deltaOfExactlyFourPercentIsNotWithinMargin() {
+        assertFalse(withDelta(100.0, 104.0).withinMargin)
+    }
+
+    @Test
+    fun deltaOfFivePercentIsNotWithinMargin() {
+        assertFalse(withDelta(100.0, 105.0).withinMargin)
+    }
+
+    @Test
+    fun zeroDeltaIsNotWithinMargin() {
+        assertFalse(withDelta(100.0, 100.0).withinMargin)
+    }
+
+    @Test
+    fun withoutAPriorThereIsNoMargin() {
+        assertFalse(BuildStrengthSummary(listOf(point(LocalDate(2026, 10, 15), 110.0)), today).withinMargin)
     }
 }

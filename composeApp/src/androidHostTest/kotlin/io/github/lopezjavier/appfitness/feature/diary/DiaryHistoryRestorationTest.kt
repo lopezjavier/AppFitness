@@ -20,6 +20,7 @@ import io.github.lopezjavier.appfitness.domain.model.MealTotals
 import io.github.lopezjavier.appfitness.domain.model.NutritionGoals
 import io.github.lopezjavier.appfitness.feature.workout.MutableClock
 import kotlinx.datetime.LocalDate
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,6 +51,29 @@ class DiaryHistoryRestorationTest {
     private fun Host(model: DiaryHistoryViewModel) {
         val state by model.uiState.collectAsState()
         AppTheme { DiaryHistoryScreen(state, model::onEvent, onBack = {}) }
+    }
+
+    @Test
+    fun monthPanel_keepsItsCompleteDaysLineAndSurvivesRecreationFromTheSameSavedState() {
+        val savedState = SavedStateHandle()
+        val tester = StateRestorationTester(rule)
+        tester.setContent { Host(viewModel(savedState)) }
+        rule.waitForIdle()
+        rule.onNodeWithTag("month_calendar_prev").performClick()
+        rule.onNodeWithTag("diary_history_view_month").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag("diary_history_complete_count", useUnmergedTree = true)
+            .assertTextEquals("Media de 1 día completo")
+
+        tester.emulateSavedInstanceStateRestore()
+        rule.waitForIdle()
+
+        rule.onNodeWithTag("diary_history_view_month").assertIsSelected()
+        rule.onNodeWithTag("diary_history_complete_count", useUnmergedTree = true)
+            .assertTextEquals("Media de 1 día completo")
+        rule.onNodeWithTag("diary_history_month_summary").assertExists()
+        assertEquals("Month", savedState.get<String>("history_view"))
+        assertEquals("2026-09", savedState.get<String>("history_month"))
     }
 
     @Test

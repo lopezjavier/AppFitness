@@ -47,7 +47,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.profile_title
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_training_stats_row
 import io.github.lopezjavier.appfitness.composeapp.resources.profile_weight_row
 import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_hero_kcal
-import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_hero_strength
 import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_hero_weight
 import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_value_kcal
 import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_value_kg
@@ -274,6 +273,7 @@ private fun HeroHighlights(state: ProfileRootUiState.Loaded) {
     val colors = AppTheme.colors
     val weight = state.weightKg
     val record = state.strengthRecordKg
+    val exerciseName = state.strengthExerciseName
     val kcal = state.avgKcal
     if (weight == null && record == null && kcal == null) return
     Row(
@@ -286,18 +286,19 @@ private fun HeroHighlights(state: ProfileRootUiState.Loaded) {
                 AppNumberFormat.decimal(weight),
                 stringResource(Res.string.px_stats_hero_weight),
                 colors.athleticCyan,
-                Modifier.weight(1f),
+                Modifier.weight(1f).testTag("profile_highlight_weight"),
                 unit = stringResource(Res.string.unit_kg),
             )
         }
-        if (record != null) {
+        if (record != null && exerciseName != null) {
             HeroStat(
                 Res.drawable.ic_fitness_center,
                 AppNumberFormat.decimal(record),
-                stringResource(Res.string.px_stats_hero_strength),
+                exerciseName,
                 colors.neonLime,
-                Modifier.weight(1f),
+                Modifier.weight(1f).testTag("profile_highlight_strength"),
                 unit = stringResource(Res.string.unit_kg),
+                labelMaxLines = 2,
             )
         }
         if (kcal != null) {
@@ -306,7 +307,7 @@ private fun HeroHighlights(state: ProfileRootUiState.Loaded) {
                 AppNumberFormat.integer(kcal),
                 stringResource(Res.string.px_stats_hero_kcal),
                 colors.energyAmber,
-                Modifier.weight(1f),
+                Modifier.weight(1f).testTag("profile_highlight_kcal"),
             )
         }
     }

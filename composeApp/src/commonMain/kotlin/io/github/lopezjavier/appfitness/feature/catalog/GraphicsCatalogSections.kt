@@ -101,7 +101,6 @@ private fun DataGraphicsSection() {
                     labels = List(SampleBars.size) { (it + 1).toString() },
                     highlightIndex = 6,
                     target = 2400f,
-                    overColor = colors.energyAmber,
                 )
                 WeekStrip(
                     List(7) { WeekStripDay((it + 1).toString(), done = it < 4, today = it == 4, progress = 0.5f) },

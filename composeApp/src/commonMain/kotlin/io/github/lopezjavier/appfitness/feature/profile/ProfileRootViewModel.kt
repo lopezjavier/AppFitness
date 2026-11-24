@@ -3,8 +3,11 @@ package io.github.lopezjavier.appfitness.feature.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.TrainingIntention
+import io.github.lopezjavier.appfitness.domain.model.isCardioWork
 import io.github.lopezjavier.appfitness.domain.port.Clock
+import io.github.lopezjavier.appfitness.domain.port.ExerciseLibrary
 import io.github.lopezjavier.appfitness.domain.repository.BodyMeasurementRepository
+import io.github.lopezjavier.appfitness.domain.repository.ExerciseRepository
 import io.github.lopezjavier.appfitness.domain.repository.FoodDiaryRepository
 import io.github.lopezjavier.appfitness.domain.repository.ProfileRepository
 import io.github.lopezjavier.appfitness.domain.repository.StrengthRepository
@@ -12,6 +15,7 @@ import io.github.lopezjavier.appfitness.domain.repository.TrainingPreferencesRep
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
 import io.github.lopezjavier.appfitness.domain.usecase.BuildStrengthSummary
 import io.github.lopezjavier.appfitness.domain.usecase.DiaryHistorySummary
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseNameResolver
 import io.github.lopezjavier.appfitness.domain.usecase.RankTopExercises
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +29,7 @@ import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.days
 
 private const val STRENGTH_WINDOW_DAYS = 42
-private const val WEEK_BACK_DAYS = 6
+private const val WINDOW_BACK_DAYS = 28
 
 /** State of the Perfil root: the user's photo and name plus the values shown on the statistics rows. */
 sealed interface ProfileRootUiState {
@@ -37,8 +41,9 @@ sealed interface ProfileRootUiState {
     /**
      * [displayName] is null when the profile has no (non-blank) name; [avatarUrl] when there is no photo. Each
      * highlight is null while it loads and stays null when it cannot be read or there is nothing to show: [weightKg]
-     * is the latest weight, [strengthRecordKg] the 1RM record of the most trained exercise of the last 6 weeks (the
-     * Fuerza default) and [avgKcal] the average per logged day of the last 7 days (the Historial "week" figure).
+     * is the latest weight, [strengthRecordKg] the 1RM record of the most trained non-cardio exercise of the
+     * last 6 weeks (the Fuerza default) and [strengthExerciseName] its name (both null when any read fails), and
+     * [avgKcal] the average per complete day of the 7 days before today (the Historial "week" figure).
      */
     data class Loaded(
         val displayName: String?,
@@ -47,6 +52,7 @@ sealed interface ProfileRootUiState {
         val strengthRecordKg: Double? = null,
         val avgKcal: Int? = null,
         val intention: TrainingIntention? = null,
+        val strengthExerciseName: String? = null,
     ) : ProfileRootUiState
 }
 
@@ -71,6 +77,9 @@ class ProfileRootViewModel(
     private val foodDiaryRepository: FoodDiaryRepository,
     private val clock: Clock,
     private val trainingPreferences: TrainingPreferencesRepository,
+    private val exerciseRepository: ExerciseRepository,
+    exerciseLibrary: ExerciseLibrary,
+    private val exerciseNames: ExerciseNameResolver = ExerciseNameResolver(exerciseRepository, exerciseLibrary),
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<ProfileRootUiState>(ProfileRootUiState.Loading)
     val uiState: StateFlow<ProfileRootUiState> = _uiState.asStateFlow()
@@ -126,8 +135,8 @@ class ProfileRootViewModel(
             updateLoaded { it.copy(weightKg = weight) }
         }
         highlightWork += viewModelScope.launch {
-            val record = strengthRecord()
-            updateLoaded { it.copy(strengthRecordKg = record) }
+            val strength = strengthHighlight()
+            updateLoaded { it.copy(strengthRecordKg = strength?.second, strengthExerciseName = strength?.first) }
         }
         highlightWork += viewModelScope.launch {
             val kcal = weekAverageKcal()
@@ -135,19 +144,32 @@ class ProfileRootViewModel(
         }
     }
 
-    /** The 1RM record of the most trained exercise of the last 6 weeks, as the Fuerza screen shows by default. */
-    private suspend fun strengthRecord(): Double? {
-        val since = clock.now() - STRENGTH_WINDOW_DAYS.days
-        val sessions = strengthRepository.recentSessions(since).getOrNull()
-        val top = sessions?.let { RankTopExercises(it, since).firstOrNull() }
-        val history = top?.let { workoutSessionRepository.exerciseHistory(it).getOrNull() }
-        return history?.let { BuildStrengthSummary(it, clock.today()).recordOneRepMax }
+    /**
+     * Name and 1RM record of the most trained non-cardio exercise of the last 6 weeks, as the Fuerza screen shows by
+     * default; null when any read fails, so a record is never shown without its exercise name.
+     */
+    private suspend fun strengthHighlight(): Pair<String, Double>? {
+        val top = topStrengthExercise() ?: return null
+        val name = exerciseNames.resolve().getOrNull()?.get(top)
+        val history = workoutSessionRepository.exerciseHistory(top).getOrNull()
+        val record = history?.let { BuildStrengthSummary(it, clock.today()).recordOneRepMax }
+        return if (name != null && record != null) name to record else null
     }
 
-    /** The average kcal per logged day of the last 7 days (the Historial "week" figure), null with no records. */
+    private suspend fun topStrengthExercise(): String? {
+        val since = clock.now() - STRENGTH_WINDOW_DAYS.days
+        val sessions = strengthRepository.recentSessions(since).getOrNull()
+        val catalog = exerciseRepository.getAll().getOrNull()
+        if (sessions == null || catalog == null) return null
+        val cardioIds = catalog.filter { it.isCardioWork }.map { it.id }.toSet()
+        return RankTopExercises(sessions, since, excluded = cardioIds).firstOrNull()
+    }
+
+    /** The average kcal per complete day of the 7 days before today (the Historial "week" figure); null if none. */
     private suspend fun weekAverageKcal(): Int? {
         val today = clock.today()
-        val days = foodDiaryRepository.summaries(today.minus(WEEK_BACK_DAYS, DateTimeUnit.DAY), today).getOrNull()
-        return days?.let { DiaryHistorySummary.week(it, today) }?.kcal?.roundToInt()
+        val days = foodDiaryRepository.summaries(today.minus(WINDOW_BACK_DAYS, DateTimeUnit.DAY), today).getOrNull()
+        val week = days?.let { DiaryHistorySummary.week(it, today) }
+        return week?.takeIf { it.completeDays > 0 }?.kcal?.roundToInt()
     }
 }

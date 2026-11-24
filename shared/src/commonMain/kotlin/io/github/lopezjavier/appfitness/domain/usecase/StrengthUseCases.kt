@@ -16,10 +16,12 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
+import kotlin.math.abs
 import kotlin.time.Instant
 
 private const val TOP_LIMIT = 3
 private const val DELTA_DAYS = 30
+private const val MARGIN_RATIO = 0.04
 
 /**
  * Ids of the most trained exercises (by completed sessions since [since]); ties go to the most recent one. Ids in
@@ -56,8 +58,12 @@ object BuildStrengthSummary {
         val record = history.mapNotNull { it.bestOneRepMax }.maxOrNull()
         val cutOff = today.minus(DELTA_DAYS, DateTimeUnit.DAY)
         val prior = history.filter { it.date <= cutOff }.mapNotNull { it.bestOneRepMax }.maxOrNull()
-        return StrengthSummary(record, if (record != null && prior != null) record - prior else null)
+        val delta = if (record != null && prior != null) record - prior else null
+        return StrengthSummary(record, delta, isWithinMargin(delta, prior))
     }
+
+    private fun isWithinMargin(delta: Double?, prior: Double?): Boolean =
+        delta != null && prior != null && delta != 0.0 && prior > 0.0 && abs(delta) / prior < MARGIN_RATIO
 }
 
 /**

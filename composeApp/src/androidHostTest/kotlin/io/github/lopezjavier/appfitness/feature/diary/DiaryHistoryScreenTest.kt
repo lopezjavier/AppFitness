@@ -37,9 +37,11 @@ private fun content(
         MealTotals(1840.0, 142.0, 210.0, 48.0),
         Goals,
     ),
-    week: PeriodAverage? = PeriodAverage(3, 2000.0, 150.0, 220.0, 60.0),
-    month: MonthSummary? = MonthSummary(20, 38000.0, 1900.0, 140.0, 200.0, 55.0),
+    week: PeriodAverage? = PeriodAverage(3, 3, 2000.0, 150.0, 220.0, 60.0),
+    month: MonthSummary? = MonthSummary(20, 20, 38000.0, 1900.0, 140.0, 200.0, 55.0),
     canGoNext: Boolean = false,
+    weekKcal: List<Float> = emptyList(),
+    monthKcal: List<Float> = emptyList(),
 ) = DiaryHistoryUiState.Content(
     DiaryHistoryContent(
         month = YearMonth(2026, 10),
@@ -51,6 +53,8 @@ private fun content(
         week = week,
         monthSummary = month,
         goals = Goals,
+        weekKcal = weekKcal,
+        monthKcal = monthKcal,
     ),
 )
 
@@ -140,6 +144,57 @@ class DiaryHistoryScreenTest {
         inside("diary_history_month_summary", "1.900 kcal").assertIsDisplayed()
         rule.onNode(hasText("Total del mes")).assertDoesNotExist()
         rule.onNode(hasText("Días registrados")).assertDoesNotExist()
+    }
+
+    @Test
+    fun weeklyAverage_countsTheCompleteDays() {
+        show(content(view = DiaryHistoryView.Week, week = PeriodAverage(7, 5, 2000.0, 150.0, 220.0, 60.0)))
+
+        rule.onNodeWithTag("diary_history_complete_count", useUnmergedTree = true)
+            .assertTextEquals("Media de 5 días completos")
+    }
+
+    @Test
+    fun weeklyAverage_withOneCompleteDay_usesTheSingular() {
+        show(content(view = DiaryHistoryView.Week, week = PeriodAverage(1, 1, 2000.0, 150.0, 220.0, 60.0)))
+
+        rule.onNodeWithTag("diary_history_complete_count", useUnmergedTree = true)
+            .assertTextEquals("Media de 1 día completo")
+    }
+
+    @Test
+    fun weekWithLoggedDaysButNoneComplete_showsSinDiasCompletos() {
+        show(content(view = DiaryHistoryView.Week, week = PeriodAverage(2, 0, 0.0, 0.0, 0.0, 0.0)))
+
+        rule.onNodeWithTag("diary_history_empty", useUnmergedTree = true).assertTextEquals("Sin días completos")
+        rule.onNodeWithTag("diary_history_complete_count", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun monthlySummary_countsTheCompleteDays_andNoneCompleteSaysSinDiasCompletos() {
+        show(content(view = DiaryHistoryView.Month, month = MonthSummary(20, 19, 38000.0, 1900.0, 140.0, 200.0, 55.0)))
+        rule.onNodeWithTag("diary_history_complete_count", useUnmergedTree = true)
+            .assertTextEquals("Media de 19 días completos")
+    }
+
+    @Test
+    fun monthWithLoggedDaysButNoneComplete_showsSinDiasCompletos() {
+        show(content(view = DiaryHistoryView.Month, month = MonthSummary(1, 0, 0.0, 0.0, 0.0, 0.0, 0.0)))
+
+        rule.onNodeWithTag("diary_history_empty", useUnmergedTree = true).assertTextEquals("Sin días completos")
+    }
+
+    @Test
+    fun weekChart_drawsTodayAsAnEighthBar_withTheSingleColourDescription() {
+        show(
+            content(
+                view = DiaryHistoryView.Week,
+                weekKcal = listOf(2100f, 2350f, 2600f, 1900f, 2250f, 2480f, 1840f, 900f),
+            ),
+        )
+
+        rule.onNodeWithTag("diary_history_chart", useUnmergedTree = true).assertIsDisplayed()
+        assertDescription("diary_history_chart", "Calorías por día frente al objetivo de 2.400 kcal")
     }
 
     @Test

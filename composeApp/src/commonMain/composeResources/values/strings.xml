@@ -870,6 +870,7 @@
     <string name="strength_delta_up">%1$s kg este mes</string>
     <string name="strength_delta_flat">Sin cambios este mes</string>
     <string name="strength_delta_down">%1$s kg este mes</string>
+    <string name="strength_delta_margin">%1$s kg este mes · dentro del margen de un día a otro</string>
     <string name="strength_open_exercise">Progreso del ejercicio</string>
     <string name="strength_empty_message">Aún no tienes entrenos en las últimas semanas. Entrena para ver tu progreso de fuerza.</string>
     <string name="strength_empty_cta">Empezar entreno</string>
@@ -1200,6 +1201,11 @@
     <string name="diary_day_picker_today_cd">Ir a hoy</string>
     <string name="diary_history_error_message">No se pudo cargar el historial.</string>
     <string name="diary_history_empty">Sin registros</string>
+    <string name="diary_history_no_complete_days">Sin días completos</string>
+    <plurals name="diary_history_complete_days">
+        <item quantity="one">Media de %1$d día completo</item>
+        <item quantity="other">Media de %1$d días completos</item>
+    </plurals>
     <string name="diary_history_view_day">Día</string>
     <string name="diary_history_view_week">Semana</string>
     <string name="diary_history_view_month">Mes</string>

@@ -43,6 +43,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -104,7 +105,8 @@ fun IconBadge(
 
 /**
  * One figure of a hero row: an [IconBadge] in the [accent], the [value] (with its optional [unit]) and a short
- * [label] under it. The whole stat is one accessibility node ("value unit, label").
+ * [label] under it (up to [labelMaxLines] lines, then ellipsis). The whole stat is one accessibility node
+ * ("value unit, label").
  */
 @Composable
 fun HeroStat(
@@ -114,6 +116,7 @@ fun HeroStat(
     accent: Color,
     modifier: Modifier = Modifier,
     unit: String? = null,
+    labelMaxLines: Int = 1,
 ) {
     Row(
         modifier.semantics(mergeDescendants = true) {},
@@ -134,7 +137,13 @@ fun HeroStat(
                     Text(text = unit, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
                 }
             }
-            Text(text = label, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
+            Text(
+                text = label,
+                style = AppTheme.typography.bodySmall,
+                color = AppTheme.colors.textSecondary,
+                maxLines = labelMaxLines,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -302,8 +311,9 @@ object MiniBarChartDefaults {
 
 /**
  * A compact column chart for a handful of periods (the days of a week, the last weeks): each bar is a rounded pill
- * over a ghost track, filled with the ramp of [color]; the bar at [highlightIndex] is lit and the others dimmed. A
- * [target] draws a dashed line across the plot and bars above it take [overColor] when given. [labels] (same size as
+ * over a ghost track, filled with the ramp of [color]; the bar at [highlightIndex] is lit and the others dimmed. The
+ * bars at [unlitIndices] are always dimmed and get no glow (a period that is still running). Every bar has the same
+ * colour: a [target] only draws a dashed line across the plot. [labels] (same size as
  * [values], or empty for none) sit under the bars. With a [description] the chart is one accessibility node that
  * speaks it; without one it is decorative. Bars rise once on first composition.
  */
@@ -315,7 +325,7 @@ fun MiniBarChart(
     color: Color = AppTheme.colors.athleticCyan,
     highlightIndex: Int? = null,
     target: Float? = null,
-    overColor: Color? = null,
+    unlitIndices: Set<Int> = emptySet(),
     description: String? = null,
 ) {
     val measurer = rememberTextMeasurer()
@@ -324,7 +334,6 @@ fun MiniBarChart(
     val labelStyle = AppTheme.typography.bodySmall
     val palette = MiniBarPalette(
         color = color,
-        over = overColor,
         track = colors.trackInactive.copy(alpha = MiniBarChartDefaults.TRACK_ALPHA),
         target = colors.textSecondary,
         label = colors.textTertiary,
@@ -342,13 +351,13 @@ fun MiniBarChart(
                 },
             ),
     ) {
-        drawMiniBars(MiniBarInput(values, labels, highlightIndex, target, rise.value), palette, measurer, labelStyle)
+        val input = MiniBarInput(values, labels, highlightIndex, target, rise.value, unlitIndices)
+        drawMiniBars(input, palette, measurer, labelStyle)
     }
 }
 
 private class MiniBarPalette(
     val color: Color,
-    val over: Color?,
     val track: Color,
     val target: Color,
     val label: Color,
@@ -361,6 +370,7 @@ private class MiniBarInput(
     val highlightIndex: Int?,
     val target: Float?,
     val rise: Float,
+    val unlitIndices: Set<Int> = emptySet(),
 )
 
 @Suppress("LongParameterList") // The bar geometry, computed once by the caller.
@@ -375,9 +385,8 @@ private fun DrawScope.drawMiniBar(
     scaleMax: Float,
     index: Int,
 ) {
-    val lit = input.highlightIndex == null || index == input.highlightIndex
-    val over = input.target != null && value > input.target && palette.over != null
-    val barColor = if (over) palette.over ?: palette.color else palette.color
+    val lit = index !in input.unlitIndices && (input.highlightIndex == null || index == input.highlightIndex)
+    val barColor = palette.color
     val ramp = AppPaint.ramp(barColor)
     val height = max(plotHeight * (value / scaleMax) * input.rise, MiniBarChartDefaults.MinFill.toPx())
         .coerceAtMost(plotHeight)
@@ -750,7 +759,6 @@ private fun AppGraphicsPreview() {
                 labels = listOf("L", "M", "X", "J", "V", "S", "D"),
                 highlightIndex = 3,
                 target = 2400f,
-                overColor = AppTheme.colors.energyAmber,
             )
             WeekStrip(
                 listOf(

@@ -36,7 +36,8 @@ data class HistoryTargets(val kcal: Int, val proteinG: Int, val carbsG: Int, val
  * One history figure: [title] (and an optional [subtitle]), the calories (against the target when there is one) and
  * the three macros as progress bars, or as plain "P 142 g" values without [targets]. Without [totals] it shows
  * [emptyText] ("Sin registros", tag `diary_history_empty`). With [onClick] the whole card is one tappable target (tag
- * `diary_history_row_open`), otherwise the card is tagged `diary_history_row`.
+ * `diary_history_row_open`), otherwise the card is tagged `diary_history_row`. [subtitleTestTag] tags the subtitle
+ * text.
  */
 @Composable
 fun DiaryHistoryRow(
@@ -49,6 +50,7 @@ fun DiaryHistoryRow(
     onClick: (() -> Unit)? = null,
     showSplit: Boolean = false,
     chart: (@Composable () -> Unit)? = null,
+    subtitleTestTag: String? = null,
 ) {
     val tag = if (onClick != null) "diary_history_row_open" else "diary_history_row"
     val cardModifier = if (onClick != null) {
@@ -60,7 +62,14 @@ fun DiaryHistoryRow(
     AppCard(cardModifier.testTag(tag), glow = AppTheme.colors.neonLime) {
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Text(title, style = AppTheme.typography.titleMedium, color = AppTheme.colors.textPrimary)
-            subtitle?.let { Text(it, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary) }
+            subtitle?.let {
+                Text(
+                    text = it,
+                    style = AppTheme.typography.bodySmall,
+                    color = AppTheme.colors.textSecondary,
+                    modifier = if (subtitleTestTag != null) Modifier.testTag(subtitleTestTag) else Modifier,
+                )
+            }
             if (totals == null) {
                 Text(
                     text = emptyText,

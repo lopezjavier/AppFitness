@@ -1,6 +1,7 @@
 package io.github.lopezjavier.appfitness.feature.profile
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
@@ -52,9 +54,17 @@ class ProfileRootScreenTest {
         weightKg: Double? = 79.4,
         strengthRecordKg: Double? = 113.5,
         avgKcal: Int? = 1950,
-    ) = ProfileRootUiState.Loaded(name, avatarUrl, weightKg, strengthRecordKg, avgKcal)
+        strengthExerciseName: String? = "Press banca",
+    ) = ProfileRootUiState.Loaded(
+        name,
+        avatarUrl,
+        weightKg,
+        strengthRecordKg,
+        avgKcal,
+        strengthExerciseName = strengthExerciseName,
+    )
 
-    private fun show(state: ProfileRootUiState = loaded(), withCatalog: Boolean = false) {
+    private fun show(state: ProfileRootUiState = loaded(), withCatalog: Boolean = false, fontScale: Float = 1f) {
         events.clear()
         catalogOpens = 0
         preferencesOpens = 0
@@ -66,8 +76,12 @@ class ProfileRootScreenTest {
         activityOpens = 0
         myTrainingOpens = 0
         rule.setContent {
+            val density = LocalDensity.current
             AppTheme {
-                CompositionLocalProvider(LocalNotificationsEntry provides NotificationsEntry(0) {}) {
+                CompositionLocalProvider(
+                    LocalNotificationsEntry provides NotificationsEntry(0) {},
+                    LocalDensity provides Density(density.density, fontScale = fontScale),
+                ) {
                     ProfileRootScreen(
                         state = state,
                         onEvent = { events += it },
@@ -165,6 +179,39 @@ class ProfileRootScreenTest {
             rule.onNodeWithTag(it).assertDoesNotExist()
         }
         rule.onNodeWithTag("profile_root_delete_protected_note").assertDoesNotExist()
+    }
+
+    // -- highlights -----------------------------------------------------------------------------------------------
+
+    @Test
+    fun strengthHighlight_namesItsExerciseUnderTheRecord() {
+        show()
+
+        rule.onNodeWithTag("profile_highlight_strength").assertTextContains("Press banca", substring = true)
+        rule.onNodeWithTag("profile_highlight_strength").assertTextContains("113,5", substring = true)
+    }
+
+    @Test
+    fun strengthHighlight_withoutAnExerciseName_isHidden() {
+        show(loaded(strengthExerciseName = null))
+
+        rule.onNodeWithTag("profile_highlight_strength").assertDoesNotExist()
+        rule.onNodeWithTag("profile_highlight_weight").assertExists()
+    }
+
+    @Test
+    fun kcalHighlight_showsTheAverageUnderTheKcalLabel() {
+        show()
+
+        rule.onNodeWithTag("profile_highlight_kcal").assertTextContains("1.950", substring = true)
+        rule.onNodeWithTag("profile_highlight_kcal").assertTextContains("Kcal al día", substring = true)
+    }
+
+    @Test
+    fun threeHighlights_withALongExerciseName_stayDisplayedAtFontScale2() {
+        show(loaded(strengthExerciseName = "Press banca con barra inclinado"), fontScale = 2f)
+
+        listOf("weight", "strength", "kcal").forEach { rule.onNodeWithTag("profile_highlight_$it").assertIsDisplayed() }
     }
 
     // -- statistics rows ------------------------------------------------------------------------------------------

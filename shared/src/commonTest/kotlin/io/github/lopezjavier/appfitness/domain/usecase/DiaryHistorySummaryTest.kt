@@ -3,8 +3,10 @@ package io.github.lopezjavier.appfitness.domain.usecase
 import io.github.lopezjavier.appfitness.domain.model.DiaryDaySummary
 import io.github.lopezjavier.appfitness.domain.model.DiaryGoals
 import io.github.lopezjavier.appfitness.domain.model.MealTotals
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
+import kotlinx.datetime.minus
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -39,7 +41,7 @@ class DiaryHistorySummaryTest {
     }
 
     @Test
-    fun week_averagesOnlyTheLoggedDays() {
+    fun week_averagesTheCompleteDays() {
         val summaries = listOf(
             day(LocalDate(2026, 10, 15), 1800.0, 100.0, 200.0, 50.0),
             day(LocalDate(2026, 10, 18), 2000.0, 120.0, 220.0, 60.0),
@@ -48,22 +50,59 @@ class DiaryHistorySummaryTest {
 
         val week = DiaryHistorySummary.week(summaries, today)
 
-        assertEquals(PeriodAverage(3, 2000.0, 120.0, 220.0, 60.0), week)
+        assertEquals(PeriodAverage(3, 3, 2000.0, 120.0, 220.0, 60.0), week)
     }
 
     @Test
-    fun week_includesTodayMinus6AndExcludesTodayMinus7() {
+    fun week_dropsPartialDaysFromTheAverageButCountsThemAsLogged() {
         val summaries = listOf(
-            day(LocalDate(2026, 10, 14), 5000.0),
-            day(LocalDate(2026, 10, 15), 1000.0),
-            day(LocalDate(2026, 10, 21), 2000.0),
-            day(LocalDate(2026, 10, 22), 9000.0),
+            day(LocalDate(2026, 10, 14), 2000.0, 100.0, 100.0, 40.0),
+            day(LocalDate(2026, 10, 15), 2000.0, 100.0, 100.0, 40.0),
+            day(LocalDate(2026, 10, 16), 2000.0, 100.0, 100.0, 40.0),
+            day(LocalDate(2026, 10, 17), 2000.0, 100.0, 100.0, 40.0),
+            day(LocalDate(2026, 10, 18), 2000.0, 100.0, 100.0, 40.0),
+            day(LocalDate(2026, 10, 19), 300.0, 10.0, 10.0, 4.0),
+            day(LocalDate(2026, 10, 20), 500.0, 20.0, 20.0, 5.0),
+        )
+
+        val week = DiaryHistorySummary.week(summaries, today)
+
+        assertEquals(PeriodAverage(7, 5, 2000.0, 100.0, 100.0, 40.0), week)
+    }
+
+    @Test
+    fun week_isTheSevenDaysBeforeTodayAndIgnoresToday() {
+        val summaries = listOf(
+            day(LocalDate(2026, 10, 13), 1700.0),
+            day(LocalDate(2026, 10, 14), 1000.0),
+            day(LocalDate(2026, 10, 20), 2000.0),
+            day(LocalDate(2026, 10, 21), 1500.0),
         )
 
         val week = DiaryHistorySummary.week(summaries, today)
 
         assertEquals(2, week?.loggedDays)
         assertEquals(1500.0, week?.kcal)
+    }
+
+    @Test
+    fun week_onlyTodayLogged_isNull() {
+        assertNull(DiaryHistorySummary.week(listOf(day(today, 2000.0)), today))
+    }
+
+    @Test
+    fun week_daysBeforeTheWeekRaiseTheMedian_soNormalWeekDaysCanBePartial() {
+        val older = (8..14).map { day(LocalDate(2026, 10, 21).minus(it, DateTimeUnit.DAY), 3000.0) }
+        val thisWeek = listOf(
+            day(LocalDate(2026, 10, 20), 1000.0),
+            day(LocalDate(2026, 10, 19), 3000.0),
+        )
+
+        val week = DiaryHistorySummary.week(older + thisWeek, today)
+
+        assertEquals(2, week?.loggedDays)
+        assertEquals(1, week?.completeDays)
+        assertEquals(3000.0, week?.kcal)
     }
 
     @Test
@@ -76,20 +115,34 @@ class DiaryHistorySummaryTest {
     fun week_withOneLoggedDay_isThatDay() {
         val week = DiaryHistorySummary.week(listOf(day(LocalDate(2026, 10, 20), 1700.0, 90.0, 150.0, 40.0)), today)
 
-        assertEquals(PeriodAverage(1, 1700.0, 90.0, 150.0, 40.0), week)
+        assertEquals(PeriodAverage(1, 1, 1700.0, 90.0, 150.0, 40.0), week)
     }
 
     @Test
-    fun month_totalsAndAveragesPerLoggedDay() {
+    fun month_inThePast_totalsAndAveragesPerCompleteDay() {
         val summaries = listOf(
-            day(LocalDate(2026, 10, 1), 2000.0, 100.0, 200.0, 50.0),
-            day(LocalDate(2026, 10, 2), 1000.0, 50.0, 100.0, 25.0),
-            day(LocalDate(2026, 10, 31), 3000.0, 150.0, 300.0, 75.0),
+            day(LocalDate(2026, 9, 1), 2000.0, 100.0, 200.0, 50.0),
+            day(LocalDate(2026, 9, 2), 1500.0, 50.0, 100.0, 25.0),
+            day(LocalDate(2026, 9, 30), 2500.0, 150.0, 300.0, 75.0),
         )
 
-        val month = DiaryHistorySummary.month(summaries, YearMonth(2026, 10))
+        val month = DiaryHistorySummary.month(summaries, YearMonth(2026, 9), today)
 
-        assertEquals(MonthSummary(3, 6000.0, 2000.0, 100.0, 200.0, 50.0), month)
+        assertEquals(MonthSummary(3, 3, 6000.0, 2000.0, 100.0, 200.0, 50.0), month)
+    }
+
+    @Test
+    fun month_currentMonth_endsYesterday() {
+        val summaries = listOf(
+            day(LocalDate(2026, 10, 5), 1500.0),
+            day(LocalDate(2026, 10, 20), 2500.0),
+            day(LocalDate(2026, 10, 21), 9000.0),
+        )
+
+        val month = DiaryHistorySummary.month(summaries, YearMonth(2026, 10), today)
+
+        assertEquals(2, month?.loggedDays)
+        assertEquals(4000.0, month?.totalKcal)
     }
 
     @Test
@@ -100,24 +153,43 @@ class DiaryHistorySummaryTest {
             day(LocalDate(2026, 11, 1), 4000.0),
         )
 
-        val month = DiaryHistorySummary.month(summaries, YearMonth(2026, 10))
+        val month = DiaryHistorySummary.month(summaries, YearMonth(2026, 10), today)
 
         assertEquals(1, month?.loggedDays)
         assertEquals(1500.0, month?.totalKcal)
     }
 
     @Test
+    fun month_usesTheWindowBeforeTheMonthStartForTheMedian() {
+        val summaries = listOf(day(LocalDate(2026, 9, 30), 4000.0), day(LocalDate(2026, 10, 1), 900.0))
+
+        val month = DiaryHistorySummary.month(summaries, YearMonth(2026, 10), today)
+
+        assertEquals(1, month?.loggedDays)
+        assertEquals(0, month?.completeDays)
+    }
+
+    @Test
     fun month_withoutData_isNull() {
-        assertNull(DiaryHistorySummary.month(listOf(day(LocalDate(2026, 9, 30), 4000.0)), YearMonth(2026, 10)))
+        assertNull(
+            DiaryHistorySummary.month(listOf(day(LocalDate(2026, 9, 30), 4000.0)), YearMonth(2026, 10), today),
+        )
+    }
+
+    @Test
+    fun month_onTheFirstDay_hasNoPeriodYet() {
+        val first = LocalDate(2026, 10, 1)
+
+        assertNull(DiaryHistorySummary.month(listOf(day(first, 2000.0)), YearMonth(2026, 10), first))
     }
 
     @Test
     fun month_sumsTenthsWithoutDrift() {
         val summaries = (1..10).map { day(LocalDate(2026, 10, it), 0.1, 0.1, 0.1, 0.1) }
 
-        val month = DiaryHistorySummary.month(summaries, YearMonth(2026, 10))
+        val month = DiaryHistorySummary.month(summaries, YearMonth(2026, 10), today)
 
         assertEquals(1.0, month?.totalKcal)
-        assertEquals(0.1, month?.avgKcalPerLoggedDay)
+        assertEquals(0.1, month?.avgKcalPerCompleteDay)
     }
 }
