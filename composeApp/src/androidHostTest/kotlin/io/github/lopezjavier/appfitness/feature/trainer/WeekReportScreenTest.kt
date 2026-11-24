@@ -218,7 +218,7 @@ class WeekReportScreenTest {
         show(contentOf(summaryOf()))
 
         rule.onNodeWithTag("week_summary_section_lifts").assertIsDisplayed()
-        rule.onNodeWithText("Sube +4 kg", substring = true, useUnmergedTree = true).assertExists()
+        rule.onNode(hasTextIgnoringNbsp("Sube +4 kg"), useUnmergedTree = true).assertExists()
     }
 
     @Test

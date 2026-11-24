@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.feature.workout
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.ExerciseComparisonInput
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
@@ -429,6 +430,16 @@ internal class FakeWorkoutSessionRepository(var session: WorkoutSession? = null)
 
     override suspend fun sessionRecords(exerciseId: String): Result<List<ExerciseSessionRecords>> =
         failing(recordsFailure) ?: Result.success(sessionRecords[exerciseId].orEmpty())
+
+    /** What [sessionComparison] answers (T-323), the session ids it was asked for and its failure. */
+    var comparisons: List<ExerciseComparisonInput> = emptyList()
+    var comparisonFailure: AppError? = null
+    val comparisonCalls = mutableListOf<String>()
+
+    override suspend fun sessionComparison(sessionId: String): Result<List<ExerciseComparisonInput>> {
+        comparisonCalls += sessionId
+        return failing(comparisonFailure) ?: Result.success(comparisons)
+    }
 }
 
 internal val SESSION_START: Instant = Instant.parse("2026-10-19T10:00:00Z")

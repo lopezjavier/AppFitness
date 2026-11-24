@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="px_live_summary_subtitle">Buen trabajo, sesión guardada</string>
-    <string name="px_live_summary_records">%1$d récords</string>
-    <string name="px_live_summary_record_one">1 récord</string>
+    <string name="px_live_summary_subtitle">Buen trabajo, sesión guardada.</string>
+    <plurals name="px_live_summary_records">
+        <item quantity="one">1&#160;récord</item>
+        <item quantity="other">%1$d&#160;récords</item>
+    </plurals>
     <string name="px_live_sets_short">Series</string>
     <string name="px_live_sets_progress">%1$d de %2$d series</string>
 </resources>

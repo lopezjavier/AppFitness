@@ -12,11 +12,14 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
+import io.github.lopezjavier.appfitness.designsystem.ProgressGlyph
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
+import io.github.lopezjavier.appfitness.domain.usecase.ExerciseSummary
+import io.github.lopezjavier.appfitness.domain.usecase.SessionSummary
 import io.github.lopezjavier.appfitness.feature.exercises.FakeExerciseMediaUris
 import io.github.lopezjavier.appfitness.feature.exercises.LocalExerciseMediaUris
 import org.junit.Assert.assertEquals
@@ -243,5 +246,30 @@ class LiveSessionRestorationTest {
 
         rule.onNodeWithTag("live_finish_sheet_warning").assertExists()
         rule.onNodeWithTag("live_finish_sheet_commit").assertExists()
+    }
+
+    @Test
+    fun summary_isShownAgainUntilListoIsTapped() {
+        val summary = LiveSummary(
+            SessionSummary(
+                durationSeconds = 3_000,
+                completedSets = 14,
+                exercises = listOf(ExerciseSummary(0, "e1", 1_000.0, false)),
+            ),
+            mapOf(0 to "Press banca"),
+            comparisons = listOf(ExerciseComparison(0, ProgressGlyph.Up, TopSet(80.0, 8), TopSet(82.5, 6))),
+        )
+        val finished = LiveSessionUiState.Finished(summary)
+        val shown: LiveSessionUiState = finished
+        tester.setContent {
+            AppTheme { LiveSessionScreen(shown, 0, {}, {}, onOpenExercise = {}) }
+        }
+        rule.waitForIdle()
+
+        recreate()
+
+        rule.onNodeWithTag("summary_screen").assertExists()
+        rule.onNodeWithTag("session_summary_compare_e1").assertExists()
+        rule.onNodeWithTag("summary_done").assertExists()
     }
 }

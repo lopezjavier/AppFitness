@@ -120,6 +120,10 @@ class LiveSessionVolumeOptionsScreenTest {
         ).also { viewModel = it }
     }
 
+    private fun summaryVolume(position: Int): Double =
+        (viewModel.uiState.value as LiveSessionUiState.Finished).summary.summary.exercises
+            .first { it.position == position }.volume
+
     private fun show() {
         val vm = newViewModel()
         rule.setContent {
@@ -176,7 +180,7 @@ class LiveSessionVolumeOptionsScreenTest {
 
         finishAndShowSummary()
 
-        rule.onNodeWithTag("summary_volume_1").assertTextContains("400 kg")
+        assertEquals(400.0, summaryVolume(1), 0.0)
     }
 
     @Test
@@ -185,7 +189,7 @@ class LiveSessionVolumeOptionsScreenTest {
 
         finishAndShowSummary()
 
-        rule.onNodeWithTag("summary_volume_1").assertTextContains("200 kg")
+        assertEquals(200.0, summaryVolume(1), 0.0)
     }
 
     @Test
@@ -200,7 +204,7 @@ class LiveSessionVolumeOptionsScreenTest {
         finishAndShowSummary()
 
         assertEquals(74.0, weights.saves.single().weightKg, 0.0)
-        rule.onNodeWithTag("summary_volume_0").assertTextContains("740 kg")
+        assertEquals(740.0, summaryVolume(0), 0.0)
     }
 
     @Test
@@ -214,7 +218,7 @@ class LiveSessionVolumeOptionsScreenTest {
         finishAndShowSummary()
 
         assertEquals(75.5, weights.saves.single().weightKg, 0.0)
-        rule.onNodeWithTag("summary_volume_0").assertTextContains("755 kg")
+        assertEquals(755.0, summaryVolume(0), 0.0)
     }
 
     @Test

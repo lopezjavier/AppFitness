@@ -729,9 +729,14 @@
     <string name="live_options_save_error">No se pudo guardar. Inténtalo de nuevo.</string>
     <string name="summary_title">Entreno completado</string>
     <string name="summary_duration">Duración</string>
-    <string name="summary_sets">Series completadas</string>
-    <string name="summary_volume_title">Volumen por ejercicio</string>
-    <string name="summary_volume_value">%1$s kg</string>
+    <string name="summary_compare_title">Frente a la última vez</string>
+    <string name="summary_compare_row_cd">%1$s: %2$s, %3$s</string>
+    <string name="summary_context_line">%1$s · %2$s</string>
+    <plurals name="summary_context_sets">
+        <item quantity="one">%1$d serie</item>
+        <item quantity="other">%1$d series</item>
+    </plurals>
+    <string name="workout_volume_value">%1$s&#160;kg</string>
     <string name="record_heaviest_lift">Récord de peso</string>
     <string name="record_best_set">Mejor serie</string>
     <string name="record_max_volume">Volumen máximo</string>
@@ -2529,12 +2534,12 @@
         <item quantity="other">%1$d ejercicios suben</item>
     </plurals>
     <string name="week_report_sentence_up_none">ningún ejercicio sube</string>
-    <string name="week_report_sentence_weight">peso %1$s kg</string>
+    <string name="week_report_sentence_weight">peso %1$s&#160;kg</string>
     <string name="week_report_sentence_weight_same">peso igual</string>
     <string name="week_report_sentence_pace_on">vas al ritmo previsto</string>
     <string name="week_report_sentence_pace_off">tu peso va a otro ritmo del previsto</string>
     <string name="week_report_sentence_join">%1$s; %2$s</string>
-    <string name="week_report_action_proposal">Propuesta %1$s kcal · %2$s</string>
+    <string name="week_report_action_proposal">Propuesta %1$s&#160;kcal · %2$s</string>
     <string name="week_report_action_proposal_pending">pendiente</string>
     <string name="week_report_action_proposal_applied">aplicada</string>
     <string name="week_report_action_proposal_declined">pospuesta</string>
@@ -2570,18 +2575,18 @@
     </plurals>
     <string name="week_report_strength_week_one">Semana 1: esta es tu base. Desde la semana 2 verás qué sube.</string>
     <string name="week_report_strength_empty">Aún no hay entrenos del bloque que comparar.</string>
-    <string name="week_report_strength_compare">%1$s → %2$s</string>
-    <string name="week_report_strength_load_reps">%1$s kg × %2$d</string>
+    <string name="week_report_strength_compare">%1$s&#160;→ %2$s</string>
+    <string name="week_report_strength_load_reps">%1$s&#160;kg&#160;×&#160;%2$d</string>
     <string name="week_report_strength_carried">Último entreno: %1$s</string>
     <string name="week_report_strength_no_second">Aún sin un segundo entreno</string>
     <string name="week_report_health_note_14_days">Esta molestia fuerte en %1$s sigue ahí desde hace 14 días. Seguimos entrenando el resto y no subimos el peso en %1$s. Puede merecer la pena que te lo revise un profesional.</string>
     <string name="week_report_health_note_3_sessions">Has notado una molestia fuerte en %1$s en 3 sesiones. Seguimos entrenando el resto y no subimos el peso en %1$s. Puede merecer la pena que te lo revise un profesional.</string>
     <string name="week_report_lifts_title">Levantamientos principales</string>
-    <string name="week_report_lift_up">Sube +%1$s kg (+%2$s&#160;%)</string>
-    <string name="week_report_lift_margin">+%1$s kg · dentro del margen de un día a otro</string>
+    <string name="week_report_lift_up">Sube +%1$s&#160;kg (+%2$s&#160;%)</string>
+    <string name="week_report_lift_margin">+%1$s&#160;kg · dentro del margen de un día a otro</string>
     <string name="week_report_lift_stalled">Estancado</string>
     <string name="week_report_lift_provisional">Provisional: aún pocas semanas</string>
-    <string name="week_report_lift_e1rm">1RM est. %1$s kg</string>
+    <string name="week_report_lift_e1rm">1RM est. %1$s&#160;kg</string>
     <string name="week_report_records_title">Récords</string>
     <string name="week_report_record_e1rm">1RM estimado&#160;·&#160;antes %1$s&#160;kg</string>
     <string name="week_report_record_heaviest">Más peso&#160;·&#160;antes %1$s&#160;kg</string>
@@ -2590,7 +2595,7 @@
     <string name="week_report_weight_help_cd">Ayuda: Peso</string>
     <string name="week_report_weight_help_body">De una semana a otra el peso sube y baja por agua y comida; tu ritmo es la tendencia de varias semanas.</string>
     <string name="week_report_weight_avg_label">Media de la semana</string>
-    <string name="week_report_weight_vs_last">%1$s kg · semana pasada</string>
+    <string name="week_report_weight_vs_last">%1$s&#160;kg · semana pasada</string>
     <string name="week_report_weight_same_as_last">igual que la semana pasada</string>
     <plurals name="week_report_weight_since_cut">
         <item quantity="one">%1$s kg desde el inicio de la definición (%2$d semana)</item>
@@ -2604,8 +2609,8 @@
         <item quantity="one">%1$s kg desde el inicio del mantenimiento (%2$d semana)</item>
         <item quantity="other">%1$s kg desde el inicio del mantenimiento (%2$d semanas)</item>
     </plurals>
-    <string name="week_report_weight_goal">Meta %1$s kg · %2$s</string>
-    <string name="week_report_weight_gate">Media: %1$s kg (%2$s). Faltan pesajes para ver el cambio.</string>
+    <string name="week_report_weight_goal">Meta %1$s&#160;kg · %2$s</string>
+    <string name="week_report_weight_gate">Media: %1$s&#160;kg (%2$s). Faltan pesajes para ver el cambio.</string>
     <string name="week_report_weight_none">Sin pesajes esta semana.</string>
     <string name="week_report_weight_gate_cd">%1$d de %2$d pesajes</string>
     <string name="week_report_waist_title">Cintura</string>

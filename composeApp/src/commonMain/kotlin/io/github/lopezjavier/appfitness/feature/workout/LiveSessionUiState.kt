@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.feature.workout
 
+import io.github.lopezjavier.appfitness.designsystem.ProgressGlyph
 import io.github.lopezjavier.appfitness.domain.model.DeloadExerciseSuggestion
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.Equipment
@@ -171,7 +172,23 @@ data class LiveRoutineNoteSheet(
 data class FinishSheet(val pendingCount: Int)
 
 /** Result of a finished session, ready to render. [exercises] follow the session order. */
-data class LiveSummary(val summary: SessionSummary, val exerciseNames: Map<Int, String>)
+data class LiveSummary(
+    val summary: SessionSummary,
+    val exerciseNames: Map<Int, String>,
+    /** "Frente a la última vez" (US-147), one per exercise by position; a missing one reads "Sin comparar". */
+    val comparisons: List<ExerciseComparison> = emptyList(),
+    /** The goal is a cut: an unchanged lift reads "Mantienes" instead of "Igual". */
+    val cut: Boolean = false,
+)
+
+/** The best set of an exercise: [weightKg] x [reps]. */
+data class TopSet(val weightKg: Double, val reps: Int)
+
+/**
+ * One exercise against its last session (US-147): [previous] and [current] top sets (null when there is none) and the
+ * [glyph] state, decided by the device rule.
+ */
+data class ExerciseComparison(val position: Int, val glyph: ProgressGlyph, val previous: TopSet?, val current: TopSet?)
 
 /**
  * What the finished session changed in its routine (US-36), as counts for the "Actualizar rutina" sheet. Exercises

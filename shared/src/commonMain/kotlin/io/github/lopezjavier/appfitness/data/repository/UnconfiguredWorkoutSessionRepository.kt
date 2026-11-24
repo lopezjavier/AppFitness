@@ -2,6 +2,7 @@ package io.github.lopezjavier.appfitness.data.repository
 
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.ExerciseComparisonInput
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
@@ -74,4 +75,6 @@ class UnconfiguredWorkoutSessionRepository : WorkoutSessionRepository {
     override suspend fun personalRecords(exerciseId: String): Result<List<PersonalRecord>> = fail()
 
     override suspend fun sessionRecords(exerciseId: String): Result<List<ExerciseSessionRecords>> = fail()
+
+    override suspend fun sessionComparison(sessionId: String): Result<List<ExerciseComparisonInput>> = fail()
 }
