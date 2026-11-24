@@ -224,6 +224,9 @@ A presentation-only pass (FR-6) over the screens built in E2…E8. Items collect
 | M | Muscle detail sheet repeats the figure already in the card (C-213) | owner: E9. |
 | N | `TimeRangeSelector` max width on tablet (C-214) | owner: E9. |
 | O | Progress and record rows of Estadísticas > Entrenos have no exercise picture (R-123; T-321 decision: leading slot is the verdict glyph, as in the weekly report) | owner: E9, optional, only with the user's OK. |
+| P | "Entreno completado" compare rows: the "before" figure in `textTertiary` next to the "now" figure (C-219) | owner: after Checkpoint E19-R2. |
+| Q | "Entreno completado" on tablet: the "Frente a la última vez" list as a supporting pane beside the celebration (C-222) | owner: after Checkpoint E19-R2. |
+| R | "Sin comparar" with a one-line reason under it (rep range changed, more than 14 days, deload) (C-224) | owner: after Checkpoint E19-R2. |
 
 ---
 

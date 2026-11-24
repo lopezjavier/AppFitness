@@ -311,6 +311,14 @@ One row per ux-critic finding. The PM has the dispositions recorded here as the 
 | C-214 | `TimeRangeSelector` max width on tablet | 5 | DEFERRED (E9 row N) | |
 | C-215 | Note only, no change | 5 | NOTE | |
 | C-216 | (a) record amount "101 kg (+6 kg)" via shared `week_report_record_amount`; (b) closed by C-205 | 5 | ACCEPTED (a, not built) | 05 R-93 |
+| C-217 | T-323 compare row uses the weekly group-sheet `SheetExercise` layout (glyph 32 dp top-aligned, name, figures full width, state word its own line); `StateLabelMaxWidth` deleted; host test 360 dp, font 1.0/1.3/2.0 | 5 | ACCEPTED (PM; not built) | 05 R-120 |
+| C-218 | T-323 gallery: scrolled entries, every state, large font, so Baja, Con molestia, Sin comparar in a mixed list are visible | 5 | ACCEPTED (PM; not built) | gallery |
+| C-219 | T-323 figures reuse `week_report_strength_load_reps`/`_compare` (R-82); `summary_compare_set`/`_change` deleted; "before in textTertiary" idea | 5 | ACCEPTED (reuse, not built); the textTertiary idea DEFERRED (E9 row P) | 05 §10 |
+| C-220 | T-323 only strength exercises with at least one completed working set; title hidden when no row | 5 | ACCEPTED (PM; not built) | 05 R-120 |
+| C-221 | T-323 on RPC failure `current` comes from the device's completed working sets, row reads figures + "Sin comparar"; legacy summary fixtures refreshed or deleted | 5 | ACCEPTED (PM; not built) | 05 R-120 |
+| C-222 | T-323 tablet supporting pane | 5 | DEFERRED (E9 row Q, after Checkpoint E19-R2) | |
+| C-223 | T-323 record pills start-padded to the text column | 5 | ACCEPTED (PM; not built) | 05 R-120 |
+| C-224 | T-323 reason line under "Sin comparar" | 5 | DEFERRED (E9 row R, after Checkpoint E19-R2) | |
 | R-123 T-321 | Progress/record rows carry no exercise picture (verdict glyph leads, weekly report precedent); optional E9 row O | 5 | DECIDED (PM; user may revisit) | 05 R-123 |
 
 Status values:
