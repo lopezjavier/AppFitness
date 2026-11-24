@@ -28,8 +28,12 @@ enum class ProgressRange(private val months: Int?) {
     fun from(today: LocalDate): LocalDate? = months?.let { today.minus(it, DateTimeUnit.MONTH) }
 }
 
-/** 1RM record of an exercise and how much it grew in the last 30 days; the delta is null without older data. */
-data class StrengthSummary(val recordOneRepMax: Double?, val monthlyDelta: Double?)
+/**
+ * 1RM record of an exercise and how much it grew in the last 30 days; the delta is null without older data.
+ * [withinMargin] is true when a non-zero delta is under 4 % of the prior best, i.e. inside the day-to-day noise of the
+ * estimate (07 section 3, G).
+ */
+data class StrengthSummary(val recordOneRepMax: Double?, val monthlyDelta: Double?, val withinMargin: Boolean = false)
 
 /**
  * What the primary progress chart plots. [MaxReps] is the fallback for load exercises never logged with load;

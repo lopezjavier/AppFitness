@@ -113,6 +113,32 @@ class StrengthViewModelTest {
     }
 
     @Test
+    fun aChangeUnderFourPercentIsWithinTheMargin() = runTest(dispatcher) {
+        seedThreeExercises()
+        workouts.history = mapOf(
+            "bench" to listOf(point(LocalDate(2026, 9, 1), 100.0), point(LocalDate(2026, 10, 15), 103.9)),
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(true, model.content().summary?.withinMargin)
+    }
+
+    @Test
+    fun aChangeOfFourPercentIsShownAsAnAmountOnly() = runTest(dispatcher) {
+        seedThreeExercises()
+        workouts.history = mapOf(
+            "bench" to listOf(point(LocalDate(2026, 9, 1), 100.0), point(LocalDate(2026, 10, 15), 104.0)),
+        )
+        val model = viewModel()
+
+        advanceUntilIdle()
+
+        assertEquals(false, model.content().summary?.withinMargin)
+    }
+
+    @Test
     fun theSelectedExerciseSurvivesRecreationFromTheSameSavedState() = runTest(dispatcher) {
         seedThreeExercises()
         val saved = SavedStateHandle()

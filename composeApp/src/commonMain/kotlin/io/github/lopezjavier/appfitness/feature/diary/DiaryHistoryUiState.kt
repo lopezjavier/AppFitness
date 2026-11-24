@@ -37,8 +37,8 @@ data class DiaryHistoryDay(val date: LocalDate, val totals: MealTotals?, val goa
 
 /**
  * The history of [month]: [markedDays] have entries, [selectedDay] is null when the viewed month holds none. [week]
- * (last 7 days ending [today]) and [monthSummary] are null for "Sin registros". [canGoNext] is false at the current
- * month. [goals] is null when the user has none.
+ * (average of the complete days among the 7 before [today]) and [monthSummary] are null for "Sin registros".
+ * [canGoNext] is false at the current month. [goals] is null when the user has none.
  */
 data class DiaryHistoryContent(
     val month: YearMonth,
@@ -50,7 +50,10 @@ data class DiaryHistoryContent(
     val week: PeriodAverage?,
     val monthSummary: MonthSummary?,
     val goals: DiaryGoals?,
-    /** Calories of each of the last 7 days ending [today] (0 without entries); empty when not loaded. */
+    /**
+     * Calories of the 7 days before [today] followed by [today] itself (8 values, 0 without entries; the last one
+     * is drawn only and is not part of [week]); empty when not loaded.
+     */
     val weekKcal: List<Float> = emptyList(),
     /** Average calories per logged day of each 7-day block of [month] (days 1-7, 8-14...); 0 for an empty block. */
     val monthKcal: List<Float> = emptyList(),

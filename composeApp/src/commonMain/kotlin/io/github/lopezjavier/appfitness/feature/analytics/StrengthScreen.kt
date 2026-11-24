@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.px_stats_strength_r
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_card_title
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_down
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_flat
+import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_margin
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_delta_up
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_empty_cta
 import io.github.lopezjavier.appfitness.composeapp.resources.strength_empty_message
@@ -201,7 +202,7 @@ private fun SummaryBlock(summary: StrengthSummary?, series: List<Double>) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         RecordText(summary.recordOneRepMax)
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-            summary.monthlyDelta?.let { DeltaPill(it) }
+            summary.monthlyDelta?.let { DeltaPill(it, summary.withinMargin) }
             if (summary.recordOneRepMax != null) RecordBadge(stringResource(Res.string.px_stats_strength_record_badge))
         }
         if (series.size >= 2) {
@@ -251,15 +252,23 @@ private fun RecordText(record: Double?) {
 
 /** Favorable only when the record grew; a flat or lower month is neutral (a deload is normal), never red. */
 @Composable
-private fun DeltaPill(delta: Double) {
+private fun DeltaPill(delta: Double, withinMargin: Boolean) {
     val direction = TrendPillDefaults.direction(delta)
     val rounded = formatSignedKilos(delta)
-    val (text, tone) = when (direction) {
-        TrendDirection.Up -> stringResource(Res.string.strength_delta_up, rounded) to TrendTone.Favorable
-        TrendDirection.Down -> stringResource(Res.string.strength_delta_down, rounded) to TrendTone.Neutral
-        else -> stringResource(Res.string.strength_delta_flat) to TrendTone.Neutral
+    val (text, tone) = when {
+        withinMargin && direction != TrendDirection.Flat ->
+            stringResource(Res.string.strength_delta_margin, rounded) to TrendTone.Neutral
+
+        else -> deltaText(direction, rounded)
     }
     TrendPill(text, tone, Modifier.testTag("strength_delta"), direction, showToneIcon = false)
+}
+
+@Composable
+private fun deltaText(direction: TrendDirection, rounded: String): Pair<String, TrendTone> = when (direction) {
+    TrendDirection.Up -> stringResource(Res.string.strength_delta_up, rounded) to TrendTone.Favorable
+    TrendDirection.Down -> stringResource(Res.string.strength_delta_down, rounded) to TrendTone.Neutral
+    else -> stringResource(Res.string.strength_delta_flat) to TrendTone.Neutral
 }
 
 @Composable

@@ -63,7 +63,7 @@ class DiaryHistoryViewModelTest {
     private val oct18 = LocalDate(2026, 10, 18)
 
     @Test
-    fun weekKcal_isTheLastSevenDaysEndingToday_withZeroForADayWithoutEntries() = runTest(dispatcher) {
+    fun weekKcal_isTheSevenDaysBeforeTodayPlusToday_withZeroForADayWithoutEntries() = runTest(dispatcher) {
         logged(oct18, 1840.0)
         logged(LocalDate(2026, 10, 21), 600.0)
         logged(LocalDate(2026, 10, 10), 999.0)
@@ -71,8 +71,8 @@ class DiaryHistoryViewModelTest {
         val model = viewModel()
         advanceUntilIdle()
 
-        // 15, 16, 17, 18, 19, 20, 21 October; the 10th is outside the week.
-        assertEquals(listOf(0f, 0f, 0f, 1840f, 0f, 0f, 600f), model.content().weekKcal)
+        // 14..20 October, then today (21); the 10th is outside the week.
+        assertEquals(listOf(0f, 0f, 0f, 0f, 1840f, 0f, 0f, 600f), model.content().weekKcal)
     }
 
     @Test
@@ -182,7 +182,7 @@ class DiaryHistoryViewModelTest {
     }
 
     @Test
-    fun weekAndMonthSummaries_averageOnlyTheLoggedDays() = runTest(dispatcher) {
+    fun weekAndMonthSummaries_averageTheCompleteDays() = runTest(dispatcher) {
         logged(LocalDate(2026, 10, 15), 1800.0)
         logged(LocalDate(2026, 10, 18), 2000.0)
         logged(LocalDate(2026, 10, 20), 2200.0)
@@ -195,7 +195,46 @@ class DiaryHistoryViewModelTest {
         assertEquals(2000.0, content.week?.kcal)
         assertEquals(4, content.monthSummary?.loggedDays)
         assertEquals(7000.0, content.monthSummary?.totalKcal)
-        assertEquals(1750.0, content.monthSummary?.avgKcalPerLoggedDay)
+        assertEquals(1750.0, content.monthSummary?.avgKcalPerCompleteDay)
+    }
+
+    @Test
+    fun weekSummary_excludesTodayAndPartialDays_andCountsLoggedAndComplete() = runTest(dispatcher) {
+        (14..18).forEach { logged(LocalDate(2026, 10, it), 2000.0) }
+        logged(LocalDate(2026, 10, 19), 300.0)
+        logged(LocalDate(2026, 10, 21), 9000.0)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        val week = model.content().week
+        assertEquals(6, week?.loggedDays)
+        assertEquals(5, week?.completeDays)
+        assertEquals(2000.0, week?.kcal)
+    }
+
+    @Test
+    fun load_fetchesTheWideWindowOnce_forTheWeekAndTheMedian() = runTest(dispatcher) {
+        val model = viewModel()
+        advanceUntilIdle()
+        model.onEvent(DiaryHistoryEvent.SelectView(DiaryHistoryView.Week))
+        advanceUntilIdle()
+
+        assertEquals(1, diary.summaryRequests.count { it == LocalDate(2026, 9, 23) to todayDate })
+    }
+
+    @Test
+    fun currentMonthSummary_usesTheDaysBeforeTheMonthForTheMedian() = runTest(dispatcher) {
+        todayDate = LocalDate(2026, 11, 3)
+        (24..31).forEach { logged(LocalDate(2026, 10, it), 3000.0) }
+        logged(LocalDate(2026, 11, 1), 1000.0)
+        logged(LocalDate(2026, 11, 2), 3000.0)
+        val model = viewModel()
+        advanceUntilIdle()
+
+        val month = model.content().monthSummary
+        assertEquals(2, month?.loggedDays)
+        assertEquals(1, month?.completeDays)
+        assertEquals(3000.0, month?.totalKcal)
     }
 
     @Test
