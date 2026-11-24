@@ -30,6 +30,7 @@ import androidx.compose.ui.test.performTextInput
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.HapticEvent
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
+import io.github.lopezjavier.appfitness.designsystem.ProgressGlyph
 import io.github.lopezjavier.appfitness.designsystem.RecordingAppHaptics
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.SetType
@@ -392,14 +393,18 @@ class LiveSessionScreenTest {
                 ),
             ),
             mapOf(0 to "Press banca", 1 to "Sentadilla"),
+            comparisons = listOf(
+                ExerciseComparison(0, ProgressGlyph.Up, TopSet(80.0, 8), TopSet(82.5, 6)),
+                ExerciseComparison(1, ProgressGlyph.Uncompared, null, TopSet(100.0, 5)),
+            ),
         )
         show(LiveSessionUiState.Finished(summary))
 
         rule.onNodeWithTag("summary_screen").assertExists()
-        rule.onNodeWithTag("summary_duration").assertTextContains("1 h 2", substring = true)
-        rule.onNodeWithTag("summary_sets").assertTextContains("3")
-        rule.onNodeWithTag("summary_volume_0").assertTextContains("2.120 kg")
-        rule.onNodeWithTag("summary_volume_0").assertTextContains("Press banca")
+        rule.onNodeWithTag("session_summary_compare_e1").assertTextContains("Press banca", substring = true)
+        rule.onNodeWithTag("session_summary_context_line").assertTextContains("1 h 2", substring = true)
+        rule.onNodeWithTag("session_summary_context_line").assertTextContains("3 series", substring = true)
+        rule.onNodeWithTag("summary_volume_0").assertDoesNotExist()
         rule.onNodeWithTag(
             "session_summary_record_0_heaviest_lift",
         ).assert(hasContentDescription("Récord: Récord de peso"))
@@ -557,7 +562,11 @@ class LiveSessionScreenTest {
     @Test
     fun summary_showsACustomExerciseByItsName_andARenameIsShownWithoutRecreating() {
         fun finished(name: String) = LiveSessionUiState.Finished(
-            LiveSummary(SessionSummary(60, 1, listOf(ExerciseSummary(0, "custom-1", 300.0, false))), mapOf(0 to name)),
+            LiveSummary(
+                SessionSummary(60, 1, listOf(ExerciseSummary(0, "custom-1", 300.0, false))),
+                mapOf(0 to name),
+                comparisons = listOf(ExerciseComparison(0, ProgressGlyph.Uncompared, null, TopSet(60.0, 5))),
+            ),
         )
         var state by mutableStateOf<LiveSessionUiState>(finished("Remo en anillas"))
         rule.setContent {
@@ -565,11 +574,11 @@ class LiveSessionScreenTest {
                 AppTheme { LiveSessionScreen(state, 0, {}, {}, onOpenExercise = {}) }
             }
         }
-        rule.onNodeWithTag("summary_volume_0").assertTextContains("Remo en anillas")
+        rule.onNodeWithTag("session_summary_compare_custom-1").assertTextContains("Remo en anillas", substring = true)
 
         state = finished("Remo invertido")
         rule.waitForIdle()
 
-        rule.onNodeWithTag("summary_volume_0").assertTextContains("Remo invertido")
+        rule.onNodeWithTag("session_summary_compare_custom-1").assertTextContains("Remo invertido", substring = true)
     }
 }

@@ -1,5 +1,6 @@
 package io.github.lopezjavier.appfitness.domain.repository
 
+import io.github.lopezjavier.appfitness.domain.model.ExerciseComparisonInput
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
@@ -95,4 +96,10 @@ interface WorkoutSessionRepository {
 
     /** Record aggregates of every completed session containing the exercise, oldest first. */
     suspend fun sessionRecords(exerciseId: String): Result<List<ExerciseSessionRecords>>
+
+    /**
+     * Per exercise with a completed working set in the completed session [sessionId], its working sets and those of
+     * the latest earlier non-deload session (T-323). Empty when the session is not the caller's or has none.
+     */
+    suspend fun sessionComparison(sessionId: String): Result<List<ExerciseComparisonInput>>
 }

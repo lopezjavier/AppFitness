@@ -428,7 +428,7 @@ Feature: Workout summary against the last time
   Scenario: Leaving the app
     Given the summary is open
     When I leave the app and come back
-    Then the summary is shown again until I tap "Hecho"
+    Then the summary is shown again until I tap "Listo"
 ```
 
 ## US-123 · Review of all the UI

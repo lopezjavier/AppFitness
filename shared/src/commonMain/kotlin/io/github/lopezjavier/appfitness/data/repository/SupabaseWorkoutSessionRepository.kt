@@ -10,6 +10,7 @@ import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.SystemClock
 import io.github.lopezjavier.appfitness.data.remote.DeleteSetParams
+import io.github.lopezjavier.appfitness.data.remote.ExerciseComparisonDto
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryDto
 import io.github.lopezjavier.appfitness.data.remote.ExerciseHistoryParams
 import io.github.lopezjavier.appfitness.data.remote.ExerciseSessionRecordsDto
@@ -28,6 +29,7 @@ import io.github.lopezjavier.appfitness.data.remote.WorkoutSessionDto
 import io.github.lopezjavier.appfitness.data.remote.WorkoutSetUpsertDto
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
+import io.github.lopezjavier.appfitness.domain.model.ExerciseComparisonInput
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.NoteText
@@ -237,6 +239,12 @@ class SupabaseWorkoutSessionRepository(
     override suspend fun sessionRecords(exerciseId: String): Result<List<ExerciseSessionRecords>> = auth.ownRow {
         postgrest.rpc("exercise_session_records", LastPerformanceParams(exerciseId))
             .decodeList<ExerciseSessionRecordsDto>()
+            .map { it.toDomain() }
+    }
+
+    override suspend fun sessionComparison(sessionId: String): Result<List<ExerciseComparisonInput>> = auth.ownRow {
+        postgrest.rpc("session_comparison", SessionIdParams(sessionId))
+            .decodeAs<List<ExerciseComparisonDto>>()
             .map { it.toDomain() }
     }
 }

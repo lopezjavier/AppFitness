@@ -4,8 +4,10 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.designsystem.NumberInputDefaults
+import io.github.lopezjavier.appfitness.designsystem.ProgressGlyph
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.appErrorOrNull
+import io.github.lopezjavier.appfitness.domain.model.ComparableSession
 import io.github.lopezjavier.appfitness.domain.model.DeloadExerciseSuggestion
 import io.github.lopezjavier.appfitness.domain.model.Discomfort
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
@@ -17,11 +19,14 @@ import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
 import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.Note
 import io.github.lopezjavier.appfitness.domain.model.NoteText
+import io.github.lopezjavier.appfitness.domain.model.Phase
 import io.github.lopezjavier.appfitness.domain.model.PlanStatus
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
 import io.github.lopezjavier.appfitness.domain.model.PreviousSet
+import io.github.lopezjavier.appfitness.domain.model.ProgressState
 import io.github.lopezjavier.appfitness.domain.model.ProgressionSuggestion
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
+import io.github.lopezjavier.appfitness.domain.model.SessionComparison
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionStatus
 import io.github.lopezjavier.appfitness.domain.model.SetColumns
@@ -59,6 +64,7 @@ import io.github.lopezjavier.appfitness.domain.repository.autoUpdateRoutineOrDef
 import io.github.lopezjavier.appfitness.domain.repository.warmUpIncludedOrDefault
 import io.github.lopezjavier.appfitness.domain.usecase.ApplyCoachProgressionUseCase
 import io.github.lopezjavier.appfitness.domain.usecase.BestPastWeight
+import io.github.lopezjavier.appfitness.domain.usecase.BuildSessionComparisons
 import io.github.lopezjavier.appfitness.domain.usecase.BuildSessionSummary
 import io.github.lopezjavier.appfitness.domain.usecase.CardioRun
 import io.github.lopezjavier.appfitness.domain.usecase.DiscomfortStatus
@@ -1612,7 +1618,7 @@ class LiveSessionViewModel(
             val sheet = routineUpdateSheet(finished)
             if (sheet == null) applyProgressionInBackground(finished.id)
             val named = namedByPosition(current.exercises.associate { it.position to it.exerciseId })
-            val summary = LiveSummary(buildSummary(finished, endedAt), named)
+            val summary = liveSummary(finished, endedAt, named)
             busy = false
             finishSheet = null
             restTimer = null
@@ -1625,6 +1631,33 @@ class LiveSessionViewModel(
             publish()
         }
     }
+
+    /**
+     * The finished-workout summary with "Frente a la última vez" (US-147). A failed comparison read is silent: the
+     * exercises read "Sin comparar" with figures built on the device (C-221).
+     */
+    private suspend fun liveSummary(finished: WorkoutSession, endedAt: Instant, named: Map<Int, String>): LiveSummary {
+        val inCut = coachPlans?.acceptedPlan()?.getOrNull()?.phase == Phase.Cut
+        val remote = repository.sessionComparison(finished.id).getOrNull()
+        val firstPosition = finished.exercises.sortedBy { it.position }
+            .groupBy { it.exerciseId }.mapValues { (_, occurrences) -> occurrences.first().position }
+        val comparisons = BuildSessionComparisons(finished, remote, inCut).mapNotNull { result ->
+            firstPosition[result.exerciseId]?.let { position -> result.toExerciseComparison(position) }
+        }
+        return LiveSummary(buildSummary(finished, endedAt), named, comparisons, inCut)
+    }
+
+    private fun SessionComparison.toExerciseComparison(position: Int): ExerciseComparison {
+        val compared = state != ProgressState.Uncompared
+        return ExerciseComparison(
+            position = position,
+            glyph = ProgressGlyph.valueOf(state.name),
+            previous = before?.takeIf { compared }?.topSet(),
+            current = now.topSet(),
+        )
+    }
+
+    private fun ComparableSession.topSet() = TopSet(topLoadKg, repsAtTop.max())
 
     private suspend fun buildSummary(finished: WorkoutSession, endedAt: Instant) = BuildSessionSummary(
         finished,
@@ -1721,7 +1754,7 @@ class LiveSessionViewModel(
         finishedExerciseIds = finished.exercises.associate { it.position to it.exerciseId }
         if (!loadNames()) return LiveSessionUiState.Error
         val named = namedByPosition(finishedExerciseIds)
-        val summary = LiveSummary(buildSummary(finished, finished.endedAt ?: clock.now()), named)
+        val summary = liveSummary(finished, finished.endedAt ?: clock.now(), named)
         return LiveSessionUiState.Finished(summary, sheet)
     }
 

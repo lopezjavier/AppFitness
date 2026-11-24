@@ -5,18 +5,16 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
+import io.github.lopezjavier.appfitness.designsystem.ProgressGlyph
 import io.github.lopezjavier.appfitness.domain.model.DeloadExerciseSuggestion
 import io.github.lopezjavier.appfitness.domain.model.DiscomfortLevel
 import io.github.lopezjavier.appfitness.domain.model.Equipment
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
-import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.model.ProgressionAction
 import io.github.lopezjavier.appfitness.domain.model.ProgressionReason
 import io.github.lopezjavier.appfitness.domain.model.ProgressionSuggestion
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.model.SetUsed
-import io.github.lopezjavier.appfitness.domain.usecase.ExerciseSummary
-import io.github.lopezjavier.appfitness.domain.usecase.SessionSummary
 import io.github.lopezjavier.appfitness.feature.routines.RoutinesScreen
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorDraft
 import io.github.lopezjavier.appfitness.feature.workout.CalculatorKind
@@ -28,10 +26,10 @@ import io.github.lopezjavier.appfitness.feature.workout.LiveNoteSheet
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionScreen
 import io.github.lopezjavier.appfitness.feature.workout.LiveSessionUiState
 import io.github.lopezjavier.appfitness.feature.workout.LiveSetRow
-import io.github.lopezjavier.appfitness.feature.workout.LiveSummary
 import io.github.lopezjavier.appfitness.feature.workout.RoutineChangeSummary
 import io.github.lopezjavier.appfitness.feature.workout.RpePickerTarget
 import io.github.lopezjavier.appfitness.feature.workout.TimerBarUi
+import io.github.lopezjavier.appfitness.feature.workout.TopSet
 import io.github.lopezjavier.appfitness.feature.workout.TypePickerTarget
 import io.github.lopezjavier.appfitness.feature.workout.UpdateRoutineSheet
 import io.github.lopezjavier.appfitness.feature.workout.WorkoutEntryHost
@@ -47,7 +45,6 @@ import kotlin.time.Duration.Companion.seconds
 
 private const val LIVE_SCREEN = "Sesión en vivo"
 private const val ELAPSED_SECONDS = 1_820L
-private const val SUMMARY_DURATION_SECONDS = 3_300L
 
 private fun set(
     index: Int,
@@ -128,25 +125,6 @@ private fun active(
     pausedAt = pausedAt,
     calculator = calculator,
 )
-
-private fun summaryState(withRecords: Boolean): LiveSessionUiState.Finished {
-    val exercises = listOf(
-        ExerciseSummary(
-            0,
-            "bench",
-            4_250.0,
-            isPersonalRecord = withRecords,
-            records = if (withRecords) setOf(PersonalRecordType.HeaviestLift) else emptySet(),
-        ),
-        ExerciseSummary(1, "row", 1_500.0, isPersonalRecord = false),
-    )
-    return LiveSessionUiState.Finished(
-        LiveSummary(
-            SessionSummary(SUMMARY_DURATION_SECONDS, completedSets = 14, exercises = exercises),
-            exerciseNames = mapOf(0 to "Press de banca", 1 to "Remo con barra"),
-        ),
-    )
-}
 
 private val tapMenu: ComposeContentTestRule.() -> Unit = { onNodeWithTag("live_exercise_0_menu").performClick() }
 
@@ -339,6 +317,36 @@ private fun liveSession(): List<GalleryEntry> {
         ),
         live("summary with records", summaryState(withRecords = true)),
         live("summary without records", summaryState(withRecords = false)),
+        live("summary compare, every state", compareState(comparisons = allStates)),
+        live("summary compare, in a cut (Mantienes)", compareState(cut = true, comparisons = allStates)),
+        live("summary compare, records", compareState(withRecords = true, comparisons = allStates)),
+        live(
+            "summary compare, no previous session",
+            compareState(
+                comparisons = listOf(
+                    cmp(0, ProgressGlyph.Uncompared, null, TopSet(60.0, 8)),
+                    cmp(1, ProgressGlyph.Uncompared, null, TopSet(50.0, 10)),
+                ),
+            ),
+        ),
+        live("summary compare, large font", compareState(comparisons = allStates), fontScale = 2f),
+        live(
+            "summary compare, scrolled to the last rows",
+            compareState(comparisons = allStates),
+            interact = scrollSummaryTo("ex4"),
+        ),
+        live(
+            "summary compare, scrolled in a cut",
+            compareState(cut = true, comparisons = allStates),
+            interact = scrollSummaryTo("ex4"),
+        ),
+        live(
+            "summary compare, scrolled with a large font",
+            compareState(comparisons = allStates),
+            fontScale = 2f,
+            interact = scrollSummaryTo("ex4"),
+        ),
+        live("summary compare, tablet", compareState(withRecords = true, comparisons = allStates), wide = true),
         live(
             "update routine sheet",
             LiveSessionUiState.Finished(

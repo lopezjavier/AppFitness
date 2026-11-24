@@ -344,6 +344,15 @@ expect "G26 a plain space before a unit in a Trainer string fails" 1
 run "$(mkstr g26b '<string name="trainer_x">%1$s&#160;kg al día</string>')" "$empty"
 expect "G26 a non-breaking space before a unit passes" 0 NOWARN
 
+run "$(mkstr g26c '<string name="summary_compare_x">%1$s&#160;kg × %2$d</string>')" "$empty"
+expect "G26 a plain space after a unit before the times sign fails" 1
+run "$(mkstr g26d '<string name="week_report_x">%1$s&#160;→ %2$s&#160;kg</string>')" "$empty"
+expect "G26 a week_report string with a non-breaking space before the unit passes" 0 NOWARN
+run "$(mkstr g26e '<string name="summary_x">%1$s kg→ %2$s</string>')" "$empty"
+expect "G26 a plain space before a unit in a summary string fails" 1
+run "$(mkstr g26f '<string name="summary_compare_y">%1$s&#160;kg&#160;×&#160;%2$d</string>')" "$empty"
+expect "G26 a fully non-breaking figure in a summary string passes" 0 NOWARN
+
 # T-297: the text guards also scan the per-area strings_*.xml files (strings_premium_*.xml).
 mkprem() { # name string-line
   local d="$work/prem-$1"

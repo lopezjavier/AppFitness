@@ -19,7 +19,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.month_short_6
 import io.github.lopezjavier.appfitness.composeapp.resources.month_short_7
 import io.github.lopezjavier.appfitness.composeapp.resources.month_short_8
 import io.github.lopezjavier.appfitness.composeapp.resources.month_short_9
-import io.github.lopezjavier.appfitness.composeapp.resources.summary_volume_value
+import io.github.lopezjavier.appfitness.composeapp.resources.workout_volume_value
 import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppNumberFormat
 import kotlinx.datetime.Month
@@ -59,7 +59,7 @@ internal fun DateLabel.text(): String = when (this) {
 internal fun volumeText(volumeKg: Double): String? = if (volumeKg <= 0.0) {
     null
 } else {
-    stringResource(Res.string.summary_volume_value, AppNumberFormat.integer(volumeKg.roundToInt()))
+    stringResource(Res.string.workout_volume_value, AppNumberFormat.integer(volumeKg.roundToInt()))
 }
 
 private const val SECONDS_PER_MINUTE = 60

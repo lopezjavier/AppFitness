@@ -1,5 +1,8 @@
 package io.github.lopezjavier.appfitness.data.remote
 
+import io.github.lopezjavier.appfitness.domain.model.ComparisonSession
+import io.github.lopezjavier.appfitness.domain.model.ComparisonSet
+import io.github.lopezjavier.appfitness.domain.model.ExerciseComparisonInput
 import io.github.lopezjavier.appfitness.domain.model.ExerciseHistoryPoint
 import io.github.lopezjavier.appfitness.domain.model.ExerciseMetricType
 import io.github.lopezjavier.appfitness.domain.model.ExerciseSessionRecords
@@ -236,6 +239,40 @@ internal data class PersonalRecordDto(
 ) {
     fun toDomain(): PersonalRecord? =
         PersonalRecordType.fromKey(recordType)?.let { PersonalRecord(it, value, sessionId, sessionDate) }
+}
+
+/** One working set of the `session_comparison` RPC; `numeric` decodes as Double. */
+@Serializable
+internal data class ComparisonSetDto(
+    @SerialName("weight_kg") val weightKg: Double,
+    val reps: Int,
+    val rpe: Double? = null,
+    @SerialName("rep_min") val repMin: Int? = null,
+    @SerialName("rep_max") val repMax: Int? = null,
+) {
+    fun toDomain() = ComparisonSet(weightKg, reps, rpe, repMin, repMax)
+}
+
+/** One session of an exercise in the `session_comparison` RPC. */
+@Serializable
+internal data class ComparisonSessionDto(
+    @SerialName("session_id") val sessionId: String,
+    val day: LocalDate,
+    val deload: Boolean = false,
+    val sets: List<ComparisonSetDto> = emptyList(),
+) {
+    fun toDomain() = ComparisonSession(sessionId, day, deload, sets.map { it.toDomain() })
+}
+
+/** Element of the array returned by the `session_comparison` RPC. */
+@Serializable
+internal data class ExerciseComparisonDto(
+    @SerialName("exercise_id") val exerciseId: String,
+    @SerialName("open_discomfort") val openDiscomfort: Boolean = false,
+    val current: ComparisonSessionDto,
+    val previous: ComparisonSessionDto? = null,
+) {
+    fun toDomain() = ExerciseComparisonInput(exerciseId, openDiscomfort, current.toDomain(), previous?.toDomain())
 }
 
 /** Row returned by the `exercise_session_records` RPC. */
