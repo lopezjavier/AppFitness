@@ -267,7 +267,7 @@ class WorkoutCalendarScreenTest {
             ),
         )
 
-        val summary = "duración 1 h 2 min, volumen 2.12000A0kg"
+        val summary = "duración 1 h 2 min, volumen 2.120 kg"
         rule.onNodeWithTag("calendar_day_card_s1").assert(hasContentDescription(summary, substring = true))
         rule.onNodeWithTag("calendar_day_card_s2").assert(hasContentDescription("Pierna", substring = true))
         rule.onNodeWithTag("calendar_day_card_s2").performClick()
