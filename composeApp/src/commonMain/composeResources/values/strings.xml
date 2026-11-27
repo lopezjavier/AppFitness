@@ -549,6 +549,8 @@
     <string name="exercise_per_hand_help_body">El peso que registras es por mano: el volumen cuenta el doble. El 1RM estimado no se duplica.</string>
     <string name="exercise_per_hand_help_body_edit">El peso que registras es por mano: el volumen cuenta el doble, también en el historial. El 1RM estimado no se duplica. Si cambias el grupo muscular o el equipamiento, el volumen por músculo del historial se recalcula.</string>
     <string name="exercise_detail_per_hand_pill">Una pesa en cada mano</string>
+    <string name="exercise_detail_primary_muscle_label">Principal</string>
+    <string name="exercise_detail_secondary_muscles_label">Secundarios</string>
     <string name="exercise_detail_edit_cd">Editar %1$s</string>
     <string name="exercise_detail_delete_cd">Eliminar %1$s</string>
     <string name="exercise_row_open_detail_cd">Ver detalle de %1$s</string>

@@ -18,7 +18,7 @@ Phase 2 archive (full text as it was when Phase 2 closed): [`phase2/06-agent-wor
 ### 2.1 Task with UI
 ```
 [PM] git checkout main && git pull && git checkout -b feature/T-###-slug
-[PM] task that shows data or changes how something looks: brief ui-designer with the information to show (not a design), it builds the visual, (compile only), the user judges it in the app and iterates; no developer runs on it before the user approves the look
+[PM] task that shows data or changes how something looks: brief ui-designer with the information to show (not a design), it builds the visual (compile only)
   -> planner            plan in .workflow/current_task.md
   -> ux-reviewer (plan)  pattern map, rules (05 §8-§10), sweep of existing screens, Spanish copy, testTags
         REJECTED -> planner fixes the plan

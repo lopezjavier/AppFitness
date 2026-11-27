@@ -9,11 +9,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -30,6 +34,7 @@ import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.ExerciseLayoutDefaults
 import io.github.lopezjavier.appfitness.designsystem.LocalAnimationsEnabled
 import io.github.lopezjavier.appfitness.domain.model.ExerciseDetail
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import kotlinx.datetime.LocalDate
@@ -306,6 +311,71 @@ class ExerciseDetailScreenTest {
 
         rule.onNodeWithText("Curl nordico").assertExists()
         rule.onNodeWithTag("exercise_detail_animation").assertDoesNotExist()
+    }
+
+    private fun withSecondary(vararg muscles: MuscleGroup, custom: Boolean = false): ExerciseDetail {
+        val row = exerciseRow("m1", if (custom) null else "bench", name = "Press", custom = custom)
+        return ExerciseDetail(row.copy(secondaryMuscles = muscles.toList()), "Press", null)
+    }
+
+    private fun inGroup(text: String, tag: String) = hasText(text) and hasAnyAncestor(hasTestTag(tag))
+
+    @Test
+    fun summary_showsThePrimaryAndEverySecondaryMuscle_withTheirCaptions() {
+        show(loaded(withSecondary(MuscleGroup.Triceps, MuscleGroup.Shoulders)))
+
+        rule.onNode(inGroup("Principal", "exercise_detail_primary_muscle")).assertExists()
+        rule.onNode(inGroup("Pecho", "exercise_detail_primary_muscle")).assertExists()
+        rule.onNode(inGroup("Secundarios", "exercise_detail_secondary_muscles")).assertExists()
+        rule.onNode(inGroup("Tríceps", "exercise_detail_secondary_muscles")).assertExists()
+        rule.onNode(inGroup("Hombros", "exercise_detail_secondary_muscles")).assertExists()
+        rule.onNode(inGroup("Tríceps", "exercise_detail_primary_muscle")).assertDoesNotExist()
+        rule.onNode(inGroup("Pecho", "exercise_detail_secondary_muscles")).assertDoesNotExist()
+    }
+
+    @Test
+    fun summary_withNoSecondaryMuscles_showsOnlyThePrimary() {
+        show(loaded(withSecondary()))
+
+        rule.onNodeWithTag("exercise_detail_primary_muscle").assertExists()
+        rule.onNodeWithTag("exercise_detail_secondary_muscles").assertDoesNotExist()
+        rule.onNodeWithText("Secundarios").assertDoesNotExist()
+    }
+
+    @Test
+    fun summary_secondaryList_dropsDuplicatesAndThePrimaryItself() {
+        show(loaded(withSecondary(MuscleGroup.Chest, MuscleGroup.Triceps, MuscleGroup.Triceps)))
+
+        rule.onAllNodes(hasText("Tríceps")).assertCountEquals(1)
+        rule.onNode(inGroup("Pecho", "exercise_detail_secondary_muscles")).assertDoesNotExist()
+    }
+
+    @Test
+    fun summary_secondaryList_containingOnlyThePrimary_isNotRendered() {
+        show(loaded(withSecondary(MuscleGroup.Chest)))
+
+        rule.onNodeWithTag("exercise_detail_secondary_muscles").assertDoesNotExist()
+    }
+
+    @Test
+    fun summary_atLargeFontScale_wrapsTheMusclePills_withoutClipping() {
+        show(
+            loaded(withSecondary(MuscleGroup.Triceps, MuscleGroup.Shoulders, MuscleGroup.Biceps)),
+            fontScale = 1.3f,
+        )
+
+        listOf("Tríceps", "Hombros", "Bíceps").forEach {
+            val bounds = rule.onNode(inGroup(it, "exercise_detail_secondary_muscles")).assertExists()
+                .getUnclippedBoundsInRoot()
+            assertTrue(bounds.left >= 0.dp && bounds.right <= 360.dp)
+        }
+    }
+
+    @Test
+    fun customExercise_withSecondaryMuscles_showsThem() {
+        show(loaded(withSecondary(MuscleGroup.Triceps, custom = true)))
+
+        rule.onNode(inGroup("Tríceps", "exercise_detail_secondary_muscles")).assertExists()
     }
 
     @Test

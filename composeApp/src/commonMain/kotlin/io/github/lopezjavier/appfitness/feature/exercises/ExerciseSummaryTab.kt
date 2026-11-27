@@ -23,6 +23,8 @@ import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.action_retry
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_animation_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_per_hand_pill
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_primary_muscle_label
+import io.github.lopezjavier.appfitness.composeapp.resources.exercise_detail_secondary_muscles_label
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_progress_link
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_record_value_kg
 import io.github.lopezjavier.appfitness.composeapp.resources.exercise_record_value_km
@@ -48,6 +50,7 @@ import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.designsystem.TextPill
 import io.github.lopezjavier.appfitness.domain.model.ExerciseDetail
+import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecord
 import io.github.lopezjavier.appfitness.domain.model.PersonalRecordType
 import io.github.lopezjavier.appfitness.domain.usecase.GhostData
@@ -156,17 +159,49 @@ private fun DetailMedia(detail: ExerciseDetail, name: String) {
 @Composable
 private fun DetailHeader(detail: ExerciseDetail) {
     // The name is the screen title (R-01), so the body starts with the muscle and equipment pills.
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        TextPill(stringResource(detail.exercise.muscleGroup.label))
-        TextPill(stringResource(detail.exercise.equipment.label))
-        if (detail.exercise.perHand) {
-            TextPill(
-                text = stringResource(Res.string.exercise_detail_per_hand_pill),
-                modifier = Modifier.testTag("exercise_detail_per_hand_value"),
+    val primary = detail.exercise.muscleGroup
+    val secondary = detail.exercise.secondaryMuscles.distinct().filter { it != primary }
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        MuscleGroupRow(
+            caption = stringResource(Res.string.exercise_detail_primary_muscle_label),
+            muscles = listOf(primary),
+            emphasized = true,
+            tag = "exercise_detail_primary_muscle",
+        )
+        if (secondary.isNotEmpty()) {
+            MuscleGroupRow(
+                caption = stringResource(Res.string.exercise_detail_secondary_muscles_label),
+                muscles = secondary,
+                emphasized = false,
+                tag = "exercise_detail_secondary_muscles",
             )
+        }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            TextPill(stringResource(detail.exercise.equipment.label))
+            if (detail.exercise.perHand) {
+                TextPill(
+                    text = stringResource(Res.string.exercise_detail_per_hand_pill),
+                    modifier = Modifier.testTag("exercise_detail_per_hand_value"),
+                )
+            }
+        }
+    }
+}
+
+/** A captioned group of muscle pills: the primary one is filled (selected container), secondaries are neutral. */
+@OptIn(ExperimentalLayoutApi::class) // FlowRow wraps the pills at large font scales.
+@Composable
+private fun MuscleGroupRow(caption: String, muscles: List<MuscleGroup>, emphasized: Boolean, tag: String) {
+    Column(Modifier.fillMaxWidth().testTag(tag), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(caption, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textSecondary)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            muscles.forEach { TextPill(stringResource(it.label), emphasized = emphasized) }
         }
     }
 }
