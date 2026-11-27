@@ -133,6 +133,7 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 | 111 | Every other report becomes progress-first like the weekly report (`07` §3 "Other reports: progress first"); a stored block review carries progress figures built as of the block end plus its frozen decisions (schema v2, no backfill: production holds no stored review); the outcome chip "reached" depends on the deadline (E19 US-143…US-147) | Amends `04` §6.11 (block reviews) and §8.10 (outcome "reached") |
 | 112 | Screen gallery and ux-critic removed; looks judged only in the app at checkpoints | Supersedes 103 (gallery part) |
 | 113 | E20 Illness dropped from Phase 3; Closure keeps the number E21 | Amends 103 (2026-11-15 amendment) |
+| 114 | E21 closure: the repository goes private on GitHub Free (production secrets become repository secrets, no ruleset); the data export is a weekly GitHub Actions artifact (one JSON of every row the user owns, 90 days), not an app feature, and runs only once the repository is private | Supersedes 13; amends 12 and the closure bullet of 101 |
 
 ## Phase 3 ADRs (full text)
 
@@ -264,3 +265,18 @@ Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`ph
 - **Decision:** E20 leaves the Phase 3 scope. `epics/E20-illness.md` stays in the repo marked DROPPED, as a record only; its open questions in `09` are closed as dropped. Illness stays a non-goal: `07` §12.5 ("no rule") and the E13/E14/E15 non-goals are unchanged, and the ADR-106 pencil (extend the week) remains the way to absorb a few lost days. The Closure epic keeps the number E21 (no renumbering); E20 is not reused.
 - **Consequences:** `01-scope.md` (E20 row marked dropped), `09-open-questions.md` (E20 Q1-Q9 dropped), `epics/E20-illness.md` (DROPPED banner). Phase 3 order: E19 closure (T-285), then E21.
 - **Approval:** user, 2026-11-27 (chat, product-owner: remove E20 from the scope, keep the file marked Dropped).
+
+### ADR-114 — E21 closure: private repository on GitHub Free; the data export is a weekly Actions artifact (supersedes ADR-13; amends ADR-12 and the closure bullet of ADR-101)
+- **Context:** the E21 breakdown (2026-11-27) asked three questions: the export's format and content (Q-E21-1), where the file goes (Q-E21-2), and what going private on GitHub Free removes (Q-E21-3). Per GitHub's plan docs, a private repository on Free has no enforced ruleset, no environments or environment secrets, and no secret scanning or push protection. An export file inside the app needs a screen, a migration and an Android file path. Artifacts of a public repository can be downloaded by any signed-in GitHub user.
+- **Decision (user, 2026-11-27, chat):**
+  - **Content (Q-E21-1):** one JSON file with every row the user owns.
+  - **No export in the app (supersedes Q-E21-2):** US-125 is a GitHub Actions job that runs weekly on the keep-alive's scheduled workflow, and on `workflow_dispatch`. It dumps the user's rows to one JSON and uploads it as a run artifact kept 90 days. It reuses the existing Supabase CI secrets. No app UI, no migration, no upload anywhere except the private repository's artifact.
+  - **Order:** keep-alive, private repository, export, retro. The export ships only after the repository is private.
+  - **Private repository (Q-E21-3):** the repository goes private. The user moves the `production` environment secrets (`SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_ID`, `SUPABASE_DB_PASSWORD`) to repository secrets; the PM only verifies their names. `deploy-supabase` reads repository secrets. No ruleset after that (maintenance mode): "never work on `main`, squash-merged PRs only" stays a process rule.
+- **Consequences:**
+  - ADR-13 (public repository) is superseded.
+  - ADR-12's scheduled workflow also hosts the weekly export.
+  - `CLAUDE.md` ("Public repo"; the `main` protection wording, shown to the user before the edit), the README, the PR template, `02`, `08` §2.1, §4, §5 and `10-feature-inventory.md` are updated by the E21 tasks.
+  - The epic's US-125 Gherkin is amended (`epics/E21-closure.md`).
+  - Artifacts count against the Free private-repository artifact storage; a weekly JSON for 90 days is far below it.
+- **Approval:** user, 2026-11-27 (chat, E21 breakdown).
