@@ -1,5 +1,7 @@
 # E20 · Illness
 
+> **Status: DROPPED (user, 2026-11-27, ADR-113).** Out of the Phase 3 scope: the user no longer needs it. Nothing below is planned or open; the draft is kept only as a record. A few sick days are still handled by the ADR-106 pencil (extend the week), and illness stays a non-goal (`07` §12.5).
+
 > **Status: DRAFT (product-owner, 2026-11-15), not agreed, not planned.** No stories and no Gherkin yet: writing them is the first task of the epic, done with the user and `fitness-scientist` (see "First task"). Origin: the user was ill during week 1 of a block (2 of 4 sessions, 1 kg lost) and asked whether to restart the block and the nutrition plan; the answer was no, but the app has no way to say "I am ill".
 
 ## Intent

@@ -26,19 +26,19 @@ These three rows were still marked "open" in `phase2/09-open-questions.md` (froz
 | E17 Q-E17-4: hard block | 2026-11-09 | **Resolved (user, 2026-11-09, ADR-104)**; built in T-257/T-258 | No failing food is saved by any path; the AI retry sends the previous estimate and the reason; the user's 10 wrong foods were fixed in production |
 | E17 checkpoints | 2026-11-09 | **Resolved (user)** | Checkpoint E17 (items 6-10 approved) and Checkpoint E17-fix (7 items) approved |
 
-## E20 Illness (draft, 2026-11-15)
+## E20 Illness (dropped, 2026-11-27, ADR-113)
 
-Raised by the user in chat (product-owner). All open; resolved in the first task of the epic, see [`epics/E20-illness.md`](epics/E20-illness.md) for the options and recommendations.
+Raised by the user in chat (product-owner). Dropped with the epic (user, 2026-11-27, ADR-113): none of these questions is open any more. The draft is in [`epics/E20-illness.md`](epics/E20-illness.md) for the options and recommendations.
 
 | Question | Raised | Status | Where to look |
 |---|---|---|---|
-| E20 Q1: does an illness shift the block, and does a block count sessions or calendar weeks? | 2026-11-15 | **Open** (user, after `fitness-scientist`) | E20 |
-| E20 Q2: a block that ends on its date with sessions missing | 2026-11-15 | **Open** (user) | E20 |
-| E20 Q3: illness catalogue and what each one pauses | 2026-11-15 | **Open** (user + `fitness-scientist`) | E20, `07` §12.5 |
-| E20 Q4: how illness days are entered (open-ended or fixed, maximum, past days) | 2026-11-15 | **Open** (user) | E20 |
-| E20 Q5: food guidance for an illness (timing, clinical sources, suggestion or block, disclaimer) | 2026-11-15 | **Open** (user, sources from `fitness-scientist`) | E20 |
-| E20 Q6: weight, calories and steps on illness days | 2026-11-15 | **Open** (`fitness-scientist`) | E20, `07` |
-| E20 Q7: return to training after an illness | 2026-11-15 | **Open** (`fitness-scientist`) | E20, `07` §12.5 |
-| E20 Q8: the 14-day return rule and "welcome back" for a short illness | 2026-11-15 | **Open** (user) | E20, ADR-101 |
-| E20 Q9: where an illness is marked and how it is shown | 2026-11-15 | **Open** (user + `ux-reviewer`) | E20 |
+| E20 Q1: does an illness shift the block, and does a block count sessions or calendar weeks? | 2026-11-15 | **Dropped (ADR-113)**| E20 |
+| E20 Q2: a block that ends on its date with sessions missing | 2026-11-15 | **Dropped (ADR-113)**| E20 |
+| E20 Q3: illness catalogue and what each one pauses | 2026-11-15 | **Dropped (ADR-113)**| E20, `07` §12.5 |
+| E20 Q4: how illness days are entered (open-ended or fixed, maximum, past days) | 2026-11-15 | **Dropped (ADR-113)**| E20 |
+| E20 Q5: food guidance for an illness (timing, clinical sources, suggestion or block, disclaimer) | 2026-11-15 | **Dropped (ADR-113)**| E20 |
+| E20 Q6: weight, calories and steps on illness days | 2026-11-15 | **Dropped (ADR-113)**| E20, `07` |
+| E20 Q7: return to training after an illness | 2026-11-15 | **Dropped (ADR-113)**| E20, `07` §12.5 |
+| E20 Q8: the 14-day return rule and "welcome back" for a short illness | 2026-11-15 | **Dropped (ADR-113)**| E20, ADR-101 |
+| E20 Q9: where an illness is marked and how it is shown | 2026-11-15 | **Dropped (ADR-113)**| E20 |
 | E20 Q10: order relative to the closure epic | 2026-11-15 | **Resolved (user, 2026-11-15)** | Illness is E20 and runs before Closure, renumbered E21 |
