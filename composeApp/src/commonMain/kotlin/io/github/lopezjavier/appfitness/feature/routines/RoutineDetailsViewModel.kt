@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.routines
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.RoutineRepository
 import io.github.lopezjavier.appfitness.domain.repository.WorkoutSessionRepository
@@ -81,6 +82,7 @@ class RoutineDetailsViewModel(
                     name = entry.name,
                     imageKey = entry.takeIf { it.hasMedia }?.exercise?.key,
                     plannedSets = exercise.plannedSets,
+                    cardio = entry.exercise.movementPattern == MovementPattern.Cardio,
                 )
             }
             _uiState.update { current ->

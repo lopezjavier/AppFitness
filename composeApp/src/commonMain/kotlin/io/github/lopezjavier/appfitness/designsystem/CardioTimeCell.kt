@@ -34,8 +34,9 @@ import androidx.compose.ui.unit.dp
 import io.github.lopezjavier.appfitness.composeapp.resources.Res
 import io.github.lopezjavier.appfitness.composeapp.resources.cardio_start_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.cardio_start_label
-import io.github.lopezjavier.appfitness.composeapp.resources.cardio_timer_running_cd
+import io.github.lopezjavier.appfitness.composeapp.resources.cardio_stop_cd
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_play_arrow
+import io.github.lopezjavier.appfitness.composeapp.resources.ic_stop
 import io.github.lopezjavier.appfitness.composeapp.resources.stopwatch_edit_cd
 import io.github.lopezjavier.appfitness.domain.usecase.DurationFormat
 import org.jetbrains.compose.resources.painterResource
@@ -49,9 +50,9 @@ object CardioTimeCellDefaults {
 /**
  * The TIEMPO field of a cardio set (R-58): drawn as a field like KG and REPS (C-91), holding the time to type (the
  * planned [placeholder] while it is empty, mm:ss after). The start control is a separate cell of the row
- * ([CardioStart]); the run lives in the shared timer bar. While the run is going ([timerInBar]) the time is not
- * editable; while paused it can be typed. Tags (with [testTagPrefix]): `_cell`, `_time`, `_input` and `_error`; the
- * placeholder takes [placeholderTestTag].
+ * ([CardioStart]); the run lives in the shared timer bar. While the run is going ([timerInBar]) the time counts up
+ * here and is not editable; while stopped (and not done) it can be typed. Tags (with [testTagPrefix]): `_cell`,
+ * `_time`, `_input` and `_error`; the placeholder takes [placeholderTestTag].
  */
 @Composable
 @Suppress("LongParameterList") // The cell's state, handler and tags.
@@ -76,16 +77,16 @@ fun CardioTimeCell(
                 modifier = tagged(testTagPrefix, "input"),
             )
         } else {
-            val shown = if (timerInBar) 0 else elapsedSeconds
-            val empty = shown == 0
-            val text = DurationFormat.formatMmSs(shown)
-            val edit = stringResource(Res.string.stopwatch_edit_cd, text)
+            val empty = elapsedSeconds == 0 && !timerInBar
+            val text = DurationFormat.formatMmSs(elapsedSeconds)
+            val typable = !readOnly && !timerInBar
+            val edit = if (typable) stringResource(Res.string.stopwatch_edit_cd, text) else text
             TimeButton(
                 text = if (empty) placeholder else text,
                 dim = empty,
                 done = readOnly,
                 description = if (empty) placeholderDescription else edit,
-                enabled = !readOnly && !timerInBar,
+                enabled = typable,
                 onClick = entry::begin,
                 modifier = if (empty) {
                     placeholderTestTag?.let { Modifier.testTag(it) } ?: Modifier
@@ -149,16 +150,15 @@ internal fun CardioStart(
     pill: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val description = stringResource(
-        if (timerInBar) Res.string.cardio_timer_running_cd else Res.string.cardio_start_cd,
-    )
-    val enabled = !done && !timerInBar
-    val disabledGlyph = if (timerInBar) AppTheme.colors.neonLime else AppTheme.colors.ghostData
+    val description = stringResource(if (timerInBar) Res.string.cardio_stop_cd else Res.string.cardio_start_cd)
+    val enabled = !done
+    val disabledGlyph = AppTheme.colors.ghostData
+    val icon = if (timerInBar) Res.drawable.ic_stop else Res.drawable.ic_play_arrow
     val testTag = tag ?: "cardio_time_start"
     if (!pill) {
         CircleIconButton(
             contentDescription = description,
-            icon = Res.drawable.ic_play_arrow,
+            icon = icon,
             testTag = testTag,
             onClick = onStart,
             modifier = modifier,
@@ -185,17 +185,20 @@ internal fun CardioStart(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                painter = painterResource(Res.drawable.ic_play_arrow),
+                painter = painterResource(icon),
                 contentDescription = null,
                 tint = content,
                 modifier = Modifier.size(AppButtonDefaults.LeadingIconSize),
             )
-            Text(
-                text = stringResource(Res.string.cardio_start_label),
-                style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600),
-                color = content,
-                maxLines = 1,
-            )
+            // Icon only while running (stop glyph); the "Iniciar" label stays as in main when stopped.
+            if (!timerInBar) {
+                Text(
+                    text = stringResource(Res.string.cardio_start_label),
+                    style = AppTheme.typography.bodyMedium.copy(fontWeight = FontWeight.W600),
+                    color = content,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }

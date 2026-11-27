@@ -5,8 +5,11 @@ import io.github.lopezjavier.appfitness.app.FakeClock
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.MuscleGroup
 import io.github.lopezjavier.appfitness.domain.model.PlannedSet
+import io.github.lopezjavier.appfitness.domain.model.Routine
+import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.RoutinePart
 import io.github.lopezjavier.appfitness.domain.model.SetType
 import io.github.lopezjavier.appfitness.domain.usecase.LoadExerciseCatalog
@@ -78,6 +81,27 @@ class RoutineDetailsViewModelTest {
         assertEquals(listOf("Press de banca", "Remo con barra"), content.exercises.map { it.name })
         assertEquals(listOf("bench", "row"), content.exercises.map { it.imageKey })
         assertEquals(List(3) { PlannedSet(null, 8, SetType.Working) }, content.exercises.first().plannedSets)
+    }
+
+    @Test
+    fun cardioFlag_followsTheMovementPattern_notTheTimedSets() = runTest {
+        exercises.rows += exerciseRow("bike", "bike", pattern = MovementPattern.Cardio)
+        library.entries += ("bike" to exerciseInfo("bike", "Bicicleta"))
+        repository.routines += Routine(
+            "r2",
+            "Mixto",
+            null,
+            false,
+            listOf(
+                RoutineExercise("bike", 0, null, List(2) { PlannedSet.ofMinutes(15) }, restSeconds = 0),
+                RoutineExercise("a", 1, null, List(2) { PlannedSet.ofMinutes(1) }, restSeconds = 60),
+            ),
+        )
+        val vm = viewModel("r2")
+
+        advanceUntilIdle()
+
+        assertEquals(listOf(true, false), vm.content().exercises.map { it.cardio })
     }
 
     @Test

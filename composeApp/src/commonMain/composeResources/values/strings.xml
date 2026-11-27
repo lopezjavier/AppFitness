@@ -153,7 +153,6 @@
     <string name="cardio_timer_cd_open">%1$s: %2$s min %3$s s</string>
     <string name="cardio_timer_cd_over">%1$s: %2$s min %3$s s por encima del objetivo</string>
     <string name="cardio_timer_cd_paused">En pausa, %1$s</string>
-    <string name="cardio_timer_running_cd">En marcha en la barra</string>
     <string name="catalog_cardio_timer_running">Cardio en marcha</string>
     <string name="catalog_cardio_timer_paused">Cardio en pausa</string>
     <string name="catalog_cardio_timer_over">Cardio por encima del objetivo</string>
@@ -1407,6 +1406,7 @@
     <string name="set_row_field_hint_cd">%1$s, %2$s</string>
     <string name="cardio_start_cd">Iniciar cardio</string>
     <string name="cardio_start_label">Iniciar</string>
+    <string name="cardio_stop_cd">Parar cronómetro</string>
     <string name="stopwatch_start_cd">Iniciar cronómetro</string>
     <string name="stopwatch_stop_cd">Detener cronómetro</string>
     <string name="stopwatch_running_state">En marcha, %1$s</string>

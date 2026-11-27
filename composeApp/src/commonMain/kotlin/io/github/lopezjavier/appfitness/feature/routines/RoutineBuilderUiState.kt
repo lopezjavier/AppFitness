@@ -57,9 +57,17 @@ data class BuilderRowUi(
     val equipment: Equipment? = null,
     /** The logged weight is per hand (`Exercise.perHand`): volume counts it twice. */
     val isPerHand: Boolean = false,
+    /** The exercise has the cardio movement pattern (holds are timed but are not cardio). */
+    val cardioPattern: Boolean = false,
 ) {
     val canAddSet: Boolean get() = plannedSets.size < RoutineBounds.SETS_MAX
     val canRemoveSet: Boolean get() = plannedSets.size > RoutineBounds.SETS_MIN
+
+    /** A cardio exercise (cardio pattern, every set timed): one target in minutes and no series (T-332). */
+    val isCardio: Boolean get() = cardioPattern && plannedSets.isNotEmpty() && plannedSets.all { it.timed }
+
+    /** The cardio target: the sum of the planned minutes of its sets; null while none is defined. */
+    val cardioMinutes: Int? get() = plannedSets.mapNotNull { it.minutes }.takeIf { it.isNotEmpty() }?.sum()
 }
 
 /** State of the routine builder. */

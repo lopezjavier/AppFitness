@@ -504,7 +504,12 @@ class LiveSessionViewModel(
             is LiveSessionEvent.StopwatchToggled -> toggleStopwatch(event.position, event.setIndex)
 
             is LiveSessionEvent.DurationEdited -> editSet(event.position, event.setIndex) {
-                it.copy(stopwatch = it.stopwatch.withElapsedSeconds(event.seconds), invalid = false)
+                // The time is typed only while the timer is stopped (T-332).
+                if (it.stopwatch.isRunning) {
+                    it
+                } else {
+                    it.copy(stopwatch = it.stopwatch.withElapsedSeconds(event.seconds), invalid = false)
+                }
             }
 
             is LiveSessionEvent.SetChecked -> setChecked(event)
@@ -1342,8 +1347,9 @@ class LiveSessionViewModel(
     }
 
     private fun addSet(position: Int) {
-        val current = session ?: return
-        val exercise = current.exercises.firstOrNull { it.position == position } ?: return
+        // A cardio exercise is one target and one timer: it never gets more series (T-332).
+        val exercise = session?.exercises?.firstOrNull { it.position == position }
+        if (exercise == null || isCardio(position)) return
         val previous = exercise.sets.lastOrNull()
         val added = SetState(
             setIndex = (exercise.sets.maxOfOrNull { it.setIndex } ?: 0) + 1,
@@ -1689,7 +1695,8 @@ class LiveSessionViewModel(
         val routine = finished.routineId?.let { routineRepository.get(it).getOrNull() } ?: return null
         if (!routine.trackAsRoutine) return null
         finishedExerciseIds = finished.exercises.associate { it.position to it.exerciseId }
-        val diff = routineDiff(finished, changedRests, routine, editedRoutineNotes)
+        val cardioIds = traits.filterValues { it.cardio }.keys
+        val diff = routineDiff(finished, changedRests, routine, editedRoutineNotes, cardioIds)
         if (diff.isSame) return null
         if (preferences.autoUpdateRoutineOrDefault()) {
             if (routineRepository.updateFromSession(finished.id).isSuccess) applyRoutineNotes(routine.id.orEmpty())

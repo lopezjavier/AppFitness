@@ -14,6 +14,8 @@ data class RoutineDetailsExerciseUi(
     val name: String,
     val imageKey: String?,
     val plannedSets: List<PlannedSet>,
+    /** The exercise has the cardio movement pattern: its summary is one target in minutes (T-332). */
+    val cardio: Boolean = false,
 )
 
 /** State of the routine details screen (read-only view of one routine with start, edit and delete). */

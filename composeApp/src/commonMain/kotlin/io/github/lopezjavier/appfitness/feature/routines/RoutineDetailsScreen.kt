@@ -39,6 +39,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.ic_edit
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_fitness_center
 import io.github.lopezjavier.appfitness.composeapp.resources.px_routines_details_exercises
 import io.github.lopezjavier.appfitness.composeapp.resources.px_routines_details_sets
+import io.github.lopezjavier.appfitness.composeapp.resources.routine_cardio_minutes_value
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_error
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_exercises
 import io.github.lopezjavier.appfitness.composeapp.resources.routine_details_last_done
@@ -253,7 +254,7 @@ private fun DetailsList(
         items(content.exercises, key = { it.exerciseId }) { exercise ->
             ExerciseRow(
                 name = exercise.name,
-                supporting = setsSummary(exercise.plannedSets),
+                supporting = setsSummary(exercise.plannedSets, exercise.cardio),
                 supportingMaxLines = 1,
                 onOpen = { onOpenExercise(exercise.exerciseId) },
                 tagPrefix = "${TAG}_exercise_${exercise.exerciseId}",
@@ -347,14 +348,23 @@ private fun dateOf(instant: Instant, timeZone: TimeZone, today: LocalDate): Stri
 
 /**
  * One grammar (C-79, V-27): consecutive equal sets are grouped as "n × reps" with " · 60 kg" when they carry a
- * weight, groups joined by ", " ("1 × 10 · 40 kg, 3 × 8 · 60 kg"). A cardio set is planned in time: "2 × 1 min".
+ * weight, groups joined by ", " ("1 × 10 · 40 kg, 3 × 8 · 60 kg"). A cardio exercise is one target: "45 min".
  */
 @Composable
-private fun setsSummary(sets: List<PlannedSet>): String = // A cardio set is planned in time, never "0 reps".
-    if (sets.isNotEmpty() && sets.all { it.durationS != null }) minutesSummary(sets) else repsSummary(sets)
+private fun setsSummary(sets: List<PlannedSet>, cardio: Boolean): String {
+    val timed = sets.isNotEmpty() && sets.all { it.durationS != null }
+    return when {
+        timed && cardio -> minutesSummary(sets)
+
+        timed -> timedSetsSummary(sets)
+
+        // A hold keeps its series.
+        else -> repsSummary(sets)
+    }
+}
 
 @Composable
-private fun minutesSummary(sets: List<PlannedSet>): String =
+private fun timedSetsSummary(sets: List<PlannedSet>): String =
     sets.groupConsecutiveBy { it.durationS }.map { (set, count) ->
         stringResource(
             Res.string.routine_details_sets_minutes,
@@ -362,6 +372,13 @@ private fun minutesSummary(sets: List<PlannedSet>): String =
             (set.durationS ?: 0) / RoutineBounds.SECONDS_PER_MINUTE,
         )
     }.joinToString(", ")
+
+/** A cardio exercise reads as its target in minutes ("45 min"), never as series (T-332). */
+@Composable
+private fun minutesSummary(sets: List<PlannedSet>): String = stringResource(
+    Res.string.routine_cardio_minutes_value,
+    sets.sumOf { it.durationS ?: 0 } / RoutineBounds.SECONDS_PER_MINUTE,
+)
 
 @Composable
 private fun repsSummary(sets: List<PlannedSet>): String =

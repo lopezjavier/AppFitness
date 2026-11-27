@@ -99,7 +99,7 @@ internal fun LiveExerciseCard(
             // A cardio exercise planned in minutes has no RPE column.
             val timed = exercise.sets.isNotEmpty() && exercise.sets.all { it.plannedDurationMinutes != null }
             val cardio = exercise.cardio || timed
-            LiveSetTableHeader(fields, showRpe = !timed, cardio = cardio)
+            LiveSetTableHeader(fields, showRpe = !cardio, cardio = cardio)
             val normalNumbers = normalSetNumbers(exercise.sets)
             exercise.sets.forEach {
                 SessionSetRow(
@@ -109,17 +109,20 @@ internal fun LiveExerciseCard(
                     metricType = exercise.metricType,
                     equipment = exercise.equipment,
                     deleteEnabled = deleteEnabled,
-                    showRpe = !timed,
+                    showRpe = !cardio,
                     cardio = cardio,
                     current = it.setIndex == currentSetIndex,
                     normalNumber = normalNumbers[it.setIndex],
                 )
             }
-            AddItemButton(
-                objectLabel = stringResource(Res.string.live_object_set),
-                onClick = { onEvent(LiveSessionEvent.AddSet(position)) },
-                modifier = Modifier.testTag("live_exercise_${position}_add_set"),
-            )
+            // A cardio exercise is one target and one timer: no "Añadir serie" (T-332). A hold keeps its series.
+            if (!exercise.cardio) {
+                AddItemButton(
+                    objectLabel = stringResource(Res.string.live_object_set),
+                    onClick = { onEvent(LiveSessionEvent.AddSet(position)) },
+                    modifier = Modifier.testTag("live_exercise_${position}_add_set"),
+                )
+            }
         }
     }
     ExerciseSheets(

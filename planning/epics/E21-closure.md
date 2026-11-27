@@ -177,6 +177,10 @@ Feature: Cardio target and count-up timer
     Then the cardio exercise shows "45 min"
     And it never shows "1 × 45 minutos" or a series count
 
+  Scenario: No series for cardio in the live session
+    Given a live session with a cardio exercise
+    Then its card shows no "Añadir serie"
+
   Scenario: The timer counts up from play
     Given a live session with a cardio exercise and a target of 30 minutes
     When I tap play on its row
@@ -206,4 +210,35 @@ Feature: Cardio target and count-up timer
     Given the cardio timer is running
     When I leave the app and come back
     Then the timer shows the right elapsed time and is still running
+
+  Scenario: The recorded time is the time done, not the target
+    Given a live session with a cardio exercise and a target of 30 minutes
+    When I stop the timer at 41:30 and tap LISTO
+    Then the set is saved with 41:30
+
+  Scenario: Saving the session as a routine keeps the target
+    Given a live session with a cardio exercise and a target of 30 minutes
+    And I recorded 41:30 for it
+    When I save the session as a routine
+    Then the cardio exercise in the routine has a target of 30 minutes
+
+  Scenario: A session never updates a routine's cardio target
+    Given a routine with a cardio exercise and a target of 30 minutes
+    And I recorded 41:30 for it in a session of that routine
+    When I finish the session
+    Then I am not asked to update the routine because of the cardio time
+    And if I update the routine for other changes, its cardio target is still 30 minutes
+
+  Scenario: No target, no alert
+    Given a live session with a cardio exercise without a target
+    When the timer is running
+    Then no "Objetivo de cardio alcanzado" alert sounds
+    And the timer keeps counting
+
+  Scenario: No target takes the time done when saved as a routine
+    Given a live session with a cardio exercise without a target
+    And I recorded 20:00 for it
+    When I save the session as a routine
+    Then the cardio exercise in the routine has a target of 20 minutes
 ```
+*User additions 2026-11-27: the recorded time follows the session and never changes the target; a cardio target is static and edited only in the routine editor, so a session never updates it ("I expect no routine update for cardio since now goal is static and only editable in routine edit UI"); no target, no alert; no "Añadir serie" on the live cardio card ("why on earth do we need series in a cardio session?"); a session cardio without a target saved as a new routine takes the time done (every routine cardio keeps a target, as today). This needs the two save functions changed (`save_workout_as_routine`, `update_routine_from_session`); stored cardio data is unchanged (user, 2026-11-27: "include it").*

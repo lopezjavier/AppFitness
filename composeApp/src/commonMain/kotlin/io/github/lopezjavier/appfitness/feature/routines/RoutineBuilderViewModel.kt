@@ -8,6 +8,7 @@ import io.github.lopezjavier.appfitness.domain.AppError
 import io.github.lopezjavier.appfitness.domain.AppException
 import io.github.lopezjavier.appfitness.domain.model.CatalogExercise
 import io.github.lopezjavier.appfitness.domain.model.Equipment
+import io.github.lopezjavier.appfitness.domain.model.MovementPattern
 import io.github.lopezjavier.appfitness.domain.model.Note
 import io.github.lopezjavier.appfitness.domain.model.RoutineBounds
 import io.github.lopezjavier.appfitness.domain.model.SetType
@@ -217,7 +218,10 @@ class RoutineBuilderViewModel(
             draft.copy(name = event.name.take(RoutineBounds.NAME_MAX_LENGTH))
         }
 
-        is RoutineBuilderEvent.AddExercise -> { draft -> draft.withNewRow(event.exerciseId) }
+        is RoutineBuilderEvent.AddExercise -> { draft ->
+            val cardio = catalog[event.exerciseId]?.exercise?.movementPattern == MovementPattern.Cardio
+            draft.withNewRow(event.exerciseId, cardio)
+        }
 
         is RoutineBuilderEvent.MoveTo -> { draft -> draft.movedRow(event.from, event.to) }
 
@@ -226,7 +230,9 @@ class RoutineBuilderViewModel(
         is RoutineBuilderEvent.MoveDown -> { draft -> draft.movedRow(event.index, event.index + 1) }
 
         is RoutineBuilderEvent.GroupWithNext -> { draft ->
-            draft.withGroups(groupWithNext(draft.rows.map(DraftRow::group), event.index)).leveledTo(event.index)
+            draft.withGroups(
+                groupWithNext(draft.rows.map(DraftRow::group), event.index),
+            ).leveledTo(event.index, cardioIds())
         }
 
         is RoutineBuilderEvent.Ungroup ->
@@ -240,9 +246,13 @@ class RoutineBuilderViewModel(
 
     /** The change an event makes to the planned sets of a row, or null for any other event. */
     private fun setsEdit(event: RoutineBuilderEvent): ((RoutineDraft) -> RoutineDraft)? = when (event) {
-        is RoutineBuilderEvent.AddSet -> { draft -> draft.withAddedSet(event.index) }
+        is RoutineBuilderEvent.AddSet -> { draft ->
+            if (isCardioRow(draft, event.index)) draft else draft.withAddedSet(event.index, cardioIds())
+        }
 
-        is RoutineBuilderEvent.RemoveSet -> { draft -> draft.withoutSet(event.index, event.setIndex) }
+        is RoutineBuilderEvent.RemoveSet -> { draft ->
+            if (isCardioRow(draft, event.index)) draft else draft.withoutSet(event.index, event.setIndex, cardioIds())
+        }
 
         is RoutineBuilderEvent.SetWeight -> { draft ->
             draft.withSetEdit(event.index, event.setIndex) { it.copy(weight = event.text.take(WEIGHT_MAX_CHARS)) }
@@ -252,12 +262,7 @@ class RoutineBuilderViewModel(
             draft.withSetEdit(event.index, event.setIndex) { it.copy(reps = event.text.take(REPS_MAX_CHARS)) }
         }
 
-        is RoutineBuilderEvent.SetMinutes -> { draft ->
-            draft.withSetEdit(event.index, event.setIndex) {
-                val fits = event.minutes == null || event.minutes in MINUTES_RANGE
-                if (it.timed && fits) it.copy(minutes = event.minutes) else it
-            }
-        }
+        is RoutineBuilderEvent.SetMinutes -> { draft -> withMinutes(draft, event) }
 
         is RoutineBuilderEvent.ChangeSetType -> { draft ->
             setPicker(null)
@@ -266,6 +271,27 @@ class RoutineBuilderViewModel(
 
         else -> null
     }
+
+    /** A cardio row collapses to one timed set carrying the minutes; any other row edits just that set. */
+    private fun withMinutes(draft: RoutineDraft, event: RoutineBuilderEvent.SetMinutes): RoutineDraft {
+        val fits = event.minutes == null || event.minutes in MINUTES_RANGE
+        return when {
+            !fits -> draft
+
+            isCardioRow(draft, event.index) -> draft.withSingleTimedSet(event.index, event.minutes)
+
+            else -> draft.withSetEdit(event.index, event.setIndex) {
+                if (it.timed) it.copy(minutes = event.minutes) else it
+            }
+        }
+    }
+
+    /** Exercises with the cardio pattern: one timed set, never levelled with the rest of a superset. */
+    private fun cardioIds(): Set<String> =
+        catalog.filterValues { it.exercise.movementPattern == MovementPattern.Cardio }.keys
+
+    private fun isCardioRow(draft: RoutineDraft, index: Int): Boolean =
+        draft.rows.getOrNull(index)?.let { catalog[it.exerciseId]?.exercise?.movementPattern } == MovementPattern.Cardio
 
     /** The row index and change of the rest stepper event, or null for any other event. */
     private fun targetEdit(event: RoutineBuilderEvent): Pair<Int, (DraftRow) -> DraftRow>? = when (event) {
@@ -400,7 +426,7 @@ class RoutineBuilderViewModel(
 
     private fun addWarmUpSets(index: Int, event: RoutineBuilderEvent.AddWarmUpSets) {
         if (phase != Phase.Editing || saving || !draft.canAddWarmUps(index, event.sets.size)) return
-        draft = draft.withWarmUpSets(index, event.sets)
+        draft = draft.withWarmUpSets(index, event.sets, cardioIds())
         persist()
         updateSheets { calculatorDraft = null }
     }
@@ -510,6 +536,7 @@ class RoutineBuilderViewModel(
                         canGroupWithNext = index < lastIndex,
                         equipment = exercise.exercise.equipment,
                         isPerHand = exercise.exercise.perHand,
+                        cardioPattern = exercise.exercise.movementPattern == MovementPattern.Cardio,
                     )
                 },
                 isOnline = online,
