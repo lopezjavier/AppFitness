@@ -1,6 +1,6 @@
 # Implementation Plan: E21 · Closure → `v1.x` (proposed `v1.11.0`)
 
-> **Status: PROPOSED by the epic-planner, 2026-11-27; revised the same day with the user's decisions (ADR-114). Needs the user's OK on the breakdown PR and on 👤 Checkpoint E21.** Tasks T-330 (user request, first in plan order) and T-327…T-329, one 👤 checkpoint. E21 is the last epic (ADR-101; E20 was dropped, ADR-113); after it the app is in maintenance mode, where only bugfixes and the user's feedback create tasks. The E19 plan that lived here is in git history (E19 closed, `v1.10.0`; `tasks/todo.md` E19 section; `retrospectives/E19.md`).
+> **Status: APPROVED by the user, 2026-11-27 (breakdown and 👤 Checkpoint E21); epic-planner draft revised the same day with the user's decisions (ADR-114).** Tasks T-330 (user request, first in plan order) and T-327…T-329, one 👤 checkpoint. E21 is the last epic (ADR-101; E20 was dropped, ADR-113); after it the app is in maintenance mode, where only bugfixes and the user's feedback create tasks. The E19 plan that lived here is in git history (E19 closed, `v1.10.0`; `tasks/todo.md` E19 section; `retrospectives/E19.md`).
 
 ## Overview
 E21 first ships one user request, then puts the project in a safe end state in the order ADR-114 fixes:
@@ -48,7 +48,7 @@ Every task pays 6-7 agent hand-offs, so stories stay whole and S tasks are avoid
 |---|---|---|---|---|---|
 | 0 | T-330: Habituales and Favoritos ordered by use in the comida (migration; APK for the checkpoint) | **M** | user request 2026-11-27 | backend + core (2.1 without ui-designer, no visual change): planner → ux-reviewer → backend-developer → kotlin-core-developer → pr-reviewer ∥ ux-reviewer → pr-creator | 6 |
 | 1 | T-327: Keep-alive that holds through maintenance mode, then the private repository (👤 rotation, secrets, switch) | **M** | US-124, US-126 | infra + docs (2.2) | 4 + 👤 |
-| 2 | T-328: Weekly data export as a private run artifact (BLOCKED by Q-E21-6) | **M** | US-125 | infra (2.2): workflow job + script + tests | 4 |
+| 2 | T-328: Weekly data export as a private run artifact | **M** | US-125 | infra (2.2): workflow job + script + tests | 4 |
 | 2b | 👤 Checkpoint E21: food lists by comida, private repository, weekly export, final regression (7 items) | checkpoint | US-125, US-126 | user | — |
 | 3 | T-329: Project retro and E21 closure (after Checkpoint E21 and the closure approval) | closure step (no size class) | US-127, DoD | PM | PM only |
 
@@ -73,9 +73,9 @@ Why these sizes and merges:
   6. The user removes the `production` environment and the `main` ruleset.
 
 ### Phase 2: The user's data, weekly (US-125)
-- T-328, once Q-E21-6 is answered. Internal milestone: a manual run on `main` green, with its 90-day artifact.
+- T-328. Internal milestone: a manual run on `main` green, with its 90-day artifact.
 
-### 👤 Checkpoint E21 · Food lists by comida, private repository, weekly export and final regression (PROPOSED)
+### 👤 Checkpoint E21 · Food lists by comida, private repository, weekly export and final regression (agreed with the user, 2026-11-27)
 Right after T-328, the last implementation task. Why one: the food order (1 item plus leave and come back) and the private repository (1-2 items) each give fewer than the 5 a checkpoint needs. Nothing later builds on T-330, so its feedback can still change it. What to try:
 1. Adding to "Desayuno", "Habituales" shows your usual breakfast foods first; "Cena" has its own order; "Favoritos" follows the same rule, with never-logged favourites last.
 2. A signed-out browser shows the repository as "not found".
@@ -93,7 +93,7 @@ The keep-alive is not an item: it needs weeks without use, so it is listed as "P
 ## Dependencies
 - T-330 needs the breakdown approved. It is first in plan order; T-327 has no technical dependency on it.
 - T-327 needs the breakdown approved, plus the user's rotations and repository secrets before its merge.
-- T-328 needs T-327 merged, the repository private and the secrets moved, and Q-E21-6 answered.
+- T-328 needs T-327 merged, the repository private and the secrets moved, and the user has set `EXPORT_USER_ID` (Q-E21-6).
 - Checkpoint E21 needs T-330 and T-328 merged, CI green, T-330's `deploy-supabase` green, a manual export run green and the APK delivered.
 - T-329 needs Checkpoint E21 approved and the user's epic-closure approval.
 - Built pieces E21 relies on: `keepalive.yml` and the `health` function (ADR-12), `deploy-supabase`, the `gitleaks` job and the Python script tests in `security.yml`, local Supabase in `supabase-ci`, the per-epic retrospectives.
@@ -114,7 +114,7 @@ The keep-alive is not an item: it needs weeks without use, so it is listed as "P
 ## Open questions
 - **Q-E21-1, Q-E21-2, Q-E21-3: resolved (user, 2026-11-27, ADR-114).** See "Decisions".
 - **Q-E21-4: resolved (the epic-planner's call).** The keep-alive and the private repository are one task, T-327.
-- **Q-E21-6 · BLOCKING T-328 only: how does the export pick the owner's account?** The direct connection sees every account, and production also holds the test account. Options:
+- **Q-E21-6: resolved (user, 2026-11-27): (a), the repository secret `EXPORT_USER_ID`.** How does the export pick the owner's account? The direct connection sees every account, and production also holds the test account. Options:
   - (a) A repository secret `EXPORT_USER_ID` with the owner's account id, set by the user (the PM verifies the name only). The id is personal data, not a credential.
   - (b) No new secret: the oldest account in `auth.users`. This is fragile if accounts were ever recreated.
 
