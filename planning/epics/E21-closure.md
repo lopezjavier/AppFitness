@@ -171,6 +171,12 @@ Feature: Cardio target and count-up timer
     Then the exercise shows only its target in minutes
     And I see no series, rest, RPE or repetitions for it, and no "Añadir serie"
 
+  Scenario: Cardio never shows series in any view
+    Given a routine with a cardio exercise of 45 minutes
+    When I open the routine summary or any other view that lists its exercises
+    Then the cardio exercise shows "45 min"
+    And it never shows "1 × 45 minutos" or a series count
+
   Scenario: The timer counts up from play
     Given a live session with a cardio exercise and a target of 30 minutes
     When I tap play on its row

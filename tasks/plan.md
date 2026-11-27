@@ -69,7 +69,7 @@ Why these sizes and merges:
 - T-331, asked for by the user after T-330 merged, before T-327. UI only, no migration. The APK is delivered for Checkpoint E21.
 
 ### Phase 0c: Cardio target and count-up timer (user request)
-- T-332, asked for by the user after T-331 merged, before T-327. Routine editor and live session; no migration unless the planner needs one for existing multi-series cardio. The APK is delivered for Checkpoint E21.
+- T-332, asked for by the user after T-331 merged, before T-327. Front end only (user, 2026-11-27): routine editor, every view that lists cardio, and the live session; no database change. The APK is delivered for Checkpoint E21.
 
 ### Phase 1: The backend stays alive and the repository goes private (US-124, US-126)
 - T-327, in this order (the planner may refine it):
@@ -87,7 +87,7 @@ Why these sizes and merges:
 Right after T-328, the last implementation task. Why one: the food order (1 item plus leave and come back) and the private repository (1-2 items) each give fewer than the 5 a checkpoint needs. Nothing later builds on T-330, so its feedback can still change it. What to try:
 1. Adding to "Desayuno", "Habituales" shows your usual breakfast foods first; "Cena" has its own order; "Favoritos" follows the same rule, with never-logged favourites last.
 1b. An exercise's "Resumen" tab shows the primary and the secondary muscles, told apart (T-331).
-1c. Cardio has only a target in minutes in the routine editor; in the live session it counts up from play, stop writes the time, the target alerts and it keeps counting (T-332).
+1c. Cardio has only a target in minutes in the routine editor and shows "45 min" in every view, never "1 × 45 minutos"; in the live session it counts up from play, stop writes the time, the target alerts and it keeps counting (T-332).
 2. A signed-out browser shows the repository as "not found".
 3. Actions: start the export by hand (or open the latest weekly run); it is green, with an artifact kept 90 days.
 4. Download the artifact: a recent meal, a recent workout and the latest weight are in the JSON.

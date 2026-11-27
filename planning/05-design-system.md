@@ -430,6 +430,7 @@ Uses `SwipeToDeleteRow` only (guard G7) · right-to-left, "Eliminar"/"Quitar" ·
 | Current week marker (T-165) | "Actual" chip | "Hoy", "En curso" | |
 | Cardio progress of a week (T-183) | "Cardio de la semana: 100 de 150 min" | "Actividad física", "Ejercicio aeróbico" | Text plus bar; per week, nothing carries over |
 | Cardio minutes the routines do not hold (T-183) | "Por tu cuenta" ("Te faltan 120 min de cardio a la semana: hazlos por tu cuenta.") | "Extra", "Libre" | |
+| A cardio exercise in any routine view (T-332, user 2026-11-27) | Its minutes only: "45 min" (editor, routine summary, lists, block, live card, session summary, history) | "1 × 45 minutos", "1 serie", a series count, rest, RPE or reps | Cardio has one target in minutes, never series |
 | Routine duration with cardio (T-183) | "Tiempo total: 1 h 50 min" | "Duración", "Total" | Never "1 h 0 min" |
 | Decide on a calorie proposal (T-229) | "Aplicar" / "Ahora no" (`action_apply` / `action_not_now`) | "Aceptar", "Descartar", "Guardar" | The user applies the change or leaves it for later |
 | Decide on a plan or deload proposal | "Aceptar" / "Descartar" | "Guardar", "Cancelar" | Distinct from the edit pair "Guardar"/"Cancelar"; the deload card keeps this pair until T-230 retires it |
