@@ -26,6 +26,16 @@ These three rows were still marked "open" in `phase2/09-open-questions.md` (froz
 | E17 Q-E17-4: hard block | 2026-11-09 | **Resolved (user, 2026-11-09, ADR-104)**; built in T-257/T-258 | No failing food is saved by any path; the AI retry sends the previous estimate and the reason; the user's 10 wrong foods were fixed in production |
 | E17 checkpoints | 2026-11-09 | **Resolved (user)** | Checkpoint E17 (items 6-10 approved) and Checkpoint E17-fix (7 items) approved |
 
+## E19 UI review (closed 2026-11-27, `v1.10.0`)
+
+| Question | Raised | Status | Outcome |
+|---|---|---|---|
+| Q-E19-1: checkpoints in E19 | 2026-11-11 | **Resolved (user, 2026-11-11)**, later extended | No checkpoint for the review rounds; the T-310, T-316 and T-324 additions brought Checkpoints E19-R, E19-R2 and E19-C, all approved |
+| Q-E19-2: the free-text notes | 2026-11-11 | **Resolved (user, 2026-11-11, ADR-107)**; built in T-277/T-286 | Removed in every layer, including the migration that dropped their storage |
+| Q-E19-3: owner area of the shared screens | 2026-11-11 | **Resolved (ux-reviewer, T-279 plan)** | Decided in the gallery plan; the gallery was later removed (ADR-112) |
+| Q-E19-4: the "Para conocerte" free-text field | 2026-11-11 | **Superseded by Q-E19-5** | Removed with the notes; years training and maintenance kcal stay |
+| Q-E19-5: dead-code cleanup | 2026-11-11 | **Resolved (user, 2026-11-11)**; built in T-277/T-286 | Everything unused removed after the audit; production tables and columns dropped only from the list the user approved by name |
+
 ## E20 Illness (dropped, 2026-11-27, ADR-113)
 
 Raised by the user in chat (product-owner). Dropped with the epic (user, 2026-11-27, ADR-113): none of these questions is open any more. The draft is in [`epics/E20-illness.md`](epics/E20-illness.md) for the options and recommendations.

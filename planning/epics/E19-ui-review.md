@@ -1,6 +1,6 @@
 # E19 · UI review
 
-> **Status: DEFINED (product-owner, updated 2026-11-11, ADR-103), not planned.** Stories US-131 and US-123. The `epic-planner` breaks it into tasks. It runs after E18 so that every screen, including the ones E18 adds, is reviewed once. US-120…US-122 moved to E18.
+> **Status: DONE (`v1.10.0`, closed 2026-11-27, T-285).** Was DEFINED (product-owner, updated 2026-11-11, ADR-103). Stories US-131 and US-123. The `epic-planner` breaks it into tasks. It runs after E18 so that every screen, including the ones E18 adds, is reviewed once. US-120…US-122 moved to E18.
 
 ## Intent
 
