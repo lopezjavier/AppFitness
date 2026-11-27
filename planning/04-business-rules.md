@@ -47,6 +47,12 @@ Only `g` foods; default Crudo. Added fat = `round(raw_g × pct / 100, 1)` g and 
 - Evaluated for today only, on the first Diary load: if `diary_default_applications` has the day, nothing; if the day already has entries, mark it and add nothing; otherwise copy the comidas as normal entries (current amounts, saved methods, current cooking preferences) and mark the day. No backfill, no re-add after deletion. The server rejects dates more than one day from UTC today (`22023`).
 - Deleting a meal or comida cascades its assignments; logged entries are unchanged. A failed apply never blocks the Diary (non-blocking retry, idempotent).
 
+### 2.4 Food list order (US-149)
+- **Window:** a use counts when `log_date > today - 90` (today and the 89 days before; the day 90 back is excluded); the window has no upper bound, so a future-dated entry counts as a use. `today` is the device's local date, sent by the app (`p_today`); the server falls back to its UTC date. The window only feeds the ranking: no list is cut by it except Habituales (foods with no use in the window are absent).
+- **Habituales** (`habitual_foods`): foods with at least one use in the window, ranked by uses in the comida being added to (desc), latest `log_date` in it (desc), latest `created_at` in it (desc), name (Spanish, case and accent insensitive, asc), id. Without a comida (picking a food, no preselected comida) the same key runs over all comidas. An unknown comida gives an empty list. Limit 20 by default, clamped 1..100.
+- **Favoritos** (`ranked_favourite_foods`): every favourite exactly once, ordered by uses in the comida (desc), uses overall (desc), latest use overall (`log_date`, `created_at`, desc), name (as above), id. A favourite with no use in the window has zero counts and no recency, so it goes last, by name. Without a comida the first key is skipped.
+- Text search ("favourites first among my foods") and Recientes are unchanged. `most_eaten_foods` is legacy (installed `v1.10.0` only), no longer called.
+
 ## 3. Weight
 - **3.1 Daily value:** several measurements on one local day -> their average.
 - **3.2 MA7:** average of available daily values in `[d − 6, d]`; one day suffices (ADR-49); the chart connects consecutive points across gaps.

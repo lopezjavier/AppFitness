@@ -25,7 +25,7 @@ Columns: functionality, label as shown in the app (Spanish), route type or host,
 | Edit or delete a diary entry | "Editar alimento" | dialog `EditEntryRoute` (`EditEntrySheet`) | table `food_log_entries` | US-19 |
 | Diary history and weekly average | "Calorías", "Media diaria" | `DiaryHistoryRoute` | RPC `food_diary_summary` | US-24 |
 | Comidas grouped in the Diario | "Comidas del día" | `DiaryHome` | - | US-55 |
-| Food search and logging into a meal | "Añadir alimento" | `FoodSearchRoute`, dialog `AddFoodRoute` | Edge Function `food-search`; RPC `most_eaten_foods` | US-17, US-121, US-122 |
+| Food search and logging into a meal | "Añadir alimento" | `FoodSearchRoute`, dialog `AddFoodRoute` | Edge Function `food-search`; RPCs `habitual_foods`, `ranked_favourite_foods` | US-17, US-121, US-122 |
 | Barcode scan and manual food creation | "Crear alimento", "Código de barras" | `CreateFoodRoute`; `AddFoodRoute` | Edge Function `food-barcode`; RPC `create_personal_food` | US-18 |
 | Editing a manual food, including its unit when unused | "Editar alimento" | `EditFoodRoute` | RPCs `update_personal_food`, `personal_food_in_use` | US-47, US-52 |
 | Food from a photo (AI estimate) and label photos | "Añadir con IA", "Estimar con IA", "Etiqueta nutricional" | `AddFoodRoute` (sheet) | Edge Function `food-photo` (modes dish, label, barcode, weight) | US-48, US-49, US-54 |
