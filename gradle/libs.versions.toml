@@ -51,7 +51,7 @@ ktor = "3.6.0"
 androidx-credentials = "1.6.0"
 play-services-code-scanner = "16.1.0"
 # Latest stable on 2026-10-27 (T-129): licences screen and its Gradle plugin.
-play-services-oss-licenses = "17.5.2"
+play-services-oss-licenses = "17.5.3"
 oss-licenses-plugin = "0.13.0"
 googleid = "1.2.1"
 coil = "3.6.3"
