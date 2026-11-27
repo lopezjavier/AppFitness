@@ -47,6 +47,7 @@ Every task pays 6-7 agent hand-offs, so stories stay whole and S tasks are avoid
 | Order | Task | Size | Story | Flow | Agent runs |
 |---|---|---|---|---|---|
 | 0 | T-330: Habituales and Favoritos ordered by use in the comida (migration; APK for the checkpoint) | **M** | user request 2026-11-27 | backend + core (2.1 without ui-designer, no visual change): planner → ux-reviewer → backend-developer → kotlin-core-developer → pr-reviewer ∥ ux-reviewer → pr-creator | 6 |
+| 0b | T-331: Secondary muscles in the exercise "Resumen" tab (APK for the checkpoint) | **S** | US-150, user request 2026-11-27 | UI (2.1 with ui-designer): ui-designer → planner → ux-reviewer → compose-ui-developer → pr-reviewer ∥ ux-reviewer → pr-creator | 6 + 👤 look |
 | 1 | T-327: Keep-alive that holds through maintenance mode, then the private repository (👤 rotation, secrets, switch) | **M** | US-124, US-126 | infra + docs (2.2) | 4 + 👤 |
 | 2 | T-328: Weekly data export as a private run artifact | **M** | US-125 | infra (2.2): workflow job + script + tests | 4 |
 | 2b | 👤 Checkpoint E21: food lists by comida, private repository, weekly export, final regression (7 items) | checkpoint | US-125, US-126 | user | — |
@@ -63,6 +64,9 @@ Why these sizes and merges:
 ### Phase 0: Food lists by comida (user request)
 - T-330. It deploys a migration (`deploy-supabase` green on `main`; this is the last deploy through the `production` environment before T-327 moves the secrets). The APK is delivered for Checkpoint E21.
 
+### Phase 0b: Secondary muscles in Resumen (user request)
+- T-331, asked for by the user after T-330 merged, before T-327. UI only, no migration. The APK is delivered for Checkpoint E21.
+
 ### Phase 1: The backend stays alive and the repository goes private (US-124, US-126)
 - T-327, in this order (the planner may refine it):
   1. Full-history scan while the repository is still public; the user rotates any exposed secret.
@@ -78,6 +82,7 @@ Why these sizes and merges:
 ### 👤 Checkpoint E21 · Food lists by comida, private repository, weekly export and final regression (agreed with the user, 2026-11-27)
 Right after T-328, the last implementation task. Why one: the food order (1 item plus leave and come back) and the private repository (1-2 items) each give fewer than the 5 a checkpoint needs. Nothing later builds on T-330, so its feedback can still change it. What to try:
 1. Adding to "Desayuno", "Habituales" shows your usual breakfast foods first; "Cena" has its own order; "Favoritos" follows the same rule, with never-logged favourites last.
+1b. An exercise's "Resumen" tab shows the primary and the secondary muscles, told apart (T-331).
 2. A signed-out browser shows the repository as "not found".
 3. Actions: start the export by hand (or open the latest weekly run); it is green, with an artifact kept 90 days.
 4. Download the artifact: a recent meal, a recent workout and the latest weight are in the JSON.
@@ -92,9 +97,10 @@ The keep-alive is not an item: it needs weeks without use, so it is listed as "P
 
 ## Dependencies
 - T-330 needs the breakdown approved. It is first in plan order; T-327 has no technical dependency on it.
+- T-331 has no technical dependency; the user asked for it next after T-330 (2026-11-27).
 - T-327 needs the breakdown approved, plus the user's rotations and repository secrets before its merge.
 - T-328 needs T-327 merged, the repository private and the secrets moved, and the user has set `EXPORT_USER_ID` (Q-E21-6).
-- Checkpoint E21 needs T-330 and T-328 merged, CI green, T-330's `deploy-supabase` green, a manual export run green and the APK delivered.
+- Checkpoint E21 needs T-330, T-331 and T-328 merged, CI green, T-330's `deploy-supabase` green, a manual export run green and the APK delivered.
 - T-329 needs Checkpoint E21 approved and the user's epic-closure approval.
 - Built pieces E21 relies on: `keepalive.yml` and the `health` function (ADR-12), `deploy-supabase`, the `gitleaks` job and the Python script tests in `security.yml`, local Supabase in `supabase-ci`, the per-epic retrospectives.
 
