@@ -194,14 +194,16 @@ Feature: Secondary muscles in Resumen
 
 **Problem (user words):** "In the routine edition, a cardio exercise can have more than 1 series, with resting, RPE objective, and min and max repetitions. This makes no sense, a cardio exercise should have just a target minutes. In live exercise, the cardio session starts from the target minutes descending. This makes no sense when for some reason you want to spend more time. Time shouldn't be editable, it should be a timer that increases when the user clicks in play, and there should be an alert when the goal is achieve, but it should continue. When the timer is running, the button play should be replaced by a stop button that finishes the timeout and set the time automatically. The user can play again to continue, or click in listo to save the KM of the cardio session."
 **Screenshots:** `design/reported/T-332-cardio-routine-edit.png`, `design/reported/T-332-cardio-live-timer.png` (gitignored; the live row shows an editable TIEMPO field and a play button while the timer bar reads "+44:10").
-**Story:** US-151 (user request, added to the E21 epic file by the PM). **Flow (2.1, changes how something looks):** PM brief → ui-designer (the routine-editor cardio row and the live cardio row) → planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer (backend-developer only if the planner finds `save_routine` or the stored data must change) → pr-reviewer ∥ ux-reviewer → pr-creator; CI is the gate. The user judges the look at Checkpoint E21.
+**Story:** US-151 (user request, added to the E21 epic file by the PM). **Flow (2.1, changes how something looks):** PM brief → ui-designer (the routine-editor cardio row and the live cardio row) → planner → ux-reviewer (plan) → kotlin-core-developer → compose-ui-developer → pr-reviewer ∥ ux-reviewer → pr-creator; CI is the gate. The user judges the look at Checkpoint E21.
 **Description:**
+- **Front end only (user, 2026-11-27: "I'm happy that cardio sessions remains the same in database, this feels to me like a FE change purely"):** no migration, no RPC or Edge Function change, no backend-developer. Cardio is stored exactly as today; only how the app shows and edits it changes.
 - **Scope: cardio exercises** (the `cardio` pattern, `duration` or `distance_duration` metric). Holds and other timed strength exercises keep their series (PM default).
-- **Routine editor:** a cardio exercise has only a target in minutes: no series count, no "Añadir serie", no rest, no RPE target and no rep range. Existing routines that hold several cardio series show one target = the sum of their planned minutes (PM default; the planner chooses whether it is converted on read or by a migration).
+- **Routine editor:** a cardio exercise has only a target in minutes: no series count, no "Añadir serie", no rest, no RPE target and no rep range. Existing routines that hold several cardio series show one target = the sum of their planned minutes, computed in the app (PM default; no data change).
 - **Live session:** TIEMPO is not editable. It shows the elapsed time, counting up from 0:00 when the user taps play, never down from the target. While it runs, play is replaced by stop; stop halts the timer and writes the elapsed time into TIEMPO; play again continues from that time. When the target is reached, the existing alert "Objetivo de cardio alcanzado" fires and the timer keeps counting. KM stays editable; LISTO saves KM and the time (tapping LISTO while the timer runs stops it first, PM default).
+- **Every place renders cardio without series (user, 2026-11-27: "at least in routine summary I see 1x45 minutos and feels wrong"):** the routine summary, the routine list and folder cards, the block screens, the live card, the session summary, history and any other view show a cardio exercise as its minutes only ("45 min"), never "1 × 45 minutos" or a series count (`05` §10 glossary row). The planner sweeps every view that formats sets × reps or sets × minutes and lists each one in the plan.
 - One timer only (R-58, R-122): the row's play/stop and the timer bar drive the same timer; the ui-designer and ux-reviewer align the bar's "Pausar"/"Reanudar" with stop/play.
 - Out of scope: "Añadir serie" on a cardio card in the live session (unchanged unless the user asks), the Trainer's cardio minutes and the block builder's cardio row (already one duration).
-- Docs: `05` V-22 and R-58, `04` if a save rule changes, `10-feature-inventory.md`.
+- Docs: `05` V-22 and R-58, `10-feature-inventory.md`.
 **Gherkin (user request, recorded by the PM):**
 ```gherkin
 Feature: Cardio target and count-up timer
@@ -210,6 +212,12 @@ Feature: Cardio target and count-up timer
     Given I edit a routine with a cardio exercise
     Then the exercise shows only its target in minutes
     And I see no series, rest, RPE or repetitions for it, and no "Añadir serie"
+
+  Scenario: Cardio never shows series in any view
+    Given a routine with a cardio exercise of 45 minutes
+    When I open the routine summary or any other view that lists its exercises
+    Then the cardio exercise shows "45 min"
+    And it never shows "1 × 45 minutos" or a series count
 
   Scenario: The timer counts up from play
     Given a live session with a cardio exercise and a target of 30 minutes
@@ -243,9 +251,10 @@ Feature: Cardio target and count-up timer
 ```
 **Acceptance criteria:**
 - [ ] The routine editor shows a cardio exercise with only its target in minutes (no series, rest, RPE, rep range or "Añadir serie"); existing multi-series cardio shows the summed target.
+- [ ] No view shows cardio with series: the routine summary and every other place found by the sweep show only the minutes ("45 min").
 - [ ] The live cardio row counts up from play, swaps play for stop while running, writes the time on stop, continues on play, alerts at the target and keeps counting; TIEMPO is not editable.
 - [ ] LISTO saves KM and time; the timer state survives leaving the app.
-- [ ] `05` V-22/R-58, `10` (and `04` if a rule changes) updated; host and unit tests, ktlint, detekt and `check-ux-conventions.sh` green.
+- [ ] No database, RPC or Edge Function change; `05` V-22/R-58 and `10` updated; host and unit tests, ktlint, detekt and `check-ux-conventions.sh` green.
 **Tests (per scenario):** ViewModel unit tests for the timer (start, stop writes the time, resume, the target alert fires once and counting goes on, LISTO while running, restoration from the saved start time); Robolectric host tests of the routine-editor cardio row (no series controls) and the live cardio row (play/stop swap, TIEMPO not editable).
 **Verification:** CI green; APK delivered for Checkpoint E21.
 **Dependencies:** none technical; next in plan order after T-331, before T-327 (user request).
@@ -330,7 +339,7 @@ Presented after T-328 merges, CI is green, T-330's `deploy-supabase` is green on
 
 - [ ] 1. Diario → "Desayuno" → add a food → "Habituales": your usual breakfast foods come first, most used first; then try "Cena", which has its own order. "Favoritos" follows the same rule: most used in this comida first, and favourites you never logged last, by name.
 - [ ] 1b. Entreno → open an exercise with secondary muscles → "Resumen": the primary muscle and every secondary muscle are shown, and you can tell which is which; an exercise without secondary muscles shows only the primary one.
-- [ ] 1c. Entreno → edit a routine with cardio: the cardio exercise has only a target in minutes. Start that routine → the cardio row → play: the time counts up from 0:00 and play becomes stop; at the target you get the alert and it keeps counting; stop writes the time, play continues, and LISTO saves the KM and the time.
+- [ ] 1c. Entreno → edit a routine with cardio: the cardio exercise has only a target in minutes, and the routine summary shows "45 min", not "1 × 45 minutos". Start that routine → the cardio row → play: the time counts up from 0:00 and play becomes stop; at the target you get the alert and it keeps counting; stop writes the time, play continues, and LISTO saves the KM and the time.
 - [ ] 2. In a signed-out browser window, the repository's GitHub page says it does not exist.
 - [ ] 3. GitHub → Actions → the keep-alive workflow: start the export by hand (or open the latest weekly run). It is green, and its artifact is listed with a 90-day retention.
 - [ ] 4. Download the artifact (`gh run download` or the web page) and open the JSON: a recent meal, a recent workout and your latest weight are there.
