@@ -47,7 +47,7 @@ Every task pays 6-7 agent hand-offs, so stories stay whole and S tasks are avoid
 | Order | Task | Size | Story | Flow | Agent runs |
 |---|---|---|---|---|---|
 | 0 | T-330: Habituales and Favoritos ordered by use in the comida (migration; APK for the checkpoint) | **M** | user request 2026-11-27 | backend + core (2.1 without ui-designer, no visual change): planner → ux-reviewer → backend-developer → kotlin-core-developer → pr-reviewer ∥ ux-reviewer → pr-creator | 6 |
-| 0b | T-331: Secondary muscles in the exercise "Resumen" tab (APK for the checkpoint) | **S** | US-150, user request 2026-11-27 | UI (2.1 with ui-designer): ui-designer → planner → ux-reviewer → compose-ui-developer → pr-reviewer ∥ ux-reviewer → pr-creator | 6 + 👤 look |
+| 0b | T-331: Secondary muscles in the exercise "Resumen" tab (APK for the checkpoint) | **S** | US-150, user request 2026-11-27 | UI (2.1 with ui-designer): ui-designer → planner → ux-reviewer → compose-ui-developer → pr-reviewer ∥ ux-reviewer → pr-creator | 6 |
 | 1 | T-327: Keep-alive that holds through maintenance mode, then the private repository (👤 rotation, secrets, switch) | **M** | US-124, US-126 | infra + docs (2.2) | 4 + 👤 |
 | 2 | T-328: Weekly data export as a private run artifact | **M** | US-125 | infra (2.2): workflow job + script + tests | 4 |
 | 2b | 👤 Checkpoint E21: food lists by comida, private repository, weekly export, final regression (7 items) | checkpoint | US-125, US-126 | user | — |

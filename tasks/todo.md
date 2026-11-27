@@ -148,12 +148,12 @@ Feature: Food lists ordered by use
 ## T-331: Secondary muscles in the exercise "Resumen" tab · S (user request 2026-11-27; next after T-330)
 
 **Problem (user words):** "Exercises has primary and secondary muscle in the app. However, in Resumen I only see the primary muscle. I want to see also the secondary muscle(s) clearly in resumen for each exercise."
-**Story:** US-150 (user request, added to the E21 epic file by the PM). **Flow (2.1, shows data):** PM brief → ui-designer (visual; the user judges it in the app before any developer) → planner → ux-reviewer (plan) → compose-ui-developer (kotlin-core-developer only if the planner finds the data missing) → pr-reviewer ∥ ux-reviewer → pr-creator; CI is the gate. No migration.
+**Story:** US-150 (user request, added to the E21 epic file by the PM). **Flow (2.1, shows data):** PM brief → ui-designer (visual) → planner → ux-reviewer (plan) → compose-ui-developer (kotlin-core-developer only if the planner finds the data missing) → pr-reviewer ∥ ux-reviewer → pr-creator; CI is the gate. No migration.
 **Today (code read, 2026-11-27):** `ExerciseSummaryTab.kt` `DetailHeader` shows pills for `exercise.muscleGroup`, the equipment and "por mano". `exercise.secondaryMuscles` is already in `ExerciseDetail` (the chat tab uses it), but the "Resumen" tab never shows it.
 **Description:**
 - The "Resumen" tab of every exercise shows its secondary muscles, clearly told apart from the primary one, so the user reads at a glance which muscle is primary and which are secondary.
 - An exercise with no secondary muscles shows only the primary one, with no empty label or placeholder.
-- The visual (pills, labels such as "Principal" / "Secundarios", order, wrapping at font scale 1.3) is the ui-designer's, judged by the user in the app. Spanish copy and glossary rows go through `05` §10.
+- The visual (pills, labels such as "Principal" / "Secundarios", order, wrapping at font scale 1.3) is the ui-designer's. Spanish copy and glossary rows go through `05` §10.
 - Every exercise source counts: library exercises and the user's own exercises (when the form sets secondary muscles).
 - Docs: `05` (the Resumen header, and the glossary row if a label is added), `10-feature-inventory.md`.
 **Gherkin (user request, recorded by the PM):**
@@ -179,7 +179,7 @@ Feature: Secondary muscles in Resumen
 **Acceptance criteria:**
 - [ ] The "Resumen" tab shows every secondary muscle, told apart from the primary one, for library and user exercises.
 - [ ] No secondary muscles → no empty label or placeholder.
-- [ ] The look was approved by the user in the app (ui-designer step); copy in `05` §10; the layout holds at font scale 1.3.
+- [ ] Copy in `05` §10; the layout holds at font scale 1.3.
 - [ ] Host tests, ktlint, detekt and `check-ux-conventions.sh` green; `05` and `10` updated.
 **Tests (per scenario):**
 - "Secondary muscles are shown": Robolectric host test of the "Resumen" tab with two secondary muscles (both shown, the primary marked as such).
