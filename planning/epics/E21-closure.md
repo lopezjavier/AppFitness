@@ -1,6 +1,6 @@
 # E21 · Closure
 
-> **Status: DEFINED (product-owner, 2026-11-08, ADR-101), not planned.** Stories US-124…US-127, plus US-149 (user request 2026-11-27, T-330). The `epic-planner` breaks it into tasks (breakdown PROPOSED 2026-11-27: T-327…T-329, `tasks/todo.md`; US-125 amended by ADR-114). After E21 the app is in maintenance mode: only bugfixes and the user's feedback create tasks.
+> **Status: DEFINED (product-owner, 2026-11-08, ADR-101), not planned.** Stories US-124…US-127, plus US-149 (user request 2026-11-27, T-330) and US-150 (user request 2026-11-27, T-331). The `epic-planner` breaks it into tasks (breakdown PROPOSED 2026-11-27: T-327…T-329, `tasks/todo.md`; US-125 amended by ADR-114). After E21 the app is in maintenance mode: only bugfixes and the user's feedback create tasks.
 
 ## Intent
 
@@ -129,4 +129,30 @@ Feature: Food lists ordered by use
     Given "Habituales" is open while adding to "Desayuno"
     When I leave the app and come back
     Then the same tab and the same order are shown
+```
+
+## US-150 · Secondary muscles in Resumen
+*(user request 2026-11-27, recorded by the PM; task T-331)*
+**As** the user
+**I want** each exercise's "Resumen" tab to show its secondary muscles as well as the primary one
+**So that** I see clearly every muscle the exercise works.
+
+```gherkin
+Feature: Secondary muscles in Resumen
+
+  Scenario: Secondary muscles are shown
+    Given an exercise with a primary muscle and one or more secondary muscles
+    When I open the exercise and the "Resumen" tab
+    Then I see the primary muscle and every secondary muscle
+    And I can tell which one is primary and which are secondary
+
+  Scenario: No secondary muscles
+    Given an exercise with no secondary muscles
+    When I open its "Resumen" tab
+    Then I see only the primary muscle, with no empty secondary label
+
+  Scenario: Leaving the app keeps the screen
+    Given the "Resumen" tab of an exercise is open
+    When I leave the app and come back
+    Then the same exercise and tab are shown with the same muscles
 ```
