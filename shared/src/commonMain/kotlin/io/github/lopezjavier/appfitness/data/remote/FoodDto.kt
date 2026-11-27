@@ -213,27 +213,31 @@ internal data class FoodMicronutrientsDto(
     }
 }
 
-/** Row of `favorite_foods` with the food embedded. */
-@Serializable
-internal data class FavoriteFoodDto(@SerialName("food_id") val foodId: String, val foods: FoodDto? = null) {
-    companion object {
-        const val COLUMNS = "food_id,created_at,foods(${FoodDto.COLUMNS})"
-    }
-}
-
 /** Insert body of `favorite_foods` (the user comes from the column default). */
 @Serializable
 internal data class FavoriteInsertDto(@SerialName("food_id") val foodId: String)
 
-/** Row of `most_eaten_foods`. */
+/** Row of `habitual_foods`, already in rank order. */
 @Serializable
 internal data class MostEatenDto(
     @SerialName("food_id") val foodId: String,
     @SerialName("times_logged") val timesLogged: Long = 0,
 )
 
+/** Arguments of `habitual_foods`; a null meal ranks over every meal. */
 @Serializable
-internal data class MostEatenParams(@SerialName("p_limit") val limit: Int)
+internal data class HabitualFoodsParams(
+    @SerialName("p_meal_slot_id") val mealSlotId: String?,
+    @SerialName("p_limit") val limit: Int,
+    @SerialName("p_today") val today: String,
+)
+
+/** Arguments of `ranked_favourite_foods`; a null meal ranks over every meal. */
+@Serializable
+internal data class RankedFavouritesParams(
+    @SerialName("p_meal_slot_id") val mealSlotId: String?,
+    @SerialName("p_today") val today: String,
+)
 
 @Serializable
 internal data class SearchUserFoodsParams(

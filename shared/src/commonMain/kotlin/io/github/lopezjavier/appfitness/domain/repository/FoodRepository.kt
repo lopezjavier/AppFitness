@@ -22,11 +22,17 @@ interface FoodRepository {
     /** Foods logged in the last [days] days, most recently logged first, without repeats. */
     suspend fun recent(days: Int = DEFAULT_RECENT_DAYS): Result<List<Food>>
 
-    /** The user's most logged foods, most logged first. */
-    suspend fun mostEaten(limit: Int = DEFAULT_MOST_EATEN): Result<List<Food>>
+    /**
+     * The user's habitual foods of the last 90 days: most logged in the meal [mealSlotId] first, then the latest use
+     * in it, then the name. A null [mealSlotId] ranks over every meal. The result order is the display order.
+     */
+    suspend fun mostEaten(mealSlotId: String? = null, limit: Int = DEFAULT_MOST_EATEN): Result<List<Food>>
 
-    /** The user's favourite foods, most recently starred first; also refreshes [favouriteIds]. */
-    suspend fun favourites(): Result<List<Food>>
+    /**
+     * Every favourite food in a fixed order: uses in the meal [mealSlotId] (last 90 days), uses overall, latest use,
+     * then the name; never-used ones last. A null [mealSlotId] skips the meal key. Also refreshes [favouriteIds].
+     */
+    suspend fun favourites(mealSlotId: String? = null): Result<List<Food>>
 
     /** The ids of the favourite foods; emits once [favourites] or [setFavourite] has run, then every change. */
     fun favouriteIds(): Flow<Set<String>>

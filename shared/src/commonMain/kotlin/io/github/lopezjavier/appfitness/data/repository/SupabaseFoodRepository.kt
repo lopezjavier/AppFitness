@@ -11,7 +11,6 @@ import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.rpc
 import io.github.lopezjavier.appfitness.data.remote.CopyOffFoodParams
 import io.github.lopezjavier.appfitness.data.remote.CreateFoodParams
-import io.github.lopezjavier.appfitness.data.remote.FavoriteFoodDto
 import io.github.lopezjavier.appfitness.data.remote.FavoriteInsertDto
 import io.github.lopezjavier.appfitness.data.remote.FoodAlcoholDto
 import io.github.lopezjavier.appfitness.data.remote.FoodBarcodeResponseDto
@@ -19,10 +18,11 @@ import io.github.lopezjavier.appfitness.data.remote.FoodDto
 import io.github.lopezjavier.appfitness.data.remote.FoodIdDto
 import io.github.lopezjavier.appfitness.data.remote.FoodMicronutrientsDto
 import io.github.lopezjavier.appfitness.data.remote.FoodSearchResponseDto
+import io.github.lopezjavier.appfitness.data.remote.HabitualFoodsParams
 import io.github.lopezjavier.appfitness.data.remote.LoggedFoodDto
 import io.github.lopezjavier.appfitness.data.remote.MostEatenDto
-import io.github.lopezjavier.appfitness.data.remote.MostEatenParams
 import io.github.lopezjavier.appfitness.data.remote.PersonalFoodInUseParams
+import io.github.lopezjavier.appfitness.data.remote.RankedFavouritesParams
 import io.github.lopezjavier.appfitness.data.remote.SearchUserFoodsParams
 import io.github.lopezjavier.appfitness.data.remote.UpdateFoodParams
 import io.github.lopezjavier.appfitness.domain.AppError
@@ -110,18 +110,17 @@ class SupabaseFoodRepository(
         foodsInOrder(ids)
     }
 
-    override suspend fun mostEaten(limit: Int): Result<List<Food>> = auth.ownRow {
-        val ids = postgrest.rpc("most_eaten_foods", MostEatenParams(limit)).decodeList<MostEatenDto>().map { it.foodId }
+    override suspend fun mostEaten(mealSlotId: String?, limit: Int): Result<List<Food>> = auth.ownRow {
+        val params = HabitualFoodsParams(mealSlotId, limit, clock.today().toString())
+        val ids = postgrest.rpc("habitual_foods", params).decodeList<MostEatenDto>().map { it.foodId }
         foodsInOrder(ids)
     }
 
-    override suspend fun favourites(): Result<List<Food>> = auth.ownRow {
-        val foods = postgrest.from("favorite_foods")
-            .select(Columns.raw(FavoriteFoodDto.COLUMNS)) { order("created_at", Order.DESCENDING) }
-            .decodeList<FavoriteFoodDto>()
-            .mapNotNull { it.foods?.toDomain() }
-        favouriteIds.value = foods.mapTo(mutableSetOf()) { it.id }
-        foods.remembered()
+    override suspend fun favourites(mealSlotId: String?): Result<List<Food>> = auth.ownRow {
+        val ids = postgrest.rpc("ranked_favourite_foods", RankedFavouritesParams(mealSlotId, clock.today().toString()))
+            .decodeList<FoodIdDto>()
+            .map { it.foodId }
+        foodsInOrder(ids).also { foods -> favouriteIds.value = foods.mapTo(mutableSetOf()) { it.id } }
     }
 
     override fun favouriteIds(): Flow<Set<String>> = favouriteIds.filterNotNull()
