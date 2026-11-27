@@ -92,3 +92,7 @@ Appended by each batch; the test task works from this list (CI only).
 ## T-324: Circunferencias on Peso, progress per site
 
 - Done in T-324 itself: `CircumferenceSectionTest`, `CircumferenceRestorationTest`, `WeightNavigationTest` and `ShellChromeTest` rewritten for the per-site rows (`circumference_site_row_<site>`) and the new site screen (`circumference_site_*`, rows `circumference_row_<id>`); new `CircumferenceSiteScreenTest`, `SparklineProjectionTest`. Nothing left for a test task.
+
+## T-326: Circunferencias on Peso as a 2-column grid, ratio first
+
+- Done in T-326 itself: `CircumferenceSectionTest` re-tagged to `circumference_site_cell_<site>` (`_value` gone, the value asserted on the cell) with the grid cases (ratio first, two per row, odd count, one site, empty, font scale 1.3 and 2.0, 320 dp at 1.0 and 1.15, tablet, status chip, tap on a second-row cell, 4 skeleton cells); `WeightNavigationTest` re-tagged; `CircumferenceSiteScreenTest` literals use U+00A0 ("84,5 cm", R-93); `WeightScreenGoalTest` and `FontScaleTest` (Actividad) assert stacking at font scale 1.3 (`MetricTileRow`). Nothing left for a test task.

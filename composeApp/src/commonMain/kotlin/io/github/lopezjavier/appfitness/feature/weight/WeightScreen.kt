@@ -199,7 +199,7 @@ private fun WeightContentView(
             onCircumferenceEvent,
             onRatioClick = whrClick,
             ratioGauge = (goal as? GoalUiState.Content)?.content?.let { c ->
-                c.waistToHip?.let { metric -> { MetricGauge(metric, c.sex) } }
+                c.waistToHip?.let { metric -> { MetricStatusGauge(metric, c.sex) } }
             },
             onOpenSite = onOpenCircumferenceSite,
         )

@@ -152,10 +152,10 @@ class WeightNavigationTest {
     }
 
     @Test
-    fun circumferenceSiteRow_opensTheSiteScreenWithItsName_andBackReturnsToPeso() {
+    fun circumferenceSiteCell_opensTheSiteScreenWithItsName_andBackReturnsToPeso() {
         open()
 
-        tap("circumference_site_row_waist")
+        tap("circumference_site_cell_waist")
 
         assertEquals("Waist", openedSite)
         rule.onNodeWithTag("circumference_site_title").assertTextEquals("Cintura")
@@ -173,7 +173,7 @@ class WeightNavigationTest {
     fun openSiteScreen_survivesRecreation() {
         val tester = StateRestorationTester(rule)
         open(tester)
-        tap("circumference_site_row_waist")
+        tap("circumference_site_cell_waist")
 
         tester.emulateSavedInstanceStateRestore()
         rule.waitForIdle()
