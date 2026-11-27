@@ -2,9 +2,7 @@ package io.github.lopezjavier.appfitness.feature.activity
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
@@ -12,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
@@ -35,13 +32,13 @@ import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.MetricCard
+import io.github.lopezjavier.appfitness.designsystem.MetricTileRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.HealthActivityDay
 import io.github.lopezjavier.appfitness.domain.usecase.ActivityMetric
 import org.jetbrains.compose.resources.stringResource
 
-private const val STACK_FONT_SCALE = 1.5f
 private const val COLUMNS = 2
 private val SkeletonCardHeight = Spacing.xl * 3
 
@@ -131,25 +128,18 @@ private fun DayHeader(state: ActivityUiState.Content, onEvent: (ActivityEvent) -
     }
 }
 
+/**
+ * One card per metric, two per row of equal cards ([MetricTileRow]; an odd last card keeps half the width), stacked
+ * into one column from font scale 1.3 (C-160).
+ */
 @Composable
 private fun MetricCards(state: ActivityUiState.Content, onEvent: (ActivityEvent) -> Unit) {
-    val stacked = LocalDensity.current.fontScale >= STACK_FONT_SCALE
-    val card: @Composable (ActivityMetric, Modifier) -> Unit = { metric, modifier ->
-        ActivityMetricCard(metric, state, onEvent, modifier)
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        if (stacked) {
-            ActivityMetric.entries.forEach { card(it, Modifier) }
-        } else {
-            ActivityMetric.entries.chunked(COLUMNS).forEach { pair ->
-                Row(
-                    Modifier.fillMaxWidth().height(IntrinsicSize.Max),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                ) {
-                    pair.forEach { card(it, Modifier.weight(1f)) }
-                    if (pair.size < COLUMNS) Spacer(Modifier.weight(1f))
-                }
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
+        ActivityMetric.entries.chunked(COLUMNS).forEach { pair ->
+            val cards: List<@Composable (Modifier) -> Unit> = buildList {
+                pair.forEach { metric -> add { cell -> ActivityMetricCard(metric, state, onEvent, cell) } }
             }
+            MetricTileRow(cards, spacing = Spacing.cardGap, columns = COLUMNS)
         }
     }
 }

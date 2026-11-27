@@ -1258,7 +1258,7 @@
     <string name="circumference_ratio_label">Relación cintura-cadera</string>
     <string name="circumference_ratio_unavailable">—</string>
     <string name="circumference_ratio_no_data">Sin datos suficientes</string>
-    <string name="circumference_value_cm">%1$s cm</string>
+    <string name="circumference_value_cm">%1$s&#160;cm</string>
     <string name="circumference_row_edit_label">Editar medida</string>
     <string name="circumference_row_delete_cd">Eliminar %1$s %2$s</string>
     <string name="circumference_empty_title">Aún no hay circunferencias</string>
@@ -1280,7 +1280,7 @@
     <string name="circumference_sheet_title_add">Añadir medida</string>
     <string name="circumference_sheet_title_edit">Editar medida</string>
     <string name="circumference_field_date">Fecha</string>
-    <string name="circumference_range_hint">Entre 20 y 250 cm</string>
+    <string name="circumference_range_hint">Entre 20 y 250&#160;cm</string>
     <string name="circumference_day_previous_cd">Día anterior</string>
     <string name="circumference_day_next_cd">Día siguiente</string>
     <string name="catalog_measurement_edit">Editar medida</string>

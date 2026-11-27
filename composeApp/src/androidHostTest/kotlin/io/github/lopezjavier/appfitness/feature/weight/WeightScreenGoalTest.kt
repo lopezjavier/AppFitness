@@ -10,6 +10,9 @@ import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -23,6 +26,7 @@ import io.github.lopezjavier.appfitness.app.FakeProfileRepository
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
 import io.github.lopezjavier.appfitness.domain.model.BodyMetric
+import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.GoalStrategy
 import io.github.lopezjavier.appfitness.domain.model.MacroSplit
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
@@ -36,6 +40,9 @@ import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
+import io.github.lopezjavier.appfitness.domain.usecase.MetricInterpretation
+import io.github.lopezjavier.appfitness.domain.usecase.MetricKind
+import io.github.lopezjavier.appfitness.domain.usecase.MetricStatus
 import io.github.lopezjavier.appfitness.domain.usecase.RateTone
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.TrendData
@@ -213,18 +220,65 @@ class WeightScreenGoalTest {
     }
 
     @Test
-    fun bmiAndBodyFat_stackAtLargeFontScale() {
+    fun ratioCard_showsTheStatusChipOfTheGoalState() {
+        val goal = GoalUiState.Content(
+            GoalContent(
+                currentKg = 74.2,
+                strategy = GoalStrategy.Deficit,
+                bmi = null,
+                bodyFat = null,
+                waistToHip = MetricInterpretation(MetricKind.WaistToHip, 0.86, MetricStatus.WhrLowRisk),
+                isOnline = true,
+                openMetric = null,
+                sex = Sex.Male,
+            ),
+        )
+        val circumferenceState = circumferenceSectionState(
+            listOf(
+                circumferenceRow("w", CircumferenceSite.Waist, 84.5),
+                circumferenceRow("h", CircumferenceSite.Hip, 98.0),
+            ),
+        )
+        val weight = newWeightModel()
+        rule.setContent {
+            val weightState by weight.uiState.collectAsState()
+            AppTheme {
+                WeightScreen(
+                    state = weightState,
+                    onEvent = weight::onEvent,
+                    circumferences = circumferenceState,
+                    onCircumferenceEvent = {},
+                    goal = goal,
+                    onGoalEvent = {},
+                    timeZone = TimeZone.UTC,
+                )
+            }
+        }
+        rule.waitForIdle()
+
+        rule.onNode(hasText("Riesgo bajo") and hasAnyAncestor(hasTestTag("weight_whr_card")), useUnmergedTree = true)
+            .assertExists()
+    }
+
+    private fun assertBmiAndBodyFatStackAt(scale: Float) {
         prepare()
         rule.setContent {
             val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) { Host(SavedStateHandle()) }
+            CompositionLocalProvider(LocalDensity provides Density(density.density, scale)) { Host(SavedStateHandle()) }
         }
         rule.waitForIdle()
 
         val bmi = rule.onNodeWithTag("weight_bmi_tile").getUnclippedBoundsInRoot()
         val fat = rule.onNodeWithTag("weight_body_fat_tile").getUnclippedBoundsInRoot()
-        assertTrue(fat.top >= bmi.bottom)
+        assertTrue("font scale $scale", fat.top >= bmi.bottom)
     }
+
+    @Test
+    fun bmiAndBodyFat_stackAtLargeFontScale() = assertBmiAndBodyFatStackAt(2f)
+
+    /** The same threshold as every metric-tile row on the screen (C-160, R-111). */
+    @Test
+    fun bmiAndBodyFat_stackAtFontScale1_3() = assertBmiAndBodyFatStackAt(1.3f)
 
     private fun trendWith(outcome: PlanOutcome?) = WeightTrendUiState.Content(
         range = WeightChartRange.Quarter,

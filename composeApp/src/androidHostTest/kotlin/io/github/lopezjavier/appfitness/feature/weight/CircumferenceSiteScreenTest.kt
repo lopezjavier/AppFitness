@@ -136,9 +136,9 @@ class CircumferenceSiteScreenTest {
         showState(circumferenceSiteState(CircumferenceSite.Waist, waist))
 
         rule.onNodeWithTag("circumference_site_title").assertTextEquals("Cintura")
-        rule.onNodeWithTag("circumference_site_value", useUnmergedTree = true).assertTextEquals("84,5 cm")
+        rule.onNodeWithTag("circumference_site_value", useUnmergedTree = true).assertTextEquals("84,5\u00A0cm")
         assertShows("circumference_site_hero", "Ayer")
-        assertShows("circumference_site_change", "−2,0 cm")
+        assertShows("circumference_site_change", "−2,0\u00A0cm")
         assertShows("circumference_site_change", "desde el 20 sep")
         rule.onNodeWithTag("circumference_site_margin_note", useUnmergedTree = true)
             .assertTextEquals("dentro del margen de medida")
@@ -161,7 +161,7 @@ class CircumferenceSiteScreenTest {
         showState(circumferenceSiteState(CircumferenceSite.Chest, chest), CircumferenceSite.Chest)
 
         rule.onNodeWithTag("circumference_site_chart").assertExists()
-        assertShows("circumference_site_change", "−1,0 cm")
+        assertShows("circumference_site_change", "−1,0\u00A0cm")
         rule.onNodeWithTag("circumference_site_margin_legend").assertDoesNotExist()
         rule.onNodeWithTag("circumference_site_margin_note", useUnmergedTree = true).assertDoesNotExist()
     }
@@ -188,8 +188,8 @@ class CircumferenceSiteScreenTest {
         val middle = rule.onNodeWithTag("circumference_row_w2").getUnclippedBoundsInRoot()
         val oldest = rule.onNodeWithTag("circumference_row_w1").getUnclippedBoundsInRoot()
         assertTrue(newest.bottom <= middle.top && middle.bottom <= oldest.top)
-        assertShows("circumference_row_w3", "Ayer · −1,0 cm")
-        assertShows("circumference_row_w3", "84,5 cm")
+        assertShows("circumference_row_w3", "Ayer · −1,0\u00A0cm")
+        assertShows("circumference_row_w3", "84,5\u00A0cm")
     }
 
     @Test
@@ -213,10 +213,10 @@ class CircumferenceSiteScreenTest {
 
         assertEquals(83.0, repository.rows.first { it.id == "w3" }.valueCm, 0.0)
         rule.onNodeWithTag("circumference_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("circumference_site_value", useUnmergedTree = true).assertTextEquals("83,0 cm")
-        assertShows("circumference_site_change", "−3,5 cm")
+        rule.onNodeWithTag("circumference_site_value", useUnmergedTree = true).assertTextEquals("83,0\u00A0cm")
+        assertShows("circumference_site_change", "−3,5\u00A0cm")
         rule.onNodeWithTag("circumference_site_margin_note", useUnmergedTree = true).assertDoesNotExist()
-        assertShows("circumference_row_w3", "Ayer · −2,5 cm")
+        assertShows("circumference_row_w3", "Ayer · −2,5\u00A0cm")
     }
 
     @Test
@@ -229,7 +229,7 @@ class CircumferenceSiteScreenTest {
         assertEquals(listOf("w3"), repository.deletes)
         rule.onNodeWithTag("circumference_sheet").assertDoesNotExist()
         rule.onNodeWithTag("circumference_row_w3").assertDoesNotExist()
-        rule.onNodeWithTag("circumference_site_value", useUnmergedTree = true).assertTextEquals("85,5 cm")
+        rule.onNodeWithTag("circumference_site_value", useUnmergedTree = true).assertTextEquals("85,5\u00A0cm")
         rule.onNodeWithText("Deshacer").assertDoesNotExist()
         assertEquals(0, backs)
     }
@@ -238,7 +238,7 @@ class CircumferenceSiteScreenTest {
     fun swipeDelete_removesTheValueAtOnce_withNoUndo() {
         showRoot(waist)
 
-        swipeDelete("w3", "Eliminar Cintura 84,5 cm")
+        swipeDelete("w3", "Eliminar Cintura 84,5\u00A0cm")
 
         assertEquals(listOf("w3"), repository.deletes)
         rule.onNodeWithTag("circumference_row_w3").assertDoesNotExist()
@@ -252,7 +252,7 @@ class CircumferenceSiteScreenTest {
         val gate = CompletableDeferred<Unit>()
         repository.deleteGate = gate
 
-        swipeDelete("w3", "Eliminar Cintura 84,5 cm")
+        swipeDelete("w3", "Eliminar Cintura 84,5\u00A0cm")
 
         rule.onNodeWithTag("circumference_row_w3").assertDoesNotExist()
         rule.onNodeWithTag("circumference_site_hero").assertExists()
@@ -347,6 +347,6 @@ class CircumferenceSiteScreenTest {
         rule.onNodeWithTag("circumference_site_chart").assertIsDisplayed()
         rule.onNodeWithTag("circumference_site_list").performScrollToNode(hasTestTag("circumference_row_w3"))
         rule.onNodeWithTag("circumference_row_w3").assertIsDisplayed()
-        assertShows("circumference_row_w3", "84,5 cm")
+        assertShows("circumference_row_w3", "84,5\u00A0cm")
     }
 }

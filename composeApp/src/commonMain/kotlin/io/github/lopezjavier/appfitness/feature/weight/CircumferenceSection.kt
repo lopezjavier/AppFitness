@@ -33,26 +33,29 @@ import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
-import io.github.lopezjavier.appfitness.designsystem.IconBadge
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
 import io.github.lopezjavier.appfitness.designsystem.MetricCard
-import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
+import io.github.lopezjavier.appfitness.designsystem.MetricTileRow
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
-import io.github.lopezjavier.appfitness.domain.usecase.CircumferenceSiteSummary
 import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.stringResource
 
-private val SkeletonTileHeight = Spacing.xl * 4
-private val SkeletonRowHeight = Spacing.minTouchTarget
-private const val SKELETON_ROWS = 3
+/** Columns of the circumference grid (T-326): the ratio card, then one cell per site. */
+private const val GRID_COLUMNS = 2
+
+/** Skeleton cells while loading: two rows of the grid. */
+private const val SKELETON_CELLS = 4
+private val SkeletonCellHeight = Spacing.xl * 5
 
 /**
- * The "Circunferencias" section of the weight screen (T-324): one row per site with its latest value, change and a
- * sparkline of its history (tap opens the site screen through [onOpenSite]), then the waist-to-hip ratio tile.
- * Loading, error and empty are local to the section, so the calendar and the weight stay usable if only the
- * circumferences fail. [today] labels the dates "Hoy" / "Ayer".
+ * The "Circunferencias" section of the weight screen (T-326): a 2-column grid whose first cell is the waist-to-hip
+ * ratio card, then one [CircumferenceSiteCell] per site with data, in site order (tap opens the site screen through
+ * [onOpenSite]); an odd count leaves the last cell empty, and from font scale 1.3 the grid stacks into one column
+ * (C-160, through [MetricTileRow]). "Añadir circunferencia" stays under the grid. Loading, error and empty are local
+ * to the section, so the calendar and the weight stay usable if only the circumferences fail. [today] labels the
+ * dates "Hoy" / "Ayer". [ratioGauge] is the ratio's status chip and gauge, when the goal state has the metric.
  */
 @Composable
 internal fun CircumferenceSection(
@@ -96,15 +99,13 @@ internal fun CircumferenceSection(
     }
 }
 
+/** Skeleton of the grid: two rows of two cells (one column from font scale 1.3, as the grid). */
 @Composable
 private fun SectionLoading() {
-    Column(
-        Modifier.fillMaxWidth().testTag("circumference_loading"),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        SkeletonBox(Modifier.fillMaxWidth().height(SkeletonTileHeight), AppShapes.lg)
-        repeat(SKELETON_ROWS) { SkeletonBox(Modifier.fillMaxWidth().height(SkeletonRowHeight), AppShapes.base) }
+    val cells: List<@Composable (Modifier) -> Unit> = List(SKELETON_CELLS) {
+        { cell -> SkeletonBox(cell.height(SkeletonCellHeight), AppShapes.lg) }
     }
+    CellGrid(cells, Modifier.testTag("circumference_loading"))
 }
 
 @Suppress("LongParameterList") // The content plus the ratio card and site callbacks.
@@ -127,8 +128,13 @@ private fun SectionContent(
                 testTagPrefix = "circumference_empty",
             )
         } else {
-            SiteRows(content.sites, today, onOpenSite)
-            RatioCard(content.ratio, onRatioClick, ratioGauge)
+            val cells: List<@Composable (Modifier) -> Unit> = buildList {
+                add { cell -> RatioCard(content.ratio, onRatioClick, ratioGauge, cell) }
+                content.sites.forEach { summary ->
+                    add { cell -> CircumferenceSiteCell(summary, today, { onOpenSite(summary.site) }, cell) }
+                }
+            }
+            CellGrid(cells, Modifier.testTag("circumference_sites"))
         }
         AddItemButton(
             objectLabel = stringResource(Res.string.circumference_add_object),
@@ -138,13 +144,34 @@ private fun SectionContent(
     }
 }
 
+/**
+ * [cells] in rows of [GRID_COLUMNS] equal-width, equal-height cells ([MetricTileRow]; a short last row keeps an empty
+ * slot), stacked into one column from font scale 1.3.
+ */
 @Composable
-private fun RatioCard(ratio: Double?, onClick: (() -> Unit)?, gauge: (@Composable () -> Unit)?) {
+private fun CellGrid(cells: List<@Composable (Modifier) -> Unit>, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.cardGap)) {
+        cells.chunked(GRID_COLUMNS).forEach { row ->
+            MetricTileRow(row, spacing = Spacing.cardGap, columns = GRID_COLUMNS)
+        }
+    }
+}
+
+/**
+ * The waist-to-hip ratio, first cell of the grid: label, value and [gauge] (status chip and gauge, like the BMI and
+ * body-fat cards), or "—" and "Sin datos suficientes" without a waist and hip pair (then it opens nothing).
+ */
+@Composable
+private fun RatioCard(
+    ratio: Double?,
+    onClick: (() -> Unit)?,
+    gauge: (@Composable () -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
     MetricCard(
         label = stringResource(Res.string.circumference_ratio_label),
         value = ratio?.let(::ratioText) ?: stringResource(Res.string.circumference_ratio_unavailable),
-        modifier = Modifier.testTag("weight_whr_card"),
-        leading = { IconBadge(Res.drawable.ic_straighten, AppTheme.colors.athleticCyan) },
+        modifier = modifier.testTag("weight_whr_card"),
         supporting = if (ratio == null) {
             {
                 Text(
@@ -158,24 +185,6 @@ private fun RatioCard(ratio: Double?, onClick: (() -> Unit)?, gauge: (@Composabl
         },
         onClick = if (ratio != null) onClick else null,
         clickLabel = stringResource(Res.string.metric_tile_open_label),
-    )
-}
-
-/**
- * One [RowGroupCard] with a [CircumferenceSiteRow] per site that has data (site order): its progress at a glance. Every
- * dated value, editing and deleting live in the site screen ([onOpenSite]).
- */
-@Composable
-private fun SiteRows(
-    summaries: List<CircumferenceSiteSummary>,
-    today: LocalDate,
-    onOpenSite: (CircumferenceSite) -> Unit,
-) {
-    RowGroupCard(
-        rows = summaries.map { summary ->
-            { CircumferenceSiteRow(summary, today, onClick = { onOpenSite(summary.site) }) }
-        },
-        modifier = Modifier.testTag("circumference_sites"),
     )
 }
 

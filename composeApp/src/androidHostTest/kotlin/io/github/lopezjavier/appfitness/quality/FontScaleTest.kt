@@ -117,6 +117,10 @@ class FontScaleTest {
             rule.onNodeWithTag(it).performScrollTo().assertIsDisplayed()
             rule.assertWithinWindowWidth(it)
         }
+        // At 1.3, as every metric-tile row (C-160): Pasos above Sueño, not beside it.
+        val steps = rule.onNodeWithTag("activity_steps_card").getUnclippedBoundsInRoot()
+        val sleep = rule.onNodeWithTag("activity_sleep_card").getUnclippedBoundsInRoot()
+        assertTrue("Sueño under Pasos", sleep.top >= steps.bottom)
     }
 
     private fun assertStatsRowsInsideTheWindow(scale: Float) {
