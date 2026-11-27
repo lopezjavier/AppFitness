@@ -50,7 +50,7 @@ Columns: functionality, label as shown in the app (Spanish), route type or host,
 | Functionality | Label in the app | Route or host | Backend | Story |
 |---|---|---|---|---|
 | Exercise catalogue, picker and favourites | "Ejercicios" | `ExercisePickerRoute` | RPCs `exercise_alternatives`, `delete_custom_exercise` | US-09, US-96 |
-| Exercise detail: history, records and questions | "Ejercicio", "Récords", "Preguntar" | `ExerciseDetailRoute` (tab "Preguntar" is the exercise chat) | RPCs `exercise_history`, `personal_records`, `exercise_session_records`; Edge Function `exercise-chat` | US-28, US-34, US-130 |
+| Exercise detail: muscles, history, records and questions (the Resumen header shows the primary and the secondary muscles) | "Ejercicio", "Récords", "Preguntar", "Principal", "Secundarios" | `ExerciseDetailRoute` (tab "Preguntar" is the exercise chat) | RPCs `exercise_history`, `personal_records`, `exercise_session_records`; Edge Function `exercise-chat` | US-28, US-34, US-130, US-150 |
 | Routine builder | "Rutina", "Rango de repeticiones" | `RoutineBuilderRoute` | RPC `save_routine` | US-10 |
 | Routine details | "Rutina" | `RoutineDetailsRoute` | RPC `save_routine` | US-10 |
 | Routine folders and next workout | "Mover «…» a…", "Revisar tus rutinas" | `WorkoutHome` (tab "Rutinas"), `RoutineDetailsRoute` | RPCs `create_routine_folder`, `rename_routine_folder`, `delete_routine_folder`, `move_routine_to_folder`, `save_routine_order`, `set_next_routine` | US-35 |

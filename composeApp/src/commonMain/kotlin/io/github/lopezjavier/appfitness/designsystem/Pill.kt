@@ -34,12 +34,23 @@ internal object PillDefaults {
 
 /**
  * Plain text pill (overlay fill, full radius, `bodySmall` in `textPrimary`): a read-only label such as the
- * energy adjustment "−400 kcal · Déficit moderado". Neutral on purpose: the colour carries no meaning.
+ * energy adjustment "−400 kcal · Déficit moderado". Neutral unless [emphasized]: the colour carries no status
+ * meaning. [emphasized] fills the pill with `selectedContainer` to mark the one primary item of a captioned group
+ * (R-127); it stays read-only, and the caption, not the colour, carries the meaning.
  */
 @Composable
-fun TextPill(text: String, modifier: Modifier = Modifier) {
-    PillContainer(modifier.semantics(mergeDescendants = true) {}) {
-        Text(text = text, style = AppTheme.typography.bodySmall, color = AppTheme.colors.textPrimary)
+fun TextPill(text: String, modifier: Modifier = Modifier, emphasized: Boolean = false) {
+    val containerColor =
+        if (emphasized) AppTheme.colors.selectedContainer else PillDefaults.containerColor(AppTheme.colors)
+    PillContainer(
+        modifier.semantics(mergeDescendants = true) {},
+        containerColor = containerColor,
+    ) {
+        Text(
+            text = text,
+            style = AppTheme.typography.bodySmall,
+            color = AppTheme.colors.textPrimary,
+        )
     }
 }
 
@@ -49,7 +60,10 @@ private fun TextPillPreview() {
     AppTheme { TextPill("−400 kcal · Déficit moderado", Modifier.padding(Spacing.lg)) }
 }
 
-/** The visual pill primitive: overlay fill, full radius, md/xs padding and a 32 dp minimum height. */
+/**
+ * The visual pill primitive: overlay fill (overridable with [containerColor]), full radius, md/xs padding and a
+ * 32 dp minimum height.
+ */
 @Composable
 internal fun PillContainer(
     modifier: Modifier = Modifier,
