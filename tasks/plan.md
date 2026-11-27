@@ -1,200 +1,108 @@
-# Implementation Plan: E19 · UI review → `v1.x` (proposed `v1.10.0`)
+# Implementation Plan: E21 · Closure → `v1.x` (proposed `v1.11.0`)
 
-> **Status: CLOSED (`v1.10.0`, 2026-11-27). Was PROPOSED by the epic-planner, 2026-11-11; revised twice the same day with the user's feedback; needs the user's OK on the breakdown PR.** Tasks T-277…T-285 (revised a third time: the cleanup is one task, and the dummy user runs before the gallery). **No 👤 checkpoint** (user decision 2026-11-11, Q-E19-1). E19 starts by removing everything that is no longer used (user decisions 2026-11-11, Q-E19-2 and Q-E19-5). The free-text notes go in every layer if nothing reads them, and a dead-code audit covers the rest. The audit list is shown to the user before any deletion, and every production table or column is approved by name before the migration. The E18 plan that lived here is in git history (E18 closed, `v1.9.0`; `tasks/todo.md` E18 section).
+> **Status: PROPOSED by the epic-planner, 2026-11-27; revised the same day with the user's decisions (ADR-114). Needs the user's OK on the breakdown PR and on 👤 Checkpoint E21.** Tasks T-327…T-329, one 👤 checkpoint. E21 is the last epic (ADR-101; E20 was dropped, ADR-113); after it the app is in maintenance mode, where only bugfixes and the user's feedback create tasks. The E19 plan that lived here is in git history (E19 closed, `v1.10.0`; `tasks/todo.md` E19 section; `retrospectives/E19.md`).
 
 ## Overview
-E19 first cleans the app in one task. An audit lists everything no longer used, with evidence, and the user sees it first. Then everything on the list goes, in every layer and one PR: the free-text notes ("Lo que el entrenador sabe de ti", the "Enviar al entrenador" switches, the "Para conocerte" free-text field and help); every unused screen, string, resource, class, binding, flag, script and stale doc; and, through one migration, the free-text storage and every unused RPC, table and column the user approved. Then E19 builds the tools to see the whole app without installing it (the dummy user first, then the gallery), and reviews all the UI with the user, area by area.
+E21 puts the project in a safe end state, in the order ADR-114 fixes:
+1. **Keep-alive (US-124).** The existing `keepalive.yml` → `health` ping (ADR-12) must keep the Supabase Free project active through months with no development and no app use, with no secret in versioned files.
+2. **Private repository (US-126).** A full-history secret scan; any rotation done by the user; the `production` environment secrets moved to repository secrets; the docs updated; then the switch to private. No ruleset afterwards (maintenance mode).
+3. **Export (US-125, amended by ADR-114).** No app feature. A weekly job in the keep-alive's scheduled workflow, also started by hand, dumps every row the user owns to one JSON file and attaches it to the run as an artifact kept 90 days. It runs only on the private repository, because artifacts of a public repository can be downloaded by any signed-in GitHub user.
+4. **Retro (US-127).** A whole-project retrospective that can be reused for a new app, written at the closure.
 
-The tools are a screen gallery and a rich dummy user on the emulator. The gallery is made of Roborazzi images from the Robolectric host tests with fake data: every screen, state, sheet and dialog, grouped by area in one index page, with a check that fails when a screen or an overlay has no entry. The dummy user runs on the local flavor and Docker Supabase, started with one command.
+Sources: `planning/epics/E21-closure.md` (US-125 amended), ADR-114, ADR-101, ADR-17, ADR-12, ADR-13 (superseded), ADR-113; `03` (user-owned tables), `02` (workflows), `08` §2.1, §4, §5; `06` §6. Tasks: `tasks/todo.md` (E21 section).
 
-Then come four review rounds (Diario, Entreno, Trainer, Perfil). ux-reviewer proposes findings, the user decides each one in chat, and every accepted change goes into `05` first and is swept across every screen with the pattern. Nothing changes what the app does: the cleanup removes only unused things.
+Out of scope: new features, any app change (E21 ships no APK change); a Play Store release; backups of other users' data; the carried Phase 3 follow-ups (Q-E21-5 decides at the closure whether they stay as the maintenance backlog).
 
-Sources: `planning/epics/E19-ui-review.md` (intent, non-goals, US-131, US-123), ADR-103, ADR-97…99, ADR-27, ADR-40, ADR-80, ADR-2/ADR-14 (local flavor, "Test login"), `05` §6, §8-§10, `06` (screenshot tests), `08` §3.2 (seed user), `02` §5, `03`, the T-259/T-242 production-drop precedent. Tasks: `tasks/todo.md` (E19 section).
-
-Out of scope (epic non-goals, `01-scope.md`): changing behaviour or adding features; a second UI-automation harness (ADR-27; no Maestro, no `@Preview` fixtures); rebuilding screens from scratch; re-proposing anything in `05` §8 "Decided - do not re-propose"; dropping anything with production data that the user did not approve by name.
-
-## Decisions (user, 2026-11-11)
-- **No 👤 checkpoint in E19 (Q-E19-1).** There is no new functionality to test, and the epic says "no gates". The user reviews the gallery images and the emulator himself during the rounds. The closure T-285 waits only for the normal epic-closure approval.
-- **One cleanup task (user, 2026-11-11).** The audit, the app removal and the backend migration form one task and one PR (T-277). The audit-first gate stays inside it, and production drops are approved by name.
-- **The dummy user before the gallery (user, 2026-11-11).** Nothing technical ties the dummy user to the gallery. It must follow the cleanup because it seeds the post-cleanup schema.
-- **The free-text notes go in every layer if nothing reads them (Q-E19-2, revised).** This covers the UI, strings, domain/data code, repositories, DTOs, DI, tests, Edge Function fields, a migration that drops the unused columns and tables (with a row-count self-check), pgTAP and docs (`03`, `04`, `05`, ADR-107). The audit proves by search that nothing reads them before the drop is planned. The "Para conocerte" free-text field goes with them; its other fields stay (this replaces Q-E19-4).
-- **E19 removes everything else that is no longer used (Q-E19-5).** The candidates are unused screens and routes, composables, strings and resources, domain/data classes, ports, DI bindings, feature flags, scripts, Edge Functions, RPCs, tables and columns, and stale docs, found by static checks and verified by search. The audit list, with evidence, is the first deliverable, and the user sees it before any data is deleted. Anything holding production data is listed for the user's OK before the migration.
+## Decisions (user, 2026-11-27, ADR-114)
+- **Q-E21-1:** the export is one JSON file with every row the user owns.
+- **Q-E21-2, superseded:** there is no export in the app. A GitHub Actions job runs weekly on the keep-alive's schedule and on `workflow_dispatch`, and uploads the JSON as a run artifact kept 90 days. It reuses the existing Supabase CI secrets. No app UI, no migration, no upload anywhere but the private repository's artifact.
+- **Order:** keep-alive → private repository → export → retro. The export ships only after the switch.
+- **Q-E21-3:** the repository goes private on GitHub Free. The user moves the `production` environment secrets to repository secrets (the PM verifies names only). No ruleset after that: "never on `main`, squash-merged PRs only" stays a process rule.
+- **Q-E21-4 (the epic-planner's call):** the keep-alive and the private switch are one task (T-327).
+- **Q-E21-5:** decided at the closure.
 
 ## Architecture decisions
-- **One PR across every layer, and its risk (T-277).** The migration deploys to production when the PR merges, while the phone still runs the old APK (`v1.9.0`). From the old app's code:
-  - Reading "Para conocerte" keeps working: `select()` on `coach_user_intake`, and the DTO's `free_text` is nullable with a default.
-  - "Lo que el entrenador sabe de ti" shows its load error, and its switches fail, once `coach_free_text_lines` and `set_free_text_line_excluded` are dropped.
-  - Saving the free-text field fails unless `save_coach_intake` ignores the `free_text` key.
-  - The plan-input readers tolerate an absent `free_text` key.
+- **One scheduled workflow (T-327, T-328).** `keepalive.yml` stays the only scheduled workflow, so there is a single thing to keep enabled against GitHub's 60-day rule. The 3-day keep-alive job and the weekly export job share it (a second cron entry, plus `workflow_dispatch`).
+- **The keep-alive is proven, not assumed (T-327).** The current Supabase docs show whether an Edge Function call that queries the database counts as activity; if it does not, the ping also hits the REST API. The 60-day auto-disable is checked for a private repository. A new external service or account is a user decision.
+- **The export reads the database directly with the existing secrets (T-328).** It uses `SUPABASE_PROJECT_ID` and `SUPABASE_DB_PASSWORD` (repository secrets after T-327) in a read-only transaction, with no migration and no RPC. Because this connection bypasses RLS, ownership is enforced in the script:
+  - every query filters by the owner's id;
+  - the table list is derived from the schema (every `public` table with `user_id`, plus the owner's `profiles` row);
+  - a coverage check fails when a user-owned table is missing;
+  - a validation step rejects any other `user_id`.
 
-  Mitigations:
-  1. The recreated `save_coach_intake` ignores a `free_text` key.
-  2. The PM delivers the new APK right after `deploy-supabase` is green.
-  3. The audit's "old-app impact" column flags any other dropped object the old app calls; for those the user chooses a tolerant stub or a later drop when approving the list.
-  4. The migration is the PR's last commit.
-
-  The PM tells the user all this before the merge.
-- **One migration for all approved drops (T-277).** A new migration (merged migrations are never edited) drops the approved objects and recreates the readers without the dropped fields. It carries a row-count self-check (T-259/T-242 precedent): every table it does not drop keeps its row count, otherwise it raises. Edge Function fields are removed and the functions redeployed. A function with no caller is deleted.
-- **The audit is evidence-based.** For each item it records the command or search and its result. It looks for dynamic references before calling anything unused (`rpc("...")` strings, routes by serialization, resources by name). An RPC called only by pgTAP counts as unused.
-- **The gallery does not need the dummy user.** It renders each screen from fixed fake UI states on Robolectric, with no backend, no account and no network (the epic). The dummy user (T-278) is only for the live flow on the emulator. **The two tasks are independent. T-278 runs right after the cleanup (it seeds the post-cleanup schema) and before the gallery, so the user can use the emulator while the gallery is built.**
-- **Roborazzi is the tool (epic 2026-11-11; supersedes ADR-103's "spike" bullet, recorded by T-279).**
-- **Gallery images are generated, not goldens.** The command writes the images and the index to a gitignored build folder, and CI uploads them as an artifact. The existing designsystem goldens stay. (The T-279 planner confirms this.)
-- **Screens are rendered from fixed fake UI states** through their stateless content composables, with a fixed clock and `es-ES`. Where a screen has no stateless split, the planner uses the existing host-test fakes or a pure stateless extraction (no behaviour change).
-- **The coverage check has two parts.**
-  - (1) **Routes:** every `AppRoute` (the `AppDestinations.fullScreenRoutes` list plus the tab roots) and every `RootRoute` state needs a gallery entry.
-  - (2) **Sheets and dialogs:** these are not routes, so a source scan of `feature/` finds every composable that calls an overlay primitive (`AppBottomSheet`, `AppEditSheet`, `AppPickerSheet`, `AppInfoSheet`, `AppActionSheet`, `FoodSheet`, `OptionPickerSheet`, `NameSheet`, `NoteSheet`, `DayPickerSheet`, `ChartMetricPickerSheet`, `RpePickerSheet`, `SetTypePickerSheet`, `AppConfirmDialog`, `DiscardChangesDialog`, `AppDatePickerDialog`, plus any new primitive) and requires it in the gallery's overlay manifest. The primitive list is derived from the `designsystem/` sources (every `*Sheet(` / `*Dialog(` declaration) plus `ModalBottomSheet`, `AlertDialog`, `Dialog`, and `feature/catalog/*` is exempt (T-279).
-  - Both parts fail and name what is missing. T-279 had a pending list (Entreno, Trainer); T-280 emptied it and removed the mechanism.
-  - Help sheets (`HelpButton`) are covered as part of each screen that has them.
-- **The rich dummy user is a separate local-only dataset.** The live-flow command applies it after `supabase db reset`, with dates relative to today. `seed.sql` and the pgTAP tests stay unchanged, and production never receives it.
-- **Rounds change the design system first.** Each accepted finding goes into `05` in the round's first commit, then it is swept app-wide (R-39). A rule that can be checked becomes a guard in `check-ux-conventions.sh`.
-
-## What the gallery must cover (inventory from the code, 2026-11-11)
-Taken from `app/AppRoutes.kt` (`AppDestinations.fullScreenRoutes`, the tab roots), `app/RootRoute.kt` and the sheet and dialog composables in `feature/` and `designsystem/`. The T-279 planner re-derives it after the T-277 removals, and the check keeps it complete. Each screen gets its states (with data, empty, loading and error where they exist) and its overlays.
-- **Inicio (root states):** `Loading` (skeleton), `Welcome` (Google sign-in button, and its error), `Onboarding` (each step: biometrics and goals), `ProfileError`.
-- **Diario:**
-  - Screens: `DiaryHome` (the day, comidas, entries, the header bell, calendar and magnifier) and `DiaryDayRoute` (a past day).
-  - Food search (`FoodSearchRoute`) in its normal, pick (comida draft) and view-only modes, with its tabs including Comidas.
-  - `AddFoodRoute` (`AddFoodSheet`, normal and view-only).
-  - `CreateFoodRoute`: manual, from barcode, AI prefill, Open Food Facts copy, the energy-check block, and the Alcohol section with grados.
-  - `EditFoodRoute`, `EditEntryRoute` (`EditEntrySheet`, including a removed-food entry, read only), `SaveTemplateRoute` (`SaveTemplateSheet`), `TemplateDetailsRoute` (+ `TemplateFoodSheet`).
-  - `NotificationCenterRoute` (Centro de avisos, with its "Informes" entry) and `CheckInRoute`.
-  - Photo and AI flows (`photo/PhotoSheets`): the AI sheet with photo and "Describir comida", the text input, the draft, the error with retry and offline.
-  - Barcode result paths: found, not found leading to create, and OFF.
-- **Entreno:**
-  - `WorkoutHome` (routines and folders, `RoutinesSheets`, `FolderSheet`), `RoutineDetailsRoute`, `RoutineBuilderRoute` (+ `RoutineBuilderCalculatorSheets`, the row dialog).
-  - `ExercisePickerRoute` (normal and select mode), `ExerciseDetailRoute` (its tabs including the chat; `CreateExerciseSheet`, `ExerciseFormSheet`).
-  - `LiveSessionRoute`: set rows, the rest and cardio timer slot, the summary inside it, `LiveSessionDialogs`, `ExerciseMenu`, `RpePickerSheet`, `SetTypePickerSheet`, `DiscLoaderSheet`, `WarmUpCalculatorSheet`, `DiscomfortSheet`, `ProgressionHelpSheet`, `VolumeOptionsSheets`, `FinishSessionSheet`, `SaveAsRoutineSheet`, `UpdateRoutineSheet`.
-  - `HistoryRoute` (calendar), `SessionDetailRoute`, `EditWorkoutRoute` (`WorkoutFormBody` sheets), `PastWorkoutRoute` (+ `PastWorkoutChooserSheet`, the `WorkoutEntry` dialog).
-- **Trainer:**
-  - `TrainerHome` (the compact root and "Detalles"), `TrainerPlanRoute` ("Tu plan"), `TrainerBlockRoute` ("Tu bloque", the "Actual" week pencil and its date picker, the block section dialog).
-  - `PlanProposalRoute` (including the blocked state), `BeforeStartRoute` (plan and block modes, `ActivityLevelSheet`), `YourDataRoute`. The "Para conocerte" screen was deleted by T-277 (years training and maintenance kcal are edited through the `IntakeRowEditor` sheets).
-  - `BlockPreviewRoute`, `BlockBuilderRoute`: its steps `BlockTypesScreen`, `BlockSplitChoiceScreen`, `BlockTargetsScreen`, the builder, `DayTypeSheet`, `BuilderSlotPickerSheet`, `BuilderCreateExerciseSheet`, `ExerciseReasonSheet` and its dialog.
-  - `BlockStartSheets`, `BlockReplaceSheet`, `FolderBlockRoute` (+ dialog), `FolderReviewResultRoute`.
-  - `WeekSummaryRoute` (including a paused week), `BlockReviewRoute`, `ReportsRoute`, `PastReportRoute` (a weekly and a block report).
-  - `FreeTextLinesRoute` and anything else the T-277 audit removes are not covered.
-- **Perfil:**
-  - `ProfileHome` (root, "Mi entrenamiento" sheet, `ProfileDialogs`, the account-action dialogs), `PreferencesRoute`, and `PreferencesSectionRoute` for each of `personal`, `energy`, `macros`, `cooking`, `training`, `checkin`.
-  - `MealSlotsRoute` (+ its sheet), `MealDefaultsRoute` (+ `MealDefaultsSheets`).
-  - `WeightRoute` (`WeightDaySheet`, `CircumferenceSheet`, `CompositionSheet`, `GoalSheets`, the chart metric picker; opened on the weight and circumference targets), `WeightHistoryRoute`, `DiaryHistoryRoute`.
-  - `StrengthRoute`, `MuscleVolumeRoute`, `StatsRoute` (+ `MuscleDetailSheet`), `ActivityRoute` (+ the chart picker), `ExerciseProgressRoute`, `AboutRoute`.
-- **Shared, once:** the offline banner, the shell's bottom bar and its tabs.
-- **Not in the gallery (exempt by name, with the reason in the manifest):**
-  - `CatalogRoute`: the debug catalog, local only, unless the audit removes it.
-  - System UIs the app does not draw: the Credential Manager sign-in sheet, the system camera and photo picker, the ML Kit barcode scanner, permission dialogs.
-  - The rest-alert notification (`RestAlertNotifier`): an Android notification, not Compose. Its texts are listed in the index.
-  - There are no home-screen widgets.
+  Excluded: shared Open Food Facts cache rows and `off_data` (diary entries carry snapshots), the `auth` schema beyond the owner's id, tokens, keys and passwords.
+- **No partial artifact (T-328).** The JSON goes to a temporary file and is validated before upload; `upload-artifact` (`retention-days: 90`) runs only on success. The job refuses to run unless `github.event.repository.private` is true. Logs mask the connection string, the password and the owner's id, and never print a row.
+- **`deploy-supabase` without an environment (T-327).** The workflow drops `environment: production` and reads the same three names as repository secrets. The user sets them before the merge, so the deploy never breaks.
+- **The retro is part of the closure (T-329).** `06` §6 step 4 already makes the retrospective a closure step that waits for the same approval. The file is `retrospectives/project.md`, plus a short `retrospectives/E21.md`.
 
 ## Ordering and sizing
-Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too large for one PR. There is no S task.
+Every task pays 6-7 agent hand-offs, so stories stay whole and S tasks are avoided.
 
 | Order | Task | Size | Story | Flow | Agent runs |
 |---|---|---|---|---|---|
-| 1 | T-277: Remove everything unused: the audit, then the free-text notes and all dead code in every layer (one PR, with the migration) | **L** (by the audit) | US-123 cleanup (Q-E19-2, Q-E19-5) | audit + backend + core + UI | 9 |
-| 2 | T-278: A rich dummy user and one command for the live flow on the emulator | **M** | US-131 | backend + script | 5 |
-| 3 | T-279: Screen gallery, part 1: harness, index, coverage check, Diario, Perfil, Inicio | **L** | US-131 | UI (host tests) | 6 |
-| 4 | T-280: Screen gallery, part 2: Entreno and Trainer | **L** | US-131 | UI (host tests) | 6 |
-| 4b | T-288: Review round 0: the design system (with the gallery tooling fix) | **M** (estimate) | US-123 | tooling + review + UI | 8 + review |
-| 4c | T-289…T-295: round 0 fix batches (planner 2026-11-12, regrouped, no S): T-289 tokens + typography + guard G19 (M, ~15 files); T-290 buttons, inputs, set table, discomfort row (L, ~21); T-291 selection controls and weekday (M, ~14); T-292 navigation, headers, rows (M, ~13); T-293 progress, states, sleep (M, ~13); T-294 EmptyState icons sweep A + Outlined icons (L, ~21); T-295 sweep B + GhostButton audit + closing (L, ~19) | 4 x **M**, 3 x **L** | US-123 | UI (host tests, gallery) | 5 each |
-| 5 | T-281: Review round 1: Diario | **M** (estimate) | US-123 | review + UI | 7 + review |
-| 6 | T-282: Review round 2: Entreno | **M** (estimate) | US-123 | review + UI | 7 + review |
-| 7 | T-283: Review round 3: Trainer | **M** (estimate) | US-123 | review + UI | 7 + review |
-| 8 | T-284: Review round 4: Perfil | **M** (estimate) | US-123 | review + UI | 7 + review |
-| 8b | T-299 umbrella (user request 2026-11-17), split into T-300 (Trainer play), T-301 (exercise pictures + Fuerza rows), T-303 (Preferencias stops overwriting calories, migration, Objetivo calórico and Macros removed), T-306 (routine icons, derived) and T-308 (activity level and Provisional lifecycle); T-302, T-304, T-305 absorbed, T-307 parked as optional; details in `tasks/todo.md` "T-299 split" | M each | US-136…US-140 | review + UI | planner per task |
-| 8c | T-310 umbrella (user request 2026-11-18; split approved by the user 2026-11-21, with the scope and the 5 production drops of T-312; ADR-110; every agent except pr-creator on Opus); details in `tasks/todo.md` "T-310 split" | umbrella | US-141, US-142 | — | — |
-| 8c.1 | T-311: check-in removal, app side, and the circumference reminder anchor (earliest weigh-in of any source, R3) | **M** | US-142 | core + UI (2.1 without ui-designer) | 7 |
-| 8c.2 | T-312: check-in removal, backend: the 5 approved production drops (enum recreated, R1) and the check-in docs; the user installs the T-311 APK first | **S** (cannot be folded into T-311 or T-313: old-app window, R2; T-313 already L) | US-142 | backend + docs (2.2) | 4 |
-| 8c.3 | T-313: weekly progress builder, live snapshot v2 and the Q17 refresh | **L** | US-141 | backend (2.2, two runs) | 5 |
-| 8c.4 | T-314: backfill of the stored weekly reports to v2 (production data; only stored weeks, Q1; the user's OK on the migration file before merge) | **M** | US-141 | backend (2.2) | 4 |
-| 8c.5 | T-315: the weekly report UI, progress-first (visual-first: ui-designer → user in gallery/emulator → ux-critic → ux-reviewer → core → UI) | **L** | US-141 | core + UI (2.1 visual-first) | 8 + user look |
-| 8c.6 | 👤 Checkpoint E19-R · weekly report (7 items, after T-315 merges and T-314's deploy checks pass; releases T-285) | checkpoint | US-141, US-142 | user | — |
-| 8d | T-316 umbrella (user request 2026-11-22): every other report remade like the weekly report (audit, the user's 12 decisions, ADR-111; split by the planner 2026-11-22); details in `tasks/todo.md` "T-316 split" | umbrella | US-143…US-147 | — | — |
-| 8d.1 | T-317: block review backend: progress v2, block weight, outcome deadline, report teasers (no backfill: zero stored reviews) | **L** | US-143, US-144 | backend (2.2, two runs) | 5 |
-| 8d.2 | T-318: block review UI, progress-first (retires `SessionsCard`/`GroupsCard`) | **L** | US-143 | core + UI (2.1 visual-first) | 8 + user look |
-| 8d.3 | T-319: "Informes" list: teaser, "Semana N", grouping by block | **M** | US-144 | core + UI (2.1 visual-first, light) | 6 |
-| 8d.4 | T-320: Estadísticas backend: range progress, records of the range, weekly sets per group | **M** | US-145 | backend (2.2) | 4 |
-| 8d.5 | T-321: Estadísticas "Entrenos" and "Series por grupo muscular" UI | **L** | US-145 | core + UI (2.1 visual-first) | 8 + user look |
-| 8d.6 | T-322: Calorías (complete days, one colour), Fuerza margin, Perfil highlights | **M** | US-146 | core + UI (2.1 without ui-designer) | 7 |
-| 8d.7 | T-323: "Entreno completado": "Frente a la última vez" | **M** | US-147 | core + UI (2.1 visual-first) | 7 + user look |
-| 8d.8 | 👤 Checkpoint E19-R2 · the other reports (23 items in 4 journeys; the single checkpoint of the T-316 split, user 2026-11-22; after T-323, CI green and the T-317 and T-320 deploys green) | checkpoint | US-143…US-147 | user | — |
-| 8e | T-324: "Circunferencias" on Peso, progress per site instead of a list of every measurement (user request 2026-11-26; every agent on Opus, pr-creator included) | **M** (estimate) | planner sets it | core + UI (2.1 visual-first) | 7 + user look |
-| 8e.0 | T-326: Circunferencias as a 2-column grid, waist-hip ratio first (Checkpoint E19-C feedback 2026-11-27; every agent on Opus) | **S** (estimate) | US-148 | UI (2.1) | 6 |
-| 8e.1 | 👤 Checkpoint E19-C · Circunferencias on Peso (4 items; after T-324 merges, CI green) | checkpoint | — | user | — |
-| 8f | T-325: remove the screen gallery completely (code, script, Gradle, CI, ux-critic agent and every doc mention; user request 2026-11-27) | **M** (estimate) | — | core/infra (2.2) | 5 |
-| 9 ✅ | T-285: E19 closure (after Checkpoint E19-R, T-317…T-323 Checkpoint E19-R2, T-324 and Checkpoint E19-C, T-325, and the user's closure approval) | closure step (no size class) | DoD | PM | PM only |
+| 1 | T-327: Keep-alive that holds through maintenance mode, then the private repository (👤 rotation, secrets, switch) | **M** | US-124, US-126 | infra + docs (2.2) | 4 + 👤 |
+| 2 | T-328: Weekly data export as a private run artifact (BLOCKED by Q-E21-6) | **M** | US-125 | infra (2.2): workflow job + script + tests | 4 |
+| 2b | 👤 Checkpoint E21: private repository, weekly export, final regression (6 items) | checkpoint | US-125, US-126 | user | — |
+| 3 | T-329: Project retro and E21 closure (after Checkpoint E21 and the closure approval) | closure step (no size class) | US-127, DoD | PM | PM only |
 
-Why these splits and merges:
-- **Cleanup → one task, T-277 (user decision).** The audit, the app removal and the backend migration go in one PR. The audit-first gate and the by-name approval of production drops stay inside it. The deploy-order risk is handled as described in "Architecture decisions". It is mostly deletions; it splits by layer with a new ID only above ~30 files with real edits.
-- **Cleanup before everything else:** the dataset seeds the cleaned schema, and the gallery never captures screens that go away.
-- **US-131 → T-278 + T-279 + T-280:** the dataset and its script are a different domain (about 6-8 files, M). It goes first because nothing ties it to the gallery and the emulator is useful while the gallery is built. The gallery covers about 48 screens, 4 root states and about 35 sheet and dialog composables, each in several states, so it is split by review area, not by component. The harness, index and checks are built once, in T-279.
-- **US-123 → one task per area (T-281…T-284):** the story defines the rounds by area and requires the user's decision before each fix batch. Sizes are estimates. Above ~15 files a round splits into batches with new IDs (design system and rules first, then the sweep). A round with very few accepted findings (S) merges into the next one.
-- **Closure T-285** waits for the user's epic-closure approval and has no checkpoint.
+Why these sizes and merges:
+- **T-327 merges US-124 and US-126 (Q-E21-4).** In the ADR-114 order they are adjacent and both are repository operations. The 60-day rule depends on the visibility, so the keep-alive is checked once, after the switch. The keep-alive alone would be an S task. Mostly docs plus two workflow edits (about 10 files).
+- **T-328 is M:** one workflow job, one script with its tests, one CI check step and docs. It is not merged into T-327, because it must run only after the switch, which T-327 ends with, and it is a separate deliverable.
+- **T-329 holds US-127** (see "Architecture decisions").
 
 ## Phases
-No 👤 checkpoint (user decision 2026-11-11). The user's feedback comes through the audit list, the drop approvals, the per-round decisions in chat and the updated images after each merge.
 
-### Phase 0: Remove what is no longer used
-- T-277, one task and one PR:
-  1. The audit list (item, layer, evidence, proposed action, production data yes/no, old-app impact) goes to the user in chat before any deletion.
-  2. The user approves each production table or column by name.
-  3. The removal follows in every layer, with the migration as the last commit.
-  4. Before the merge, the PM tells the user how the old APK behaves after the drop.
-  5. After `deploy-supabase` is green, the PM delivers the new APK right away.
-- Verification items:
-  - `deploy-supabase` green on `main` after T-277, with data intact (the self-check row counts).
-  - lint, including unused resources, clean or with a named allowlist.
+### Phase 1: The backend stays alive and the repository goes private (US-124, US-126)
+- T-327, in this order (the planner may refine it):
+  1. Full-history scan while the repository is still public; the user rotates any exposed secret.
+  2. The user sets the three repository secrets.
+  3. The PR (keep-alive checks, `deploy-supabase` on repository secrets, docs with the `CLAUDE.md` wording approved by the user) merged with CI.
+  4. 👤 Switch.
+  5. `gh repo view` shows `PRIVATE`; `keepalive` and `deploy-supabase` manual runs green (internal milestones, not 👤 items).
+  6. The user removes the `production` environment and the `main` ruleset.
 
-### Phase 1: The review tools (US-131)
-- T-278 (dummy user and live-flow command; the PM sends the user the command when it merges) → T-279 → T-280. When T-280 merges, the PM sends the gallery command and the index path, with no gate. Anything missing or wrong becomes a `fix(T-###)` before round 1.
-- Internal milestones:
-  - The dataset pgTAP test green after T-278.
-  - The gallery artifact attached to the T-279 and T-280 CI runs.
-  - Both coverage checks green with an empty pending list after T-280.
+### Phase 2: The user's data, weekly (US-125)
+- T-328, once Q-E21-6 is answered. Internal milestone: a manual run on `main` green, with its 90-day artifact.
 
-### Phase 2: The review rounds (US-123)
-- T-288 (design system, user decision 2026-11-12) → T-281 (Diario) → T-282 (Entreno) → T-283 (Trainer, with the carried UI follow-ups as pre-seeded findings) → T-284 (Perfil) → the user's closure approval → T-285.
-- Each round:
-  1. ux-reviewer writes findings from the gallery.
-  2. The user decides each finding in chat.
-  3. The accepted changes go into `05` first.
-  4. The planner plans the fix batch, which includes the app-wide sweep.
-  5. The PM sends the updated images to the user (no gate).
+### 👤 Checkpoint E21 · Private repository, weekly export and final regression (PROPOSED)
+Right after T-328, the last implementation task. Why one: the private repository alone gives 1-2 items, fewer than the 5 a checkpoint needs. What to try:
+1. A signed-out browser shows the repository as "not found".
+2. Actions: start the export by hand (or open the latest weekly run); it is green, with an artifact kept 90 days.
+3. Download the artifact: a recent meal, a recent workout and the latest weight are in the JSON.
+4. Only your data: no test-account rows, no key, token or password; the log shows no row or secret.
+5. Final regression on the phone: Diario, Entreno, Trainer and Perfil load and save as before.
+6. Leave the app and come back: the same tab, screen and draft.
+
+The keep-alive is not an item: it needs weeks without use, so it is listed as "Pending natural-trigger feedback (E21)" in `tasks/todo.md`, outside the gate (as E15 Q5). The approval releases T-329.
+
+### Phase 3: Retro and closure (US-127)
+- T-329 after Checkpoint E21 and the user's closure approval. It covers the project retro, the version, the tag, `09` (the E21 section with Q-E21-1…6), `01` and the maintenance-mode pointer.
 
 ## Dependencies
-- T-277 needs the breakdown approved. Inside it, the removal waits for the user's OK on the drop list.
-- T-278 needs T-277 merged and deployed, because it seeds the post-cleanup schema.
-- T-279 needs T-278 merged. There is no build dependency: the gallery does not use the dummy user. T-280 needs T-279 merged.
-- T-288 needs T-280 merged. T-289 needs T-288's rules; T-290, T-291, T-292 need T-289; T-293 needs T-290 and T-292; T-294 needs T-293; T-295 needs T-293 and T-294. T-281 needs T-295 merged and the user's verdict on the round 0 ledger. T-282 needs T-281, T-283 needs T-282 and T-284 needs T-283 merged, because each round reviews the gallery as the previous round left it.
-- T-285 needs T-284 merged, T-316 (and its split tasks and checkpoints) merged, and the user's closure approval.
-- Built pieces E19 relies on:
-  - Roborazzi and the host-test setup, and the CI artifact upload.
-  - The `local` flavor and "Test login".
-  - The existing host-test fakes and `check-ux-conventions.sh`.
-  - `deploy-supabase` and the T-259/T-242 self-check pattern.
-  - Every screen built through E18.
+- T-327 needs the breakdown approved, plus the user's rotations and repository secrets before its merge.
+- T-328 needs T-327 merged, the repository private and the secrets moved, and Q-E21-6 answered.
+- Checkpoint E21 needs T-328 merged, CI green and a manual export run green.
+- T-329 needs Checkpoint E21 approved and the user's epic-closure approval.
+- Built pieces E21 relies on: `keepalive.yml` and the `health` function (ADR-12), `deploy-supabase`, the `gitleaks` job and the Python script tests in `security.yml`, local Supabase in `supabase-ci`, the per-epic retrospectives.
 
 ## Risks
-- **Dropping something that is used (T-277).** Mitigation:
-  - Every item carries evidence and a search for dynamic references.
-  - The free-text readers (`coach_summary`, `coach_plan_inputs`, the `coach` function inputs) are checked to only pass the text through.
-  - The user approves each production object by name.
-  - The row-count self-check runs, and the full pgTAP and Deno suites stay green.
-  - Notes typed in other features (check-in, discomfort, "¿Cómo te ha ido?") are judged one by one, not dropped as a group.
-- **Old APK against the dropped backend (T-277, one PR).** The migration deploys on merge while the phone still has `v1.9.0`. The old "Lo que el entrenador sabe de ti" screen and the free-text save would fail; the rest of the old app tolerates the drop. Mitigation: as described in "Architecture decisions" (`save_coach_intake` tolerant, an old-app impact column in the audit, the migration as the last commit, the new APK delivered right after the deploy, the user told before the merge).
-- **A removed Edge Function stays deployed.** Mitigation: the T-277 planner checks that `deploy-supabase` removes it; otherwise it is a 👤 console step listed for the user.
-- **The audit grows the task.** Mitigation: deletions are easy to review. The task splits by layer only above ~30 files with real edits. Doubtful items are listed for the user instead of removed.
-- **Gallery effort per screen (T-279, T-280).** Mitigation: the planner decides per screen; any extraction is a pure refactor checked by the existing host tests.
-- **Overlays the scan cannot see.** Mitigation: one primitive list; ux-reviewer checks the per-screen overlay list in the T-279 and T-280 plans; a new overlay primitive in `designsystem/` must join the list (pr-reviewer checks).
-- **Robolectric rendering differs from the phone.** Mitigation: the emulator flow covers real rendering.
-- **Dataset drift (T-278).** Mitigation: the dataset goes through the app's tables and RPCs, its dates are relative, and a pgTAP test runs it after every reset.
-- **A round grows.** Mitigation: design system first, sweep by search, split into batches above ~15 files.
-- **A look change that changes behaviour.** Mitigation: a common acceptance criterion; pr-reviewer rejects behaviour changes.
-- **No phone check before closure.** Mitigation: the user reviews the emulator during the rounds and gives the closure approval himself.
+- **Supabase does not count the Edge Function ping as activity.** If it did not, the project would pause after 7 idle days. Mitigation: T-327 checks the current docs and, if needed, makes the ping also go through the REST API.
+- **GitHub disables the scheduled workflow after 60 days without commits.** That would stop both the keep-alive and the export. Mitigation: T-327 checks the rule for a private repository and adds a free mitigation or documents the 👤 re-enable step; a failed run reaches the user through GitHub's notification.
+- **`deploy-supabase` breaks at the switch.** Environments are not available on a private Free repository. Mitigation: the workflow reads repository secrets, set by the user before the merge; a manual run after the switch.
+- **No ruleset or secret scanning after the switch.** Mitigation: accepted by the user (ADR-114); `gitleaks` stays in CI; "never on `main`" stays a process rule.
+- **A secret was exposed in history.** Mitigation: full-history gitleaks plus the GitHub alerts read before the switch; the user rotates; values never appear in the PR or the chat.
+- **The export bypasses RLS** (it uses a direct database connection). Mitigation: an owner filter on every query, a schema-derived table list with a coverage check, a validation step that rejects any other `user_id`, and a two-user CI test.
+- **Personal data in a log or a public artifact.** Mitigation: the private-only guard, masking, nothing echoed, and pr-reviewer reads the workflow.
+- **Artifact storage on the Free private plan.** Mitigation: one JSON a week kept 90 days is far below the quota; `08` §5 records it.
+- **The retro leaks personal data.** Mitigation: CI `gitleaks` plus a PM read for names, e-mails, project refs and device serials.
 
 ## Open questions
-- **Q-E19-1: RESOLVED (user, 2026-11-11):** no 👤 checkpoint in E19.
-- **Q-E19-2: RESOLVED (user, 2026-11-11, revised):** the free-text notes are removed in every layer, including a migration that drops their storage, provided the audit shows nothing reads them; ADR-107.
-- **Q-E19-4: superseded by Q-E19-5:** the "Para conocerte" free-text field goes with the notes; its other fields stay.
-- **Q-E19-5: RESOLVED (user, 2026-11-11):** E19 removes everything no longer used. The audit list comes first, and production tables and columns need the user's OK by name. **Pending inside T-277 (not blocking the breakdown):** the user's OK on the drop list once the audit exists.
-- **Q-E19-3 (non-blocking, delegated to ux-reviewer in the T-279 plan):** which area owns the shared screens (Centro de avisos, "Informes", the food search reached from several places) and the exact list of states per screen.
+- **Q-E21-1, Q-E21-2, Q-E21-3: resolved (user, 2026-11-27, ADR-114).** See "Decisions".
+- **Q-E21-4: resolved (the epic-planner's call).** The keep-alive and the private repository are one task, T-327.
+- **Q-E21-6 · BLOCKING T-328 only: how does the export pick the owner's account?** The direct connection sees every account, and production also holds the test account. Options:
+  - (a) A repository secret `EXPORT_USER_ID` with the owner's account id, set by the user (the PM verifies the name only). The id is personal data, not a credential.
+  - (b) No new secret: the oldest account in `auth.users`. This is fragile if accounts were ever recreated.
 
-> **Update (user, 2026-11-11):** T-277 is split by layer into T-277 (app side), T-286 (backend migration) and T-287 (docs and feature inventory); order T-277 → T-286 → T-287 → T-278. Details and the audit are in `tasks/todo.md` (T-277) and `tasks/T-277/`.
+  Recommendation: (a).
+- **Q-E21-5 · non-blocking, decided at the closure T-329.** The "Open follow-ups carried into Phase 3" in `tasks/todo.md`: keep them as the maintenance backlog, or close them as won't-do? Recommendation: keep them.
+- **Delegated, not for the user:** the keep-alive mitigation details and the export script's language and connection method (T-327 and T-328 planners); the version number (PM, `06` §6).
