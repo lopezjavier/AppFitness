@@ -111,14 +111,3 @@ tasks.withType<Test>().configureEach {
     // Goldens are test inputs: editing one must re-run the tests.
     inputs.dir(snapshots).withPropertyName("screenshotGoldens").optional()
 }
-
-// Screen gallery (T-279, `python scripts/gallery.py`): with -Pgallery the capture tests write their images there.
-// Without it `gallery.dir` is unset and those tests skip, so the normal suite stays fast.
-tasks.withType<Test>().configureEach {
-    if (providers.gradleProperty("gallery").isPresent) {
-        systemProperty("gallery.dir", layout.buildDirectory.dir("gallery").get().asFile.path)
-        // Only one area (`python scripts/gallery.py <Area>`); a different property from the `-Pgallery` switch.
-        providers.gradleProperty("gallery.area").orNull?.let { systemProperty("gallery.area", it) }
-        outputs.upToDateWhen { false }
-    }
-}

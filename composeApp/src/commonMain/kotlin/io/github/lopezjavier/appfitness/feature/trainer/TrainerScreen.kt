@@ -131,10 +131,10 @@ internal fun rememberExerciseNames(state: TrainerUiState, resolver: ExerciseName
 /**
  * The Trainer tab root (US-68, US-69, US-78) on [AppScreen] with the compact header: the pending suggestions, "Tu
  * plan" and "Tu bloque" (each with its own ⋮), the applied coach changes, the links group and "Mi entrenamiento" (or
- * the skeleton while it loads). [preview] opens a card menu or preselects a week (the gallery only).
+ * the skeleton while it loads).
  */
 @Composable
-@Suppress("LongParameterList") // The state, its events, the navigation, the names and the gallery hook.
+@Suppress("LongParameterList") // The state, its events, the navigation and the names.
 fun TrainerScreen(
     state: TrainerUiState,
     isOnline: Flow<Boolean>,
@@ -142,7 +142,6 @@ fun TrainerScreen(
     modifier: Modifier = Modifier,
     actions: TrainerActions = TrainerActions(),
     exerciseNames: Map<String, String> = emptyMap(),
-    preview: TrainerRootPreview = TrainerRootPreview(),
 ) {
     val title = stringResource(Res.string.trainer_title)
     val online by isOnline.collectAsStateWithLifecycle(initialValue = true)
@@ -165,14 +164,11 @@ fun TrainerScreen(
                 TrainerUiState.Error -> TrainerLoadError("trainer", onEvent)
 
                 is TrainerUiState.Content ->
-                    TrainerContent(state, online, onEvent, actions, exerciseNames, twoColumns, preview)
+                    TrainerContent(state, online, onEvent, actions, exerciseNames, twoColumns)
             }
         }
     }
 }
-
-/** Gallery hooks of the root: the card whose ⋮ sheet starts open and the week the "Tu bloque" picker starts on. */
-data class TrainerRootPreview(val openMenu: TrainerRootMenu? = null, val week: Int? = null)
 
 @Composable
 @Suppress("LongParameterList", "LongMethod") // The root's state, events and layout; one grid of fixed items.
@@ -183,7 +179,6 @@ private fun TrainerContent(
     actions: TrainerActions,
     exerciseNames: Map<String, String>,
     twoColumns: Boolean,
-    preview: TrainerRootPreview,
 ) {
     if (state.plan is PlanSummary.None) {
         NoPlanContent(online, state.provisionalCount, actions)
@@ -229,7 +224,6 @@ private fun TrainerContent(
                             state.dietBreakSaving,
                             actions.onOpenBeforeStart,
                             onEvent,
-                            initiallyOpen = preview.openMenu == TrainerRootMenu.Plan,
                         )
                     }
                 },
@@ -245,7 +239,7 @@ private fun TrainerContent(
             }
         }
         if (state.plan is PlanSummary.Accepted) item { planEntry() } else fullSpanItem { planEntry() }
-        blockBoxes(state, online, onEvent, exerciseNames, cardMin, preview)
+        blockBoxes(state, online, onEvent, exerciseNames, cardMin)
         blockEntry(state, online, actions, cardMin)
         fullSpanItem("your_data") {
             // 12 dp from the grid plus 12 dp here: 24 dp before the group (C-101).
@@ -300,14 +294,13 @@ private fun NoPlanContent(online: Boolean, provisionalCount: Int?, actions: Trai
  * The saved block's card with its ⋮ and, right under it in the same grid cell, "Cambios del entrenador" while
  * applied changes exist (also without a saved block). The dialogs the block's ⋮ opens are hosted here.
  */
-@Suppress("LongParameterList") // The state, its events, the names, the cell size and the gallery hook.
+@Suppress("LongParameterList") // The state, its events, the names, and the cell size.
 private fun LazyGridScope.blockBoxes(
     state: TrainerUiState.Content,
     online: Boolean,
     onEvent: (TrainerEvent) -> Unit,
     exerciseNames: Map<String, String>,
     cardModifier: Modifier,
-    preview: TrainerRootPreview,
 ) {
     if (state.blockStatus !is BlockStatus.Saved && state.appliedCoachChanges.isEmpty()) return
     item("block_card") {
@@ -319,10 +312,7 @@ private fun LazyGridScope.blockBoxes(
             today = state.today,
             pause = state.pause,
             dietBreakWeek = (state.plan as? PlanSummary.Accepted)?.plan?.nutrition?.dietBreak?.week,
-            menu = {
-                BlockCardMenu(state, online, onEvent, initiallyOpen = preview.openMenu == TrainerRootMenu.Block)
-            },
-            initialWeek = preview.week,
+            menu = { BlockCardMenu(state, online, onEvent) },
             online = online,
             starting = state.startingRoutine,
         )

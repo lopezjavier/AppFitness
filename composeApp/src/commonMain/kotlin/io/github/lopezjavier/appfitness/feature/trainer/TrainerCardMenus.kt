@@ -1,5 +1,3 @@
-@file:Suppress("MatchingDeclarationName") // The file holds the two card menus and the gallery hook enum.
-
 package io.github.lopezjavier.appfitness.feature.trainer
 
 import androidx.compose.runtime.Composable
@@ -47,23 +45,14 @@ import io.github.lopezjavier.appfitness.domain.model.Phase
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** The card whose ⋮ sheet starts open (the gallery shows each menu open); null in the app. */
-enum class TrainerRootMenu { Plan, Block }
-
 /**
  * The ⋮ of a Trainer root card (R-105): a 48 dp icon button in the card's title row that opens its [AppActionSheet].
  * Hidden when [actions] is empty (no entry applies). The sheet's open state survives a recreation.
  */
 @Composable
-internal fun CardMenu(
-    title: String,
-    contentDescription: String,
-    tagPrefix: String,
-    actions: List<AppSheetAction>,
-    initiallyOpen: Boolean = false,
-) {
+internal fun CardMenu(title: String, contentDescription: String, tagPrefix: String, actions: List<AppSheetAction>) {
     if (actions.isEmpty()) return
-    var open by rememberSaveable { mutableStateOf(initiallyOpen) }
+    var open by rememberSaveable { mutableStateOf(false) }
     AppIconButton(
         contentDescription = contentDescription,
         icon = Res.drawable.ic_more_vert,
@@ -92,14 +81,13 @@ private fun offlineHint(online: Boolean, action: StringResource): String? =
  * disabled offline with the existing hints; the cardio sheet saves on its own and gates offline itself.
  */
 @Composable
-@Suppress("LongParameterList") // The plan, the connection, the busy flag, its two events and the gallery hook.
+@Suppress("LongParameterList") // The plan, the connection, the busy flag and its two events.
 internal fun PlanCardMenu(
     plan: CoachPlan,
     online: Boolean,
     dietBreakSaving: Boolean,
     onOpenBeforeStart: (BeforeStartMode, String?, String?) -> Unit,
     onEvent: (TrainerEvent) -> Unit,
-    initiallyOpen: Boolean = false,
 ) {
     val nutrition = plan.nutrition
     val actions = buildList {
@@ -148,7 +136,6 @@ internal fun PlanCardMenu(
         contentDescription = stringResource(Res.string.trainer_plan_menu_cd),
         tagPrefix = "trainer_plan",
         actions = actions,
-        initiallyOpen = initiallyOpen,
     )
 }
 
@@ -164,7 +151,6 @@ internal fun BlockCardMenu(
     state: TrainerUiState.Content,
     online: Boolean,
     onEvent: (TrainerEvent) -> Unit,
-    initiallyOpen: Boolean = false,
 ) {
     val actions = buildList {
         if (state.canStartNewBlock && !state.blockReviewDue) {
@@ -224,6 +210,5 @@ internal fun BlockCardMenu(
         contentDescription = stringResource(Res.string.trainer_block_menu_cd),
         tagPrefix = "trainer_block",
         actions = actions,
-        initiallyOpen = initiallyOpen,
     )
 }
