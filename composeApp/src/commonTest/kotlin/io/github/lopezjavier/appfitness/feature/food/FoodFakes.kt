@@ -114,12 +114,20 @@ internal class FakeFoodRepository : FoodRepository {
 
     override suspend fun recent(days: Int): Result<List<Food>> = recentFoods
 
-    override suspend fun mostEaten(limit: Int): Result<List<Food>> = mostEatenFoods
+    /** The meal passed to every [mostEaten] and [favourites] call, in order. */
+    val mostEatenMeals = mutableListOf<String?>()
+    val favouritesMeals = mutableListOf<String?>()
+
+    override suspend fun mostEaten(mealSlotId: String?, limit: Int): Result<List<Food>> {
+        mostEatenMeals += mealSlotId
+        return mostEatenFoods
+    }
 
     /** When set, [favourites] suspends until it completes (the favourite ids are not loaded yet). */
     var favouritesGate: CompletableDeferred<Unit>? = null
 
-    override suspend fun favourites(): Result<List<Food>> {
+    override suspend fun favourites(mealSlotId: String?): Result<List<Food>> {
+        favouritesMeals += mealSlotId
         favouritesGate?.await()
         favouriteFoods.getOrNull()?.let { foods -> ids.value = foods.mapTo(mutableSetOf()) { it.id } }
         return favouriteFoods

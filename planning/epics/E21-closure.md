@@ -1,6 +1,6 @@
 # E21 · Closure
 
-> **Status: DEFINED (product-owner, 2026-11-08, ADR-101), not planned.** Stories US-124…US-127. The `epic-planner` breaks it into tasks (breakdown PROPOSED 2026-11-27: T-327…T-329, `tasks/todo.md`; US-125 amended by ADR-114). After E21 the app is in maintenance mode: only bugfixes and the user's feedback create tasks.
+> **Status: DEFINED (product-owner, 2026-11-08, ADR-101), not planned.** Stories US-124…US-127, plus US-149 (user request 2026-11-27, T-330). The `epic-planner` breaks it into tasks (breakdown PROPOSED 2026-11-27: T-327…T-329, `tasks/todo.md`; US-125 amended by ADR-114). After E21 the app is in maintenance mode: only bugfixes and the user's feedback create tasks.
 
 ## Intent
 
@@ -95,4 +95,38 @@ Feature: Retro
 
   Scenario: It contains no secrets
     Then it contains no secret, token or personal data
+```
+
+## US-149 · Food lists ordered by use
+*(user request 2026-11-27, recorded by the PM; task T-330)*
+**As** the user
+**I want** "Habituales" and "Favoritos" ordered by how often I use each food in the comida I am adding to
+**So that** the foods I usually eat there come first instead of an order that feels random.
+
+```gherkin
+Feature: Food lists ordered by use
+
+  Scenario: Habituales follows the comida
+    Given I logged some foods in "Desayuno" more often than others in the last 90 days
+    When I add a food to "Desayuno" and open "Habituales"
+    Then the foods I logged most often in "Desayuno" come first
+    And a tie goes to the one I used most recently there, then to the name
+
+  Scenario: Another comida has its own order
+    When I add a food to "Cena" and open "Habituales"
+    Then the list is ordered by my uses in "Cena", not in "Desayuno"
+
+  Scenario: Favoritos has a fixed order
+    When I open "Favoritos" while adding to a comida
+    Then my favourites are ordered by uses in that comida, then uses overall, then the most recent use, then the name
+    And a favourite I never logged comes last, by name
+
+  Scenario: Old habits fade
+    Given I have not logged a food for more than 90 days
+    Then it is not in "Habituales"
+
+  Scenario: Leaving the app keeps the list
+    Given "Habituales" is open while adding to "Desayuno"
+    When I leave the app and come back
+    Then the same tab and the same order are shown
 ```

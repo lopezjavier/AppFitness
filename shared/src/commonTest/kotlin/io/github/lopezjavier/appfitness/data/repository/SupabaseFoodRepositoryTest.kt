@@ -169,31 +169,88 @@ class SupabaseFoodRepositoryTest {
     }
 
     @Test
-    fun mostEaten_keepsTheRpcOrder() = runTest {
+    fun mostEaten_asksHabitualFoodsForTheMealAndKeepsTheRpcOrder() = runTest {
         val repo = signedIn { request ->
-            if (request.url.encodedPath.endsWith("/rpc/most_eaten_foods")) {
+            if (request.url.encodedPath.endsWith("/rpc/habitual_foods")) {
                 """[{"food_id":"f3","times_logged":9},{"food_id":"f1","times_logged":4}]"""
             } else {
                 "[$EGG,$MILK]"
             }
         }
 
-        val foods = repo.mostEaten(10).getOrThrow()
+        val foods = repo.mostEaten(mealSlotId = "slot-1", limit = 10).getOrThrow()
 
         assertEquals(listOf("f3", "f1"), foods.map { it.id })
-        assertTrue(bodies.any { it.contains("\"p_limit\":10") }, bodies.toString())
+        val body = bodies.first { it.contains("p_limit") }
+        assertTrue(body.contains("\"p_meal_slot_id\":\"slot-1\""), body)
+        assertTrue(body.contains("\"p_limit\":10"), body)
+        assertTrue(body.contains("\"p_today\":\"2026-10-20\""), body)
         assertEquals("ml", foods.first().baseUnit)
         assertEquals(FoodPortion("p9", "vaso", 250.0), foods.first().portions.single())
     }
 
     @Test
-    fun favourites_decodeTheEmbeddedFoodAndPublishTheIds() = runTest {
-        val repo = signedIn { """[{"food_id":"f1","created_at":"2026-10-20T10:00:00Z","foods":$EGG}]""" }
+    fun mostEaten_withoutAMeal_sendsNoMealSlot() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith(
+                    "/rpc/habitual_foods",
+                )
+            ) {
+                """[{"food_id":"f1","times_logged":1}]"""
+            } else {
+                "[$EGG]"
+            }
+        }
 
-        val foods = repo.favourites().getOrThrow()
+        repo.mostEaten().getOrThrow()
 
-        assertEquals(listOf("f1"), foods.map { it.id })
-        repo.favouriteIds().test { assertEquals(setOf("f1"), awaitItem()) }
+        val body = bodies.first { it.contains("p_limit") }
+        assertTrue(!body.contains("p_meal_slot_id") || body.contains("\"p_meal_slot_id\":null"), body)
+        assertTrue(body.contains("\"p_limit\":20"), body)
+    }
+
+    @Test
+    fun mostEaten_failsWhenTheCallFails() = runTest {
+        status = HttpStatusCode.InternalServerError
+        val repo = signedIn { """{"message":"boom"}""" }
+
+        assertTrue(repo.mostEaten(mealSlotId = "slot-1").isFailure)
+    }
+
+    @Test
+    fun favourites_askTheRankedRpcForTheMealAndKeepItsOrderAndPublishTheIds() = runTest {
+        val repo = signedIn { request ->
+            if (request.url.encodedPath.endsWith("/rpc/ranked_favourite_foods")) {
+                """[{"food_id":"f3"},{"food_id":"gone"},{"food_id":"f1"}]"""
+            } else {
+                "[$EGG,$MILK]"
+            }
+        }
+
+        val foods = repo.favourites("slot-1").getOrThrow()
+
+        assertEquals(listOf("f3", "f1"), foods.map { it.id })
+        val body = bodies.first { it.contains("p_today") }
+        assertTrue(body.contains("\"p_meal_slot_id\":\"slot-1\""), body)
+        assertTrue(body.contains("\"p_today\":\"2026-10-20\""), body)
+        repo.favouriteIds().test { assertEquals(setOf("f3", "f1"), awaitItem()) }
+    }
+
+    @Test
+    fun favourites_withNoFavourites_isEmptyAndPublishesNoIds() = runTest {
+        val repo = signedIn { "[]" }
+
+        assertEquals(emptyList(), repo.favourites().getOrThrow())
+
+        repo.favouriteIds().test { assertEquals(emptySet(), awaitItem()) }
+    }
+
+    @Test
+    fun favourites_failsWhenTheCallFails() = runTest {
+        status = HttpStatusCode.InternalServerError
+        val repo = signedIn { """{"message":"boom"}""" }
+
+        assertTrue(repo.favourites("slot-1").isFailure)
     }
 
     @Test

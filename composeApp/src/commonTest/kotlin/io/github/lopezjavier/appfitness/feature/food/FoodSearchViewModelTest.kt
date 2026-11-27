@@ -232,6 +232,65 @@ class FoodSearchViewModelTest {
     }
 
     @Test
+    fun habitualAndFavouriteTabs_askForTheMealBeingAddedTo() = runTest(dispatcher) {
+        val model = foodSearchModel(repository, connectivity, scanner, slotId = "dinner")
+        advanceUntilIdle()
+
+        model.onEvent(FoodSearchEvent.TabSelected(FoodSearchTab.MostEaten))
+        advanceUntilIdle()
+        model.onEvent(FoodSearchEvent.TabSelected(FoodSearchTab.Favourites))
+        advanceUntilIdle()
+
+        assertEquals(listOf<String?>("dinner"), repository.mostEatenMeals)
+        assertTrue(repository.favouritesMeals.isNotEmpty() && repository.favouritesMeals.all { it == "dinner" })
+    }
+
+    @Test
+    fun habitualAndFavouriteTabs_inPickModeOrWithABlankMeal_askForNoMeal() = runTest(dispatcher) {
+        val picking = foodSearchModel(repository, connectivity, scanner, pick = true, slotId = "dinner")
+        val blank = foodSearchModel(repository, connectivity, scanner, slotId = "")
+        advanceUntilIdle()
+
+        listOf(picking, blank).forEach { model ->
+            model.onEvent(FoodSearchEvent.TabSelected(FoodSearchTab.MostEaten))
+            advanceUntilIdle()
+            model.onEvent(FoodSearchEvent.TabSelected(FoodSearchTab.Favourites))
+            advanceUntilIdle()
+        }
+
+        assertEquals(listOf<String?>(null, null), repository.mostEatenMeals)
+        assertTrue(repository.favouritesMeals.isNotEmpty() && repository.favouritesMeals.all { it == null })
+    }
+
+    @Test
+    fun favouritesTab_keepsTheRepositoryOrder() = runTest(dispatcher) {
+        repository.favouriteFoods = Result.success(listOf(milk, chicken, rice))
+        val model = viewModel()
+        advanceUntilIdle()
+
+        model.onEvent(FoodSearchEvent.TabSelected(FoodSearchTab.Favourites))
+        advanceUntilIdle()
+
+        assertEquals(FoodResults.Content(listOf(milk, chicken, rice)), model.uiState.value.results)
+    }
+
+    @Test
+    fun habitualTab_afterRecreationWithTheSameMeal_readsTheSameOrder() = runTest(dispatcher) {
+        repository.mostEatenFoods = Result.success(listOf(milk, chicken, rice))
+        val first = foodSearchModel(repository, connectivity, scanner, savedState, slotId = "dinner")
+        advanceUntilIdle()
+        first.onEvent(FoodSearchEvent.TabSelected(FoodSearchTab.MostEaten))
+        advanceUntilIdle()
+
+        val restored = foodSearchModel(repository, connectivity, scanner, savedState, slotId = "dinner")
+        advanceUntilIdle()
+
+        assertEquals(FoodSearchTab.MostEaten, restored.uiState.value.tab)
+        assertEquals(FoodResults.Content(listOf(milk, chicken, rice)), restored.uiState.value.results)
+        assertEquals(listOf<String?>("dinner", "dinner"), repository.mostEatenMeals)
+    }
+
+    @Test
     fun favouritesTab_listsTheFavouriteFoods() = runTest(dispatcher) {
         repository.favouriteFoods = Result.success(listOf(rice))
         val model = viewModel()

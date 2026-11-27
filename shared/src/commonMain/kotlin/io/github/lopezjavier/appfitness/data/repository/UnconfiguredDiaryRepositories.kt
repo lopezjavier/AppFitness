@@ -113,9 +113,9 @@ class UnconfiguredFoodRepository : FoodRepository {
 
     override suspend fun recent(days: Int): Result<List<Food>> = failure()
 
-    override suspend fun mostEaten(limit: Int): Result<List<Food>> = failure()
+    override suspend fun mostEaten(mealSlotId: String?, limit: Int): Result<List<Food>> = failure()
 
-    override suspend fun favourites(): Result<List<Food>> = failure()
+    override suspend fun favourites(mealSlotId: String?): Result<List<Food>> = failure()
 
     override fun favouriteIds(): Flow<Set<String>> = emptyFlow()
 

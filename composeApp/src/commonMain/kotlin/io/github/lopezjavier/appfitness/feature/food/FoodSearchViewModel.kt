@@ -143,6 +143,9 @@ class FoodSearchViewModel(
                 ),
             )
 
+    /** The meal that orders the Habituales and Favoritos lists; none when picking a food or without a meal. */
+    private val rankingSlotId: String? get() = slotId?.takeIf { !pick && it.isNotEmpty() }
+
     init {
         viewModelScope.launch { connectivity.isOnline.collect { online.value = it } }
         viewModelScope.launch {
@@ -152,7 +155,9 @@ class FoodSearchViewModel(
             }
         }
         // A failed load never emits ids: settle anyway so the text search does not wait for ever.
-        viewModelScope.launch { foodRepository.favourites().onFailure { favouritesSettled.complete(Unit) } }
+        viewModelScope.launch {
+            foodRepository.favourites(rankingSlotId).onFailure { favouritesSettled.complete(Unit) }
+        }
         if (tab.value == FoodSearchTab.Templates) loadTemplates()
         loadMealSlot()
     }
@@ -295,8 +300,8 @@ class FoodSearchViewModel(
         }
         val loaded = when (request.tab) {
             FoodSearchTab.Recent -> foodRepository.recent()
-            FoodSearchTab.MostEaten -> foodRepository.mostEaten()
-            else -> foodRepository.favourites()
+            FoodSearchTab.MostEaten -> foodRepository.mostEaten(mealSlotId = rankingSlotId)
+            else -> foodRepository.favourites(rankingSlotId)
         }
         emit(loaded.fold(::contentOrEmpty) { FoodResults.Error })
     }

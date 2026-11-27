@@ -944,7 +944,7 @@
     <string name="food_remote_error">No se pudo buscar en Open Food Facts. Inténtalo de nuevo.</string>
     <string name="food_empty_search_hint">Prueba con otro nombre o marca.</string>
     <string name="food_empty_recent">Aún no has registrado alimentos</string>
-    <string name="food_empty_most_eaten">Aún no has registrado alimentos</string>
+    <string name="food_empty_most_eaten">Aún no tienes alimentos habituales</string>
     <string name="food_empty_favourites">Aún no tienes favoritos</string>
     <string name="food_error_message">No se pudieron cargar los alimentos.</string>
     <string name="food_kcal_per_100_g">%1$s kcal / 100 g</string>
