@@ -3,6 +3,7 @@ package io.github.lopezjavier.appfitness.feature.weight
 import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.usecase.CircumferenceProblem
+import io.github.lopezjavier.appfitness.domain.usecase.CircumferenceSiteSummary
 import kotlinx.datetime.LocalDate
 
 /** The rows of one [site], newest first. */
@@ -30,13 +31,18 @@ data class CircumferenceSheetState(
     val editSite: CircumferenceSite? get() = if (isEditing) values.keys.firstOrNull() else null
 }
 
-/** What the circumference section shows once loaded; [groups] only has sites with rows, in site order. */
+/**
+ * What the circumference section shows once loaded; [groups] and [sites] only have sites with rows, in site order.
+ * [sites] is each site's progress (`07` §5 "Circumferences on Peso") from the visible rows, so a delete in flight
+ * already counts.
+ */
 data class CircumferencesContent(
     val groups: List<SiteHistory>,
     /** Waist-to-hip ratio, null without a waist and a hip row. */
     val ratio: Double?,
     val isOnline: Boolean,
     val sheet: CircumferenceSheetState?,
+    val sites: List<CircumferenceSiteSummary>,
 ) {
     val isEmpty: Boolean get() = groups.isEmpty()
 }
@@ -47,6 +53,28 @@ sealed interface CircumferencesUiState {
     data object Error : CircumferencesUiState
 
     data class Content(val content: CircumferencesContent) : CircumferencesUiState
+}
+
+/** The screen of one circumference site (T-324): its progress and every dated value. */
+sealed interface CircumferenceSiteUiState {
+    data object Loading : CircumferenceSiteUiState
+
+    data object Error : CircumferenceSiteUiState
+
+    /**
+     * [rows] are the site's values newest first. While the site's last value is being deleted, and once the server
+     * confirmed it, [rows] is empty and [summary] is the last one shown: the screen keeps it until it leaves on
+     * [CircumferencesEffect.Deleted], so it never flashes an empty state.
+     */
+    data class Content(
+        val summary: CircumferenceSiteSummary,
+        val rows: List<BodyCircumference>,
+        val isOnline: Boolean,
+        val sheet: CircumferenceSheetState?,
+    ) : CircumferenceSiteUiState
+
+    /** The site had no rows when the screen first loaded (restored after they were deleted): leave at once. */
+    data object Gone : CircumferenceSiteUiState
 }
 
 sealed interface CircumferencesEvent {

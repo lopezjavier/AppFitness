@@ -88,3 +88,7 @@ Appended by each batch; the test task works from this list (CI only).
 - Copy: `muscle_volume_title`/`muscle_volume_open` now "Series por grupo muscular"; chart and card texts say series; the week delta text is `muscle_volume_week_delta` ("+2 series vs. semana anterior" reads "+2 vs. semana anterior" plus the pill arrow; `px_stats_week_delta` removed). `MuscleVolumeScreenTest`, `TrainingStatsScreenTest` and navigation tests that read "Kilos por grupo muscular" or "kg" change. `formatSetsNumber` now handles negatives.
 - `MuscleVolumeHistory` values are now sets (decimals of 0,5); the overview chart rounds bars to whole sets and highlights the current week.
 - Gallery (area Perfil): "Estadísticas" states renamed/added (all states, all up, nothing up, no records, one record, one-session exercises, progress failed, large font 1.3 and 2.0, tablet) and "Series por grupo muscular" (was "Volumen"; plus large font and tablet). `qualityStatsState()` carries progress and records.
+
+## T-324: Circunferencias on Peso, progress per site
+
+- Done in T-324 itself: `CircumferenceSectionTest`, `CircumferenceRestorationTest`, `WeightNavigationTest` and `ShellChromeTest` rewritten for the per-site rows (`circumference_site_row_<site>`) and the new site screen (`circumference_site_*`, rows `circumference_row_<id>`); new `CircumferenceSiteScreenTest`, `SparklineProjectionTest`. Nothing left for a test task.

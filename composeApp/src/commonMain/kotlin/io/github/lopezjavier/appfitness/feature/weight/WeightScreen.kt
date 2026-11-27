@@ -56,6 +56,7 @@ import io.github.lopezjavier.appfitness.designsystem.WindowWidthClass
 import io.github.lopezjavier.appfitness.designsystem.WindowWidthClassDefaults
 import io.github.lopezjavier.appfitness.designsystem.windowWidthClassFor
 import io.github.lopezjavier.appfitness.domain.model.BodyMeasurement
+import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.MeasurementSource
 import io.github.lopezjavier.appfitness.domain.usecase.MetricKind
 import kotlinx.datetime.LocalDate
@@ -88,6 +89,7 @@ fun WeightScreen(
     onOpenHistory: () -> Unit = {},
     onBack: (() -> Unit)? = null,
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    onOpenCircumferenceSite: (CircumferenceSite) -> Unit = {},
 ) {
     val historyTitle = stringResource(Res.string.weight_history_title)
     val actions = remember(historyTitle, onOpenHistory) {
@@ -133,6 +135,7 @@ fun WeightScreen(
                             goal,
                             onGoalEvent,
                             wide,
+                            onOpenCircumferenceSite,
                         )
                         WeightSheets(
                             state.content,
@@ -173,6 +176,7 @@ private fun WeightContentView(
     goal: GoalUiState?,
     onGoalEvent: (GoalEvent) -> Unit,
     wide: Boolean,
+    onOpenCircumferenceSite: (CircumferenceSite) -> Unit,
 ) {
     val whrClick: (() -> Unit)? = (goal as? GoalUiState.Content)?.content?.waistToHip?.let {
         { onGoalEvent(GoalEvent.OpenMetric(MetricKind.WaistToHip)) }
@@ -192,12 +196,12 @@ private fun WeightContentView(
         CircumferenceSection(
             circumferences,
             content.today,
-            timeZone,
             onCircumferenceEvent,
             onRatioClick = whrClick,
             ratioGauge = (goal as? GoalUiState.Content)?.content?.let { c ->
                 c.waistToHip?.let { metric -> { MetricGauge(metric, c.sex) } }
             },
+            onOpenSite = onOpenCircumferenceSite,
         )
     }
     if (wide) {

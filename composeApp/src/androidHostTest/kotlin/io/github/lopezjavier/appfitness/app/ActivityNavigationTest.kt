@@ -35,7 +35,9 @@ class ActivityNavigationTest {
     private val activitySlot: ActivitySlot = { modifier, onBack ->
         AppScreen("Actividad", modifier.testTag("activity_screen"), onBack = onBack, testTagPrefix = "activity") {}
     }
-    private val weightSlot: WeightSlot = { modifier, _, _, _ -> Box(modifier.fillMaxSize().testTag("weight_screen")) }
+    private val weightSlot: WeightSlot = { modifier, _, _, _, _ ->
+        Box(modifier.fillMaxSize().testTag("weight_screen"))
+    }
 
     private fun showShell() {
         rule.setContent {

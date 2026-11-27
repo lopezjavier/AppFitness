@@ -14,11 +14,14 @@ import io.github.lopezjavier.appfitness.domain.usecase.MetricInterpretation
 import io.github.lopezjavier.appfitness.domain.usecase.MetricKind
 import io.github.lopezjavier.appfitness.domain.usecase.MetricStatus
 import io.github.lopezjavier.appfitness.domain.usecase.RateTone
+import io.github.lopezjavier.appfitness.domain.usecase.SummarizeCircumferences
 import io.github.lopezjavier.appfitness.domain.usecase.TrendData
 import io.github.lopezjavier.appfitness.domain.usecase.TrendPoint
 import io.github.lopezjavier.appfitness.domain.usecase.WeeklyRate
 import io.github.lopezjavier.appfitness.domain.usecase.WeightChartRange
 import io.github.lopezjavier.appfitness.feature.weight.CircumferenceSheetState
+import io.github.lopezjavier.appfitness.feature.weight.CircumferenceSiteScreen
+import io.github.lopezjavier.appfitness.feature.weight.CircumferenceSiteUiState
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesContent
 import io.github.lopezjavier.appfitness.feature.weight.CircumferencesUiState
 import io.github.lopezjavier.appfitness.feature.weight.GoalContent
@@ -67,24 +70,100 @@ private fun weightContent(
     WeightContent(YearMonth(2026, 10), Today, false, current, days, online, sheet, composition, compositionOpen),
 )
 
-private fun circumferences(sheet: CircumferenceSheetState? = null, empty: Boolean = false): CircumferencesUiState {
-    val at = Instant.parse("2026-10-20T08:00:00Z")
-    val groups = if (empty) {
-        emptyList()
-    } else {
-        listOf(
-            SiteHistory(
-                CircumferenceSite.Waist,
-                listOf(
-                    BodyCircumference("c1", CircumferenceSite.Waist, 84.0, at, at),
-                    BodyCircumference("c3", CircumferenceSite.Waist, 85.0, Instant.parse("2026-10-06T08:00:00Z"), at),
-                ),
-            ),
-            SiteHistory(CircumferenceSite.Hip, listOf(BodyCircumference("c2", CircumferenceSite.Hip, 98.0, at, at))),
-        )
-    }
-    return CircumferencesUiState.Content(CircumferencesContent(groups, if (empty) null else 0.86, true, sheet))
+private fun circ(id: String, site: CircumferenceSite, cm: Double, day: String): BodyCircumference {
+    val at = Instant.parse("${day}T08:00:00Z")
+    return BodyCircumference(id, site, cm, at, at)
 }
+
+/**
+ * Every site (T-324, `07` §5 "Circumferences on Peso"): Cuello no 28-day pair (points, no change); Pecho and
+ * Pantorrilla raw change (no margin); Cintura and Brazo inside their margin; Cadera exactly at its 2,0 cm margin (no
+ * label); Muslo one measurement.
+ */
+private val SeveralSites = listOf(
+    SiteHistory(
+        CircumferenceSite.Neck,
+        listOf(
+            circ("n3", CircumferenceSite.Neck, 37.5, "2026-10-20"),
+            circ("n2", CircumferenceSite.Neck, 38.0, "2026-10-10"),
+            circ("n1", CircumferenceSite.Neck, 37.0, "2026-09-23"),
+        ),
+    ),
+    SiteHistory(
+        CircumferenceSite.Chest,
+        listOf(
+            circ("p3", CircumferenceSite.Chest, 100.0, "2026-10-20"),
+            circ("p2", CircumferenceSite.Chest, 98.0, "2026-09-22"),
+            circ("p1", CircumferenceSite.Chest, 95.0, "2026-09-01"),
+        ),
+    ),
+    SiteHistory(
+        CircumferenceSite.Waist,
+        listOf(
+            circ("c5", CircumferenceSite.Waist, 83.0, "2026-10-20"),
+            circ("c4", CircumferenceSite.Waist, 84.0, "2026-10-06"),
+            circ("c3", CircumferenceSite.Waist, 85.0, "2026-09-22"),
+            circ("c2", CircumferenceSite.Waist, 86.5, "2026-09-08"),
+            circ("c1", CircumferenceSite.Waist, 88.0, "2026-08-25"),
+        ),
+    ),
+    SiteHistory(
+        CircumferenceSite.Hip,
+        listOf(
+            circ("h3", CircumferenceSite.Hip, 99.0, "2026-10-20"),
+            circ("h2", CircumferenceSite.Hip, 101.0, "2026-09-22"),
+            circ("h1", CircumferenceSite.Hip, 101.5, "2026-08-25"),
+        ),
+    ),
+    SiteHistory(
+        CircumferenceSite.Arm,
+        listOf(
+            circ("a3", CircumferenceSite.Arm, 36.0, "2026-10-20"),
+            circ("a2", CircumferenceSite.Arm, 35.5, "2026-09-22"),
+            circ("a1", CircumferenceSite.Arm, 35.0, "2026-09-01"),
+        ),
+    ),
+    SiteHistory(CircumferenceSite.Thigh, listOf(circ("t1", CircumferenceSite.Thigh, 58.0, "2026-10-20"))),
+    SiteHistory(
+        CircumferenceSite.Calf,
+        listOf(
+            circ("k2", CircumferenceSite.Calf, 38.5, "2026-10-20"),
+            circ("k1", CircumferenceSite.Calf, 38.0, "2026-09-15"),
+        ),
+    ),
+)
+
+/** One measurement per site: every row shows the date only and a single lit point. */
+private val OnePointSites = listOf(
+    SiteHistory(CircumferenceSite.Waist, listOf(circ("c1", CircumferenceSite.Waist, 84.0, "2026-10-20"))),
+    SiteHistory(CircumferenceSite.Hip, listOf(circ("h1", CircumferenceSite.Hip, 98.0, "2026-10-20"))),
+)
+
+/** The waist beyond its 3,0 cm margin (−4,0 cm since 22 sept). */
+private val WaistBeyondMargin = listOf(
+    SiteHistory(
+        CircumferenceSite.Waist,
+        listOf(
+            circ("c3", CircumferenceSite.Waist, 84.0, "2026-10-20"),
+            circ("c2", CircumferenceSite.Waist, 86.0, "2026-10-06"),
+            circ("c1", CircumferenceSite.Waist, 88.0, "2026-09-22"),
+        ),
+    ),
+)
+
+private fun circumferences(
+    sheet: CircumferenceSheetState? = null,
+    groups: List<SiteHistory> = SeveralSites,
+    ratio: Double? = 0.84,
+): CircumferencesUiState = CircumferencesUiState.Content(
+    CircumferencesContent(
+        groups,
+        if (groups.isEmpty()) null else ratio,
+        true,
+        sheet,
+        SummarizeCircumferences()(groups.flatMap { it.rows }, TimeZone.UTC),
+    ),
+)
 
 private val NewDaySheet =
     WeightSheet(Today, true, emptyList(), MeasurementForm(null, "", "", null, null, false, false, false))
@@ -155,6 +234,7 @@ private class WeightVariant(
     val trend: WeightTrendUiState? = null,
     val kind: GalleryKind = GalleryKind.Screen,
     val wide: Boolean = false,
+    val tall: Boolean = false,
     val fontScale: Float = 1f,
     val covers: Set<String> = emptySet(),
 )
@@ -163,7 +243,7 @@ private class WeightVariant(
 private fun weight(): List<GalleryEntry> = listOf(
     WeightVariant("loading", WeightUiState.Loading, CircumferencesUiState.Loading),
     WeightVariant("error", WeightUiState.Error, CircumferencesUiState.Error),
-    WeightVariant("empty", weightContent(current = null, days = emptyMap()), circumferences(empty = true)),
+    WeightVariant("empty", weightContent(current = null, days = emptyMap()), circumferences(groups = emptyList())),
     WeightVariant("with weights and circumferences", weightContent(), goal = goal(null), trend = trendFixture()),
     WeightVariant("offline", weightContent(online = false)),
     WeightVariant(
@@ -204,6 +284,45 @@ private fun weight(): List<GalleryEntry> = listOf(
         kind = GalleryKind.Sheet,
         covers = setOf("MetricDetailSheet"),
     ),
+    WeightVariant(
+        "circumferences, several sites",
+        weightContent(),
+        goal = goal(null),
+        trend = trendFixture(),
+        tall = true,
+    ),
+    WeightVariant(
+        "circumferences, one measurement per site",
+        weightContent(),
+        circumferences(groups = OnePointSites, ratio = 0.86),
+        goal = goal(null),
+        trend = trendFixture(),
+        tall = true,
+    ),
+    WeightVariant(
+        "circumferences, none yet",
+        weightContent(),
+        circumferences(groups = emptyList()),
+        goal = goal(null),
+        trend = trendFixture(),
+        tall = true,
+    ),
+    WeightVariant(
+        "circumferences, large font (1.3)",
+        weightContent(),
+        goal = goal(null),
+        trend = trendFixture(),
+        tall = true,
+        fontScale = 1.3f,
+    ),
+    WeightVariant(
+        "circumferences, large font (2.0)",
+        weightContent(),
+        goal = goal(null),
+        trend = trendFixture(),
+        tall = true,
+        fontScale = 2f,
+    ),
     WeightVariant("tablet width", weightContent(), goal = goal(null), trend = trendFixture(), wide = true),
     WeightVariant("large font (1.3)", weightContent(), goal = goal(null), trend = trendFixture(), fontScale = 1.3f),
 ).map { v ->
@@ -214,6 +333,7 @@ private fun weight(): List<GalleryEntry> = listOf(
         v.kind,
         covers = setOf("WeightRoute") + v.covers,
         wide = v.wide,
+        tall = v.tall,
         fontScale = v.fontScale,
     ) {
         WeightScreen(v.ui, onEvent = {
@@ -234,4 +354,85 @@ private fun weightHistory(): List<GalleryEntry> {
     )
 }
 
-internal fun perfilWeightEntries(): List<GalleryEntry> = weight() + weightHistory()
+private class SiteVariant(
+    val state: String,
+    val site: CircumferenceSite,
+    val ui: CircumferencesUiState = circumferences(),
+    val kind: GalleryKind = GalleryKind.Screen,
+    val wide: Boolean = false,
+    val fontScale: Float = 1f,
+    val covers: Set<String> = emptySet(),
+)
+
+private val EditWaistSheet = CircumferenceSheetState(
+    existingId = "c5",
+    values = mapOf(CircumferenceSite.Waist to "83,0"),
+    problems = emptyMap(),
+    date = LocalDate(2026, 10, 20),
+    canGoNextDay = true,
+    canSave = false,
+    canDelete = true,
+    isSaving = false,
+)
+
+/** T-324 proposal: the history of one site, opened from its row on Peso. */
+private fun circumferenceSite(): List<GalleryEntry> = listOf(
+    SiteVariant("Cintura, inside the margin", CircumferenceSite.Waist),
+    SiteVariant("Cintura, beyond the margin", CircumferenceSite.Waist, circumferences(groups = WaistBeyondMargin)),
+    SiteVariant("Cadera, at its margin (no label)", CircumferenceSite.Hip),
+    SiteVariant("Brazo, inside its margin", CircumferenceSite.Arm),
+    SiteVariant("Pecho, change without a margin", CircumferenceSite.Chest),
+    SiteVariant("Cuello, no comparable measurement yet", CircumferenceSite.Neck),
+    SiteVariant("Muslo, one measurement", CircumferenceSite.Thigh),
+    SiteVariant(
+        "edit sheet over the history",
+        CircumferenceSite.Waist,
+        circumferences(EditWaistSheet),
+        kind = GalleryKind.Sheet,
+        covers = setOf("CircumferenceSheet"),
+    ),
+    SiteVariant("loading", CircumferenceSite.Waist, CircumferencesUiState.Loading),
+    SiteVariant("error", CircumferenceSite.Waist, CircumferencesUiState.Error),
+    SiteVariant("large font (1.3)", CircumferenceSite.Waist, fontScale = 1.3f),
+    SiteVariant("large font (2.0)", CircumferenceSite.Waist, fontScale = 2f),
+    SiteVariant("tablet width", CircumferenceSite.Waist, wide = true),
+).map { v ->
+    GalleryEntry(
+        PERFIL_AREA,
+        "Circunferencia",
+        v.state,
+        v.kind,
+        covers = setOf("CircumferenceSiteRoute") + v.covers,
+        wide = v.wide,
+        fontScale = v.fontScale,
+    ) {
+        CircumferenceSiteScreen(
+            site = v.site,
+            state = siteStateOf(v.ui, v.site),
+            today = Today,
+            onEvent = {},
+            onBack = {},
+            timeZone = TimeZone.UTC,
+        )
+    }
+}
+
+/** The site screen's state for [site], from the section state (compile-only bridge; T-325 deletes the gallery). */
+private val siteStateOf: (CircumferencesUiState, CircumferenceSite) -> CircumferenceSiteUiState = { ui, site ->
+    when (ui) {
+        CircumferencesUiState.Loading -> CircumferenceSiteUiState.Loading
+
+        CircumferencesUiState.Error -> CircumferenceSiteUiState.Error
+
+        is CircumferencesUiState.Content -> ui.content.sites.firstOrNull { it.site == site }?.let { summary ->
+            CircumferenceSiteUiState.Content(
+                summary = summary,
+                rows = ui.content.groups.firstOrNull { it.site == site }?.rows.orEmpty(),
+                isOnline = ui.content.isOnline,
+                sheet = ui.content.sheet,
+            )
+        } ?: CircumferenceSiteUiState.Gone
+    }
+}
+
+internal fun perfilWeightEntries(): List<GalleryEntry> = weight() + weightHistory() + circumferenceSite()

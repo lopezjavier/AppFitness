@@ -62,7 +62,7 @@ class NotificationNavigationTest {
     private val centerSlot: NotificationCenterSlot = { modifier, onOpenReminder, onOpenReports, onBack ->
         NotificationCenterScreen(reminders, {}, onOpenReminder, onBack, modifier, onOpenReports)
     }
-    private val weightSlot: WeightSlot = { modifier, openEntry, _, _ ->
+    private val weightSlot: WeightSlot = { modifier, openEntry, _, _, _ ->
         Box(modifier.fillMaxSize().testTag("weight_screen")) { Text("target=$openEntry") }
     }
 

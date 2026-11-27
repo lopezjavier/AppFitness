@@ -10,6 +10,7 @@ import io.github.lopezjavier.appfitness.domain.model.CircumferenceEntry
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.CircumferenceProblem
+import io.github.lopezjavier.appfitness.domain.usecase.SummarizeCircumferences
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
 import kotlinx.coroutines.CompletableDeferred
@@ -65,6 +66,7 @@ class CircumferencesViewModelTest {
             repository = repository,
             validate = ValidateCircumference(),
             waistHipRatio = WaistHipRatio(),
+            summarize = SummarizeCircumferences(),
             connectivity = connectivity,
             clock = clock,
             timeZone = TimeZone.UTC,

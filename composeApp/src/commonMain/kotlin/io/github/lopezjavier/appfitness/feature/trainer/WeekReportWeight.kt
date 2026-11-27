@@ -62,6 +62,8 @@ import io.github.lopezjavier.appfitness.designsystem.WeightPaceChartData
 import io.github.lopezjavier.appfitness.designsystem.WeightPaceLabel
 import io.github.lopezjavier.appfitness.designsystem.WeightPacePlanLine
 import io.github.lopezjavier.appfitness.designsystem.WeightPacePoint
+import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
+import io.github.lopezjavier.appfitness.domain.usecase.CircumferenceDisplayRule
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.daysUntil
 import org.jetbrains.compose.resources.pluralStringResource
@@ -332,7 +334,8 @@ internal fun WeekReportWaistCard(waist: WaistUi, scope: ReportScope = ReportScop
                     color = AppTheme.colors.textSecondary,
                 )
             }
-            if (kotlin.math.abs(waist.changeCm) < WAIST_MARGIN_CM) {
+            val margin = CircumferenceDisplayRule.marginCm(CircumferenceSite.Waist)
+            if (margin != null && kotlin.math.abs(waist.changeCm) < margin) {
                 Text(
                     text = stringResource(Res.string.week_report_waist_margin),
                     style = AppTheme.typography.bodyMedium,

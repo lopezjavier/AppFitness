@@ -135,4 +135,3 @@ data class WeightUi(
 data class WaistUi(val cm: Double, val date: LocalDate, val refCm: Double, val refDate: LocalDate, val changeCm: Double)
 
 const val WEIGH_IN_GATE = 3
-const val WAIST_MARGIN_CM = 3.0

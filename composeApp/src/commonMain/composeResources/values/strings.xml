@@ -1264,6 +1264,12 @@
     <string name="circumference_empty_title">Aún no hay circunferencias</string>
     <string name="circumference_empty_message">Registra tu primera circunferencia.</string>
     <string name="circumference_error_message">No se pudieron cargar las circunferencias.</string>
+    <string name="circumference_site_open_label">Ver historial</string>
+    <string name="circumference_change_since">desde el %1$s</string>
+    <string name="circumference_history_header">Historial</string>
+    <string name="circumference_chart_cd">%1$s: de %2$s&#160;cm el %3$s a %4$s&#160;cm el %5$s</string>
+    <string name="circumference_margin_legend">Margen de medida (±%1$s&#160;cm)</string>
+    <string name="circumference_one_point_note">Con una segunda medida verás aquí su evolución.</string>
     <string name="circumference_site_neck">Cuello</string>
     <string name="circumference_site_chest">Pecho</string>
     <string name="circumference_site_waist">Cintura</string>

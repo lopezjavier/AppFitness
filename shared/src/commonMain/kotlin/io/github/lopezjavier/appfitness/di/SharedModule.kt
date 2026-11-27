@@ -168,6 +168,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
+import io.github.lopezjavier.appfitness.domain.usecase.SummarizeCircumferences
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
@@ -491,6 +492,7 @@ val sharedModule =
         factory { ValidateBodyMeasurement() }
         factory { ValidateCircumference() }
         factory { WaistHipRatio() }
+        factory { SummarizeCircumferences() }
         factory { Bmi() }
         factory { InterpretMetric(get()) }
         factory { MeasurementsByDay() }

@@ -204,7 +204,9 @@ object SparklineDefaults {
  * lit dot on the latest value. No axes and no labels: it previews a trend beside a figure that is written as text.
  * Decorative. Give it a width; the height defaults to 40 dp. It is revealed once from the start. With [hollowPoints]
  * (indices into [values]; an empty set is allowed) every point gets a small dot and the listed ones are drawn hollow
- * (the deload weeks of the weekly report); null keeps the original look.
+ * (the deload weeks of the weekly report); null keeps the original look. [minSpan] is a floor on the vertical range in
+ * the units of [values]: a series that moves less is drawn centred inside that span, so noise does not look like a
+ * cliff (a circumference row uses twice the site's measurement margin); null scales to the series' own range.
  */
 @Composable
 fun Sparkline(
@@ -213,6 +215,7 @@ fun Sparkline(
     color: Color = AppTheme.colors.athleticCyan,
     fill: Boolean = true,
     hollowPoints: Set<Int>? = null,
+    minSpan: Double? = null,
 ) {
     val reveal = rememberFillProgress()
     val ramp = AppPaint.ramp(color)
@@ -224,7 +227,7 @@ fun Sparkline(
         val right = size.width - pad
         val top = pad
         val bottom = size.height - pad
-        val points = sparkPoints(values, left, right, top, bottom)
+        val points = sparkPoints(values, left, right, top, bottom, minSpan)
         clipRect(right = size.width * reveal.value) {
             if (points.size > 1) {
                 if (fill) {
@@ -246,10 +249,25 @@ fun Sparkline(
     }
 }
 
-/** The values projected into the box [left, right] x [top, bottom]; a flat series runs through the middle. */
-private fun sparkPoints(values: List<Double>, left: Float, right: Float, top: Float, bottom: Float): List<Offset> {
-    val low = values.min()
-    val high = values.max()
+/**
+ * The values projected into the box [left, right] x [top, bottom]; a flat series runs through the middle. With
+ * [minSpan], a range narrower than it is widened to [minSpan] around its midpoint.
+ */
+@Suppress("LongParameterList") // The series, the four sides of the box and the optional vertical floor.
+internal fun sparkPoints(
+    values: List<Double>,
+    left: Float,
+    right: Float,
+    top: Float,
+    bottom: Float,
+    minSpan: Double? = null,
+): List<Offset> {
+    val rawLow = values.min()
+    val rawHigh = values.max()
+    val half = minSpan?.takeIf { rawHigh - rawLow < it }?.let { it / 2 }
+    val middle = (rawLow + rawHigh) / 2
+    val low = half?.let { middle - it } ?: rawLow
+    val high = half?.let { middle + it } ?: rawHigh
     return values.mapIndexed { index, value ->
         val x = if (values.size == 1) right else left + (right - left) * index / (values.size - 1)
         val share = if (high == low) 0.5f else ((value - low) / (high - low)).toFloat()
