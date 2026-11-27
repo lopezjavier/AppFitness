@@ -4,7 +4,7 @@ Live index of every closed decision, one line per ADR, with the numbers kept sin
 
 ## New ADRs go here
 
-Phase 3 ADRs continue the numbering (next: **ADR-113**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
+Phase 3 ADRs continue the numbering (next: **ADR-114**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
 
 ## Index (Phase 1, ADR-01..72)
 
@@ -132,6 +132,7 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 | 110 | Weekly check-in removed in every layer (it never showed without a manual weigh-in); the Trainer's weekly report becomes progress-first (`07` §3) and every stored weekly report is rebuilt to snapshot v2 with its decisions frozen and the original kept; the latest finished week refreshes until the next week ends (Q17) (E19 US-141, US-142) | Amends 73 (check-in) and `04` §6.11 |
 | 111 | Every other report becomes progress-first like the weekly report (`07` §3 "Other reports: progress first"); a stored block review carries progress figures built as of the block end plus its frozen decisions (schema v2, no backfill: production holds no stored review); the outcome chip "reached" depends on the deadline (E19 US-143…US-147) | Amends `04` §6.11 (block reviews) and §8.10 (outcome "reached") |
 | 112 | Screen gallery and ux-critic removed; looks judged only in the app at checkpoints | Supersedes 103 (gallery part) |
+| 113 | E20 Illness dropped from Phase 3; Closure keeps the number E21 | Amends 103 (2026-11-15 amendment) |
 
 ## Phase 3 ADRs (full text)
 
@@ -166,7 +167,7 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
   - E19 starts with a spike on how to see UI without installing the APK (candidate: screenshots from the Robolectric tests; the emulator as fallback) and records its choice.
 - **Consequences:** `01-scope.md`, E18, E19, E20 (renumbered), `09-open-questions.md` and `tasks/todo.md` references; `phase2/01-scope.md` NFR-02 and the cost rows of `07` §11 are updated by the US-128 task. T-261: weekly summaries are stored as snapshots (`coach_week_reports`) and block reviews are listed live; `04` §6.9 is amended (opening the block-end notice marks the review seen, `seen_at`, and clears the notice; the review stays in "Informes") and `04` §6.11 describes the reports.
 - **Approval:** user, 2026-11-09 (chat).
-- **Amendment 2026-11-15 (user, chat):** the Closure epic is renumbered E21; the new E20 is Illness (`epics/E20-illness.md`, draft). References to "E20 Closure" in the ADRs above mean E21.
+- **Amendment 2026-11-15 (user, chat):** the Closure epic is renumbered E21; the new E20 is Illness (`epics/E20-illness.md`, draft). References to "E20 Closure" in the ADRs above mean E21. E20 Illness was dropped on 2026-11-27 (ADR-113); Closure stays E21.
 
 Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`phase1/00-decisions.md`](phase1/00-decisions.md) (01-72).
 
@@ -257,3 +258,9 @@ Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`ph
 - **Decision:** delete the capture tests (`src/androidHostTest/.../gallery/`), `scripts/gallery.py`, `-Pgallery`/`gallery.dir`/`gallery.area`, the `screen-gallery` CI artifact, the `GalleryCoverageTest` completeness checks, the gallery-only hooks in production Trainer code, the ux-critic agent with its ledger, round and research files, and every rule that required a gallery entry. The Roborazzi golden tests of designsystem templates stay (ADR-103 text on goldens is unchanged). The finding ids C-##/V-## cited in `05` refer to the deleted ux-critic ledger, which stays in git history.
 - **Consequences:** new routes and overlays need no gallery entry; ui-designer builds and compiles only; the user judges the look in the app. ADR-103's text stays as history.
 - **Approval:** user, 2026-11-27 (T-325).
+
+### ADR-113 — E20 Illness dropped from Phase 3 (amends the 2026-11-15 amendment of ADR-103)
+- **Context:** E20 Illness was a draft (2026-11-15) with no stories and ten open questions (nine still open). The user no longer needs it.
+- **Decision:** E20 leaves the Phase 3 scope. `epics/E20-illness.md` stays in the repo marked DROPPED, as a record only; its open questions in `09` are closed as dropped. Illness stays a non-goal: `07` §12.5 ("no rule") and the E13/E14/E15 non-goals are unchanged, and the ADR-106 pencil (extend the week) remains the way to absorb a few lost days. The Closure epic keeps the number E21 (no renumbering); E20 is not reused.
+- **Consequences:** `01-scope.md` (E20 row marked dropped), `09-open-questions.md` (E20 Q1-Q9 dropped), `epics/E20-illness.md` (DROPPED banner). Phase 3 order: E19 closure (T-285), then E21.
+- **Approval:** user, 2026-11-27 (chat, product-owner: remove E20 from the scope, keep the file marked Dropped).
