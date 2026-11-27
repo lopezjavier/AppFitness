@@ -118,11 +118,11 @@ internal class BlockCardActions(val onEvent: (TrainerEvent) -> Unit)
  * percent
  * chip and one continuous 6 dp bar, one status card per session, and the Cardio and Pasos al día bars. The current week
  * is chosen by default (the last one once the block ended, the first before it starts); the choice is local and
- * survives a recreation. [weeks] is empty when their read failed: the card then shows a retry note. [initialWeek]
- * preselects a week (the gallery). [today] places the cardio pace tick of the current week (05 §6.0f).
+ * survives a recreation. [weeks] is empty when their read failed: the card then shows a retry note. [today] places
+ * the cardio pace tick of the current week (05 §6.0f).
  */
 @Composable
-@Suppress("LongParameterList") // The block, its weeks and pause, the diet break, the menu and the gallery hook.
+@Suppress("LongParameterList") // The block, its weeks and pause, the diet break and the menu.
 internal fun BlockSummaryBox(
     status: BlockStatus,
     weeks: List<PlanWeek>,
@@ -132,7 +132,6 @@ internal fun BlockSummaryBox(
     pause: BlockPause? = null,
     dietBreakWeek: Int? = null,
     menu: (@Composable () -> Unit)? = null,
-    initialWeek: Int? = null,
     online: Boolean = true,
     starting: Boolean = false,
 ) {
@@ -147,7 +146,7 @@ internal fun BlockSummaryBox(
         glow = AppTheme.colors.neonLime,
         status = if (weeks.isEmpty() || !status.reviewDue) null else ({ MainChip(status) }),
         titleAction = menu,
-        content = { BlockBody(status, weeks, today, pause, dietBreakWeek, initialWeek, start) },
+        content = { BlockBody(status, weeks, today, pause, dietBreakWeek, start) },
         footer = if (weeks.isEmpty()) ({ BlockWeeksError { actions.onEvent(TrainerEvent.Refresh) } }) else null,
     )
 }
@@ -173,20 +172,19 @@ private fun defaultWeek(weeks: List<PlanWeek>): Int? = weeks.firstOrNull { it.ph
     ?: weeks.minOfOrNull { it.week }
 
 @Composable
-@Suppress("LongParameterList") // The block, its weeks, the pause, the diet break and the gallery hook.
+@Suppress("LongParameterList") // The block, its weeks, the pause and the diet break.
 private fun BlockBody(
     status: BlockStatus.Saved,
     weeks: List<PlanWeek>,
     today: LocalDate?,
     pause: BlockPause?,
     dietBreakWeek: Int?,
-    initialWeek: Int?,
     start: SessionStart,
 ) {
     // The weeks could not be read: the footer shows the retry note instead.
     if (weeks.isEmpty()) return
     val sorted = weeks.sortedBy { it.week }
-    var picked by rememberSaveable { mutableStateOf(initialWeek) }
+    var picked by rememberSaveable { mutableStateOf<Int?>(null) }
     // Once the user picks a week, the bars of the next weeks appear filled: the fill plays once per screen (R-97).
     var interacted by rememberSaveable { mutableStateOf(false) }
     val selected = sorted.firstOrNull { it.week == picked } ?: sorted.firstOrNull { it.week == defaultWeek(sorted) }

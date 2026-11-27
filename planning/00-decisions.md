@@ -4,7 +4,7 @@ Live index of every closed decision, one line per ADR, with the numbers kept sin
 
 ## New ADRs go here
 
-Phase 3 ADRs continue the numbering (next: **ADR-112**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
+Phase 3 ADRs continue the numbering (next: **ADR-113**) and are written **in full** in this file, below the index, with their one-line row in the index. Format: context -> decision -> consequences. A new decision also updates the affected live docs.
 
 ## Index (Phase 1, ADR-01..72)
 
@@ -131,6 +131,7 @@ The rows of ADR-93, 94, 98 and 99 are added here: the Phase 2 archive index lack
 | 107 | Free-text notes and unused code removed in every layer (E19 US-123): the coach reads only structured data; one migration drops the free-text storage and unused SQL objects; rule R-63 | Amends 87 and 91 (free text), 97, 98, 99 and the US-81 and US-89 decisions |
 | 110 | Weekly check-in removed in every layer (it never showed without a manual weigh-in); the Trainer's weekly report becomes progress-first (`07` §3) and every stored weekly report is rebuilt to snapshot v2 with its decisions frozen and the original kept; the latest finished week refreshes until the next week ends (Q17) (E19 US-141, US-142) | Amends 73 (check-in) and `04` §6.11 |
 | 111 | Every other report becomes progress-first like the weekly report (`07` §3 "Other reports: progress first"); a stored block review carries progress figures built as of the block end plus its frozen decisions (schema v2, no backfill: production holds no stored review); the outcome chip "reached" depends on the deadline (E19 US-143…US-147) | Amends `04` §6.11 (block reviews) and §8.10 (outcome "reached") |
+| 112 | Screen gallery and ux-critic removed; looks judged only in the app at checkpoints | Supersedes 103 (gallery part) |
 
 ## Phase 3 ADRs (full text)
 
@@ -250,3 +251,9 @@ Older ADRs: [`phase2/00-decisions.md`](phase2/00-decisions.md) (73-100) and [`ph
   - **Live reports (no stored shape):** "Entrenos" (Estadísticas), "Kilos por grupo muscular" (becomes weekly sets per group), "Fuerza", "Entreno completado", "Calorías" (complete days only, today excluded from the week, one bar colour) and the Perfil highlights follow `07` §3 (C)-(G).
 - **Consequences:** `03` (block review `inputs` v2, new RPCs of T-320, `list_coach_reports` teaser fields), `04` §6.11 and §8.10, `05` (new components, glossary rows; `SessionsCard` and `GroupsCard` retired), `10-feature-inventory.md` are updated by the tasks that change them (T-317 first). E19 gains one 👤 Checkpoint E19-R2 (the other reports, after the last task of the T-316 split; the user chose a single checkpoint, 2026-11-22), which T-285 waits for.
 - **Approval:** user, 2026-11-22 (chat: the 12 answers and the production count of zero stored block reviews).
+
+### ADR-112 — Screen gallery and ux-critic removed (supersedes the gallery part of ADR-103, T-279/T-280; amends the E19 rounds)
+- **Context:** the user never uses the gallery; looks are judged by the user in the app at 👤 checkpoints.
+- **Decision:** delete the capture tests (`src/androidHostTest/.../gallery/`), `scripts/gallery.py`, `-Pgallery`/`gallery.dir`/`gallery.area`, the `screen-gallery` CI artifact, the `GalleryCoverageTest` completeness checks, the gallery-only hooks in production Trainer code, the ux-critic agent with its ledger, round and research files, and every rule that required a gallery entry. The Roborazzi golden tests of designsystem templates stay (ADR-103 text on goldens is unchanged). The finding ids C-##/V-## cited in `05` refer to the deleted ux-critic ledger, which stays in git history.
+- **Consequences:** new routes and overlays need no gallery entry; ui-designer builds and compiles only; the user judges the look in the app. ADR-103's text stays as history.
+- **Approval:** user, 2026-11-27 (T-325).

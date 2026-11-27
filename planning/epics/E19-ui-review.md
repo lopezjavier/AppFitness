@@ -22,6 +22,9 @@
 `05` §8-§10; `04`; ADR-27, ADR-80, ADR-103.
 
 ## US-131 · See every screen without installing the APK
+
+> **Superseded by ADR-112 (T-325, 2026-11-27):** the screen gallery and `ux-critic` were removed; looks are judged only in the app at 👤 checkpoints. This story is history.
+
 **As** the user reviewing the app
 **I want** to see every screen without building and installing it
 **So that** a review is fast and complete.
