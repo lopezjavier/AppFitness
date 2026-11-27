@@ -402,7 +402,7 @@ private fun circumferenceSite(): List<GalleryEntry> = listOf(
         "Circunferencia",
         v.state,
         v.kind,
-        covers = v.covers,
+        covers = setOf("CircumferenceSiteRoute") + v.covers,
         wide = v.wide,
         fontScale = v.fontScale,
     ) {
