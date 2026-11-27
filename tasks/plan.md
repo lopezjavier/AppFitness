@@ -117,6 +117,7 @@ Every task pays 6-8 agent hand-offs, so stories stay whole unless one is too lar
 | 8d.7 | T-323: "Entreno completado": "Frente a la última vez" | **M** | US-147 | core + UI (2.1 visual-first) | 7 + user look |
 | 8d.8 | 👤 Checkpoint E19-R2 · the other reports (23 items in 4 journeys; the single checkpoint of the T-316 split, user 2026-11-22; after T-323, CI green and the T-317 and T-320 deploys green) | checkpoint | US-143…US-147 | user | — |
 | 8e | T-324: "Circunferencias" on Peso, progress per site instead of a list of every measurement (user request 2026-11-26; every agent on Opus, pr-creator included) | **M** (estimate) | planner sets it | core + UI (2.1 visual-first) | 7 + user look |
+| 8e.0 | T-326: Circunferencias as a 2-column grid, waist-hip ratio first (Checkpoint E19-C feedback 2026-11-27; every agent on Opus) | **S** (estimate) | US-148 | UI (2.1) | 6 |
 | 8e.1 | 👤 Checkpoint E19-C · Circunferencias on Peso (4 items; after T-324 merges, CI green) | checkpoint | — | user | — |
 | 8f | T-325: remove the screen gallery completely (code, script, Gradle, CI, ux-critic agent and every doc mention; user request 2026-11-27) | **M** (estimate) | — | core/infra (2.2) | 5 |
 | 9 | T-285: E19 closure (after Checkpoint E19-R, T-317…T-323 Checkpoint E19-R2, T-324 and Checkpoint E19-C, T-325, and the user's closure approval) | closure step (no size class) | DoD | PM | PM only |
