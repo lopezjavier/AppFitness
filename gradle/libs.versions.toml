@@ -27,7 +27,7 @@ kotlinx-datetime = "0.8.0"
 # Kept 2.9.2 (latest stable; 2.10.0 is only rc01) with CMP 1.12.1, checked in T-021: androidRuntimeClasspath
 # resolves it with lifecycle 2.9.6; compose ui/foundation are only raised to 1.12.1 (no downgrade, no
 # FAILED) and the shell runs on the emulator.
-navigation-compose = "2.9.2"
+navigation-compose = "2.10.0"
 # JetBrains lifecycle 2.9.6 (latest stable 2.9.x) is the version navigation-compose 2.9.2 already resolves
 # (T-021), so viewmodel-compose and runtime-compose add no upgrade or downgrade (checked in T-029).
 jetbrains-lifecycle = "2.11.0"
