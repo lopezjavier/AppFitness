@@ -1,6 +1,6 @@
 # E21 · Closure
 
-> **Status: DEFINED (product-owner, 2026-11-08, ADR-101), not planned.** Stories US-124…US-127, plus US-149 (user request 2026-11-27, T-330) and US-150 (user request 2026-11-27, T-331). The `epic-planner` breaks it into tasks (breakdown PROPOSED 2026-11-27: T-327…T-329, `tasks/todo.md`; US-125 amended by ADR-114). After E21 the app is in maintenance mode: only bugfixes and the user's feedback create tasks.
+> **Status: DEFINED (product-owner, 2026-11-08, ADR-101), not planned.** Stories US-124…US-127, plus US-149 (user request 2026-11-27, T-330) US-150 (user request 2026-11-27, T-331) and US-151 (user request 2026-11-27, T-332). The `epic-planner` breaks it into tasks (breakdown PROPOSED 2026-11-27: T-327…T-329, `tasks/todo.md`; US-125 amended by ADR-114). After E21 the app is in maintenance mode: only bugfixes and the user's feedback create tasks.
 
 ## Intent
 
@@ -155,4 +155,49 @@ Feature: Secondary muscles in Resumen
     Given the "Resumen" tab of an exercise is open
     When I leave the app and come back
     Then the same exercise and tab are shown with the same muscles
+```
+
+## US-151 · Cardio target and count-up timer
+*(user request 2026-11-27, recorded by the PM; task T-332)*
+**As** the user
+**I want** a cardio exercise to have only a target in minutes, and its live timer to count up from play with a stop button
+**So that** I can train longer than planned and the time is recorded without typing it.
+
+```gherkin
+Feature: Cardio target and count-up timer
+
+  Scenario: A cardio exercise has only a target in minutes
+    Given I edit a routine with a cardio exercise
+    Then the exercise shows only its target in minutes
+    And I see no series, rest, RPE or repetitions for it, and no "Añadir serie"
+
+  Scenario: The timer counts up from play
+    Given a live session with a cardio exercise and a target of 30 minutes
+    When I tap play on its row
+    Then the time counts up from 0:00
+    And the play button is replaced by a stop button
+    And I cannot type in the TIEMPO field
+
+  Scenario: Reaching the target does not stop the timer
+    Given the cardio timer is running
+    When the elapsed time reaches the target
+    Then I get the alert "Objetivo de cardio alcanzado"
+    And the timer keeps counting
+
+  Scenario: Stop writes the time and play continues
+    Given the cardio timer is running at 12:30
+    When I tap stop
+    Then the timer stops and TIEMPO shows 12:30
+    When I tap play again
+    Then the timer continues from 12:30
+
+  Scenario: LISTO saves the distance and the time
+    Given the cardio timer was stopped at 32:10
+    When I enter the KM and tap LISTO
+    Then the set is saved with the KM and 32:10
+
+  Scenario: Leaving the app keeps the timer
+    Given the cardio timer is running
+    When I leave the app and come back
+    Then the timer shows the right elapsed time and is still running
 ```
