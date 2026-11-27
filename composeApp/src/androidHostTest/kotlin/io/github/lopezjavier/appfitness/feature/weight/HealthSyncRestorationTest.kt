@@ -31,6 +31,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.Bmi
 import io.github.lopezjavier.appfitness.domain.usecase.InterpretMetric
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
+import io.github.lopezjavier.appfitness.domain.usecase.SummarizeCircumferences
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
@@ -154,6 +155,7 @@ class HealthSyncRestorationTest {
                 repository = FakeCircumferenceRepository(),
                 validate = ValidateCircumference(),
                 waistHipRatio = WaistHipRatio(),
+                summarize = SummarizeCircumferences(),
                 connectivity = FakeConnectivityObserver(),
                 clock = HealthClock,
                 timeZone = TimeZone.UTC,

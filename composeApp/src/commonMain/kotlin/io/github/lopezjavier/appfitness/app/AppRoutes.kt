@@ -292,6 +292,13 @@ data object ReportsRoute : AppRoute
 @Serializable
 data class PastReportRoute(val reportId: String) : AppRoute
 
+/**
+ * One circumference site's screen (T-324): its progress and every dated value, opened from a site row of
+ * [WeightRoute]. [site] is the `CircumferenceSite` enum name ("Waist").
+ */
+@Serializable
+data class CircumferenceSiteRoute(val site: String) : AppRoute
+
 /** "Historial de peso": the measurement calendar, opened from the calendar action of [WeightRoute]. */
 @Serializable
 data object WeightHistoryRoute : AppRoute
@@ -428,6 +435,7 @@ object AppDestinations {
             DiaryDayRoute(""),
             WeightRoute(),
             WeightHistoryRoute,
+            CircumferenceSiteRoute(""),
             AboutRoute,
             PlanProposalRoute(),
             BeforeStartRoute(""),

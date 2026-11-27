@@ -197,6 +197,7 @@ val uiModule =
                 repository = get(),
                 validate = get(),
                 waistHipRatio = get(),
+                summarize = get(),
                 connectivity = get(),
                 clock = get(),
                 savedState = get(),

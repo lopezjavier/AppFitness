@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.port.ConnectivityObserver
 import io.github.lopezjavier.appfitness.domain.repository.CircumferenceRepository
 import io.github.lopezjavier.appfitness.domain.usecase.CircumferenceCheck
 import io.github.lopezjavier.appfitness.domain.usecase.CircumferenceProblem
+import io.github.lopezjavier.appfitness.domain.usecase.SummarizeCircumferences
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
 import kotlinx.coroutines.channels.Channel
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -62,11 +64,12 @@ private data class SheetDraft(
 )
 
 /**
- * The circumference section of the weight screen (US-25): the history per site, the waist-to-hip ratio and an
- * add/edit sheet. Adding saves every filled site at once, for a day (no hour); editing changes one row, whose site is
- * locked. Deleting is immediate (ADR-45). The open sheet and its draft live in [savedState] as primitives, so they
- * survive recreation; closing the sheet discards the draft. Writes need connectivity; the day cannot be in the future.
- * A new measurement is stored at the save instant on today and at 12:00 local on a past day.
+ * The circumference section of the weight screen (US-25) and the screen of one site (T-324, [siteState]): the history
+ * and progress per site, the waist-to-hip ratio and an add/edit sheet. Each back-stack entry owns its instance.
+ * Adding saves every filled site at once, for a day (no hour); editing changes one row, whose site is locked. Deleting
+ * is immediate (ADR-45). The open sheet and its draft live in [savedState] as primitives, so they survive recreation;
+ * closing the sheet discards the draft. Writes need connectivity; the day cannot be in the future. A new measurement
+ * is stored at the save instant on today and at 12:00 local on a past day.
  */
 // One dependency per port; one small handler per event; guard clauses return early.
 @Suppress("LongParameterList", "TooManyFunctions", "ReturnCount", "CyclomaticComplexMethod")
@@ -74,6 +77,7 @@ class CircumferencesViewModel(
     private val repository: CircumferenceRepository,
     private val validate: ValidateCircumference,
     private val waistHipRatio: WaistHipRatio,
+    private val summarize: SummarizeCircumferences,
     connectivity: ConnectivityObserver,
     private val clock: Clock,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
@@ -97,6 +101,25 @@ class CircumferencesViewModel(
 
     val uiState: StateFlow<CircumferencesUiState> = combine(visibleLoad, sheet, online, ::buildState)
         .stateIn(viewModelScope, SharingStarted.Eagerly, CircumferencesUiState.Loading)
+
+    /** One flow per site, kept for the life of this ViewModel so a configuration change keeps the last summary. */
+    private val siteStates = mutableMapOf<CircumferenceSite, StateFlow<CircumferenceSiteUiState>>()
+
+    /**
+     * The state of [site]'s own screen (T-324), derived from [uiState]: the site's summary and rows, newest first.
+     * Deleting the site's last value keeps the last summary with no rows (the screen leaves on
+     * [CircumferencesEffect.Deleted]); a first load without rows for the site is [CircumferenceSiteUiState.Gone].
+     */
+    fun siteState(site: CircumferenceSite): StateFlow<CircumferenceSiteUiState> = siteStates.getOrPut(site) {
+        uiState
+            .scan<CircumferencesUiState, CircumferenceSiteUiState>(CircumferenceSiteUiState.Loading) {
+                    previous,
+                    state,
+                ->
+                nextSiteState(previous, state, site)
+            }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, CircumferenceSiteUiState.Loading)
+    }
 
     init {
         viewModelScope.launch { connectivity.isOnline.collect { online.value = it } }
@@ -291,10 +314,39 @@ class CircumferencesViewModel(
                         ratio = waistHipRatio(rows),
                         isOnline = online,
                         sheet = draft?.let { sheetOf(it, online) },
+                        sites = summarize(rows, timeZone),
                     ),
                 )
             }
         }
+
+    private fun nextSiteState(
+        previous: CircumferenceSiteUiState,
+        state: CircumferencesUiState,
+        site: CircumferenceSite,
+    ): CircumferenceSiteUiState = when (state) {
+        CircumferencesUiState.Loading -> CircumferenceSiteUiState.Loading
+
+        CircumferencesUiState.Error -> CircumferenceSiteUiState.Error
+
+        is CircumferencesUiState.Content -> {
+            val content = state.content
+            val summary = content.sites.firstOrNull { it.site == site }
+            when {
+                summary != null -> CircumferenceSiteUiState.Content(
+                    summary = summary,
+                    rows = content.groups.firstOrNull { it.site == site }?.rows.orEmpty(),
+                    isOnline = content.isOnline,
+                    sheet = content.sheet,
+                )
+
+                previous is CircumferenceSiteUiState.Content ->
+                    previous.copy(rows = emptyList(), isOnline = content.isOnline, sheet = content.sheet)
+
+                else -> CircumferenceSiteUiState.Gone
+            }
+        }
+    }
 
     private fun sheetOf(draft: SheetDraft, online: Boolean): CircumferenceSheetState {
         val problems = problemsOf(draft)

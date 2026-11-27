@@ -2,10 +2,8 @@ package io.github.lopezjavier.appfitness.feature.weight
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -19,8 +17,6 @@ import io.github.lopezjavier.appfitness.composeapp.resources.circumference_error
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_ratio_label
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_ratio_no_data
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_ratio_unavailable
-import io.github.lopezjavier.appfitness.composeapp.resources.circumference_row_delete_cd
-import io.github.lopezjavier.appfitness.composeapp.resources.circumference_row_edit_label
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_arm
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_calf
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_chest
@@ -29,30 +25,23 @@ import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_thigh
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_site_waist
 import io.github.lopezjavier.appfitness.composeapp.resources.circumference_title
-import io.github.lopezjavier.appfitness.composeapp.resources.circumference_value_cm
 import io.github.lopezjavier.appfitness.composeapp.resources.ic_straighten
 import io.github.lopezjavier.appfitness.composeapp.resources.metric_tile_open_label
-import io.github.lopezjavier.appfitness.composeapp.resources.px_body_row_supporting
 import io.github.lopezjavier.appfitness.designsystem.AddItemButton
-import io.github.lopezjavier.appfitness.designsystem.AppDateFormat
 import io.github.lopezjavier.appfitness.designsystem.AppShapes
 import io.github.lopezjavier.appfitness.designsystem.AppStateAction
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
 import io.github.lopezjavier.appfitness.designsystem.EmptyState
 import io.github.lopezjavier.appfitness.designsystem.ErrorState
 import io.github.lopezjavier.appfitness.designsystem.IconBadge
-import io.github.lopezjavier.appfitness.designsystem.IconBadgeDefaults
 import io.github.lopezjavier.appfitness.designsystem.ListSectionHeader
-import io.github.lopezjavier.appfitness.designsystem.MeasurementRow
 import io.github.lopezjavier.appfitness.designsystem.MetricCard
+import io.github.lopezjavier.appfitness.designsystem.RowGroupCard
 import io.github.lopezjavier.appfitness.designsystem.SkeletonBox
 import io.github.lopezjavier.appfitness.designsystem.Spacing
-import io.github.lopezjavier.appfitness.designsystem.SwipeToDeleteRow
-import io.github.lopezjavier.appfitness.domain.model.BodyCircumference
 import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
+import io.github.lopezjavier.appfitness.domain.usecase.CircumferenceSiteSummary
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
 
 private val SkeletonTileHeight = Spacing.xl * 4
@@ -60,19 +49,20 @@ private val SkeletonRowHeight = Spacing.minTouchTarget
 private const val SKELETON_ROWS = 3
 
 /**
- * The "Circunferencias" section of the weight screen: the waist-to-hip ratio tile and the history per site (newest
- * first, swipe to delete, tap to edit). Loading, error and empty are local to the section, so the calendar and the
- * weight stay usable if only the circumferences fail. [today] labels the dates "Hoy" / "Ayer".
+ * The "Circunferencias" section of the weight screen (T-324): one row per site with its latest value, change and a
+ * sparkline of its history (tap opens the site screen through [onOpenSite]), then the waist-to-hip ratio tile.
+ * Loading, error and empty are local to the section, so the calendar and the weight stay usable if only the
+ * circumferences fail. [today] labels the dates "Hoy" / "Ayer".
  */
 @Composable
 internal fun CircumferenceSection(
     state: CircumferencesUiState,
     today: LocalDate,
-    timeZone: TimeZone,
     onEvent: (CircumferencesEvent) -> Unit,
     modifier: Modifier = Modifier,
     onRatioClick: (() -> Unit)? = null,
     ratioGauge: (@Composable () -> Unit)? = null,
+    onOpenSite: (CircumferenceSite) -> Unit = {},
 ) {
     Column(
         modifier.fillMaxWidth().testTag("circumference_section"),
@@ -97,10 +87,10 @@ internal fun CircumferenceSection(
             is CircumferencesUiState.Content -> SectionContent(
                 state.content,
                 today,
-                timeZone,
                 onEvent,
                 onRatioClick,
                 ratioGauge,
+                onOpenSite,
             )
         }
     }
@@ -117,15 +107,15 @@ private fun SectionLoading() {
     }
 }
 
-@Suppress("LongParameterList") // The content plus the ratio card callbacks.
+@Suppress("LongParameterList") // The content plus the ratio card and site callbacks.
 @Composable
 private fun SectionContent(
     content: CircumferencesContent,
     today: LocalDate,
-    timeZone: TimeZone,
     onEvent: (CircumferencesEvent) -> Unit,
     onRatioClick: (() -> Unit)?,
     ratioGauge: (@Composable () -> Unit)?,
+    onOpenSite: (CircumferenceSite) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         if (content.isEmpty) {
@@ -137,10 +127,8 @@ private fun SectionContent(
                 testTagPrefix = "circumference_empty",
             )
         } else {
+            SiteRows(content.sites, today, onOpenSite)
             RatioCard(content.ratio, onRatioClick, ratioGauge)
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                content.groups.forEach { group -> SiteGroup(group, content.isOnline, today, timeZone, onEvent) }
-            }
         }
         AddItemButton(
             objectLabel = stringResource(Res.string.circumference_add_object),
@@ -173,77 +161,22 @@ private fun RatioCard(ratio: Double?, onClick: (() -> Unit)?, gauge: (@Composabl
     )
 }
 
+/**
+ * One [RowGroupCard] with a [CircumferenceSiteRow] per site that has data (site order): its progress at a glance. Every
+ * dated value, editing and deleting live in the site screen ([onOpenSite]).
+ */
 @Composable
-private fun SiteGroup(
-    group: SiteHistory,
-    isOnline: Boolean,
+private fun SiteRows(
+    summaries: List<CircumferenceSiteSummary>,
     today: LocalDate,
-    timeZone: TimeZone,
-    onEvent: (CircumferencesEvent) -> Unit,
+    onOpenSite: (CircumferenceSite) -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().testTag("circumference_group_${group.site.name.lowercase()}")) {
-        group.rows.forEachIndexed { index, row ->
-            CircumferenceHistoryRow(
-                row,
-                group.rows.getOrNull(index + 1),
-                index == 0,
-                isOnline,
-                today,
-                timeZone,
-                onEvent,
-            )
-        }
-    }
-}
-
-@Suppress("LongParameterList") // The row, its neighbour, its position and the dialog context.
-@Composable
-private fun CircumferenceHistoryRow(
-    row: BodyCircumference,
-    previous: BodyCircumference?,
-    latest: Boolean,
-    isOnline: Boolean,
-    today: LocalDate,
-    timeZone: TimeZone,
-    onEvent: (CircumferencesEvent) -> Unit,
-) {
-    val local = row.measuredAt.toLocalDateTime(timeZone)
-    val siteLabel = circumferenceSiteLabel(row.site)
-    val value = stringResource(Res.string.circumference_value_cm, decimalText(row.valueCm))
-    SwipeToDeleteRow(
-        deleteLabel = stringResource(Res.string.circumference_row_delete_cd, siteLabel, value),
-        enabled = isOnline,
-        onDelete = { onEvent(CircumferencesEvent.Delete(row.id)) },
-        backgroundTag = "circumference_row_delete_bg_${row.id}",
-        modifier = Modifier.testTag("circumference_row_${row.id}"),
-        containerColor = AppTheme.colors.surfaceBase,
-    ) {
-        MeasurementRow(
-            label = siteLabel,
-            value = value,
-            supporting = previous?.let {
-                stringResource(
-                    Res.string.px_body_row_supporting,
-                    AppDateFormat.list(local.date, today),
-                    stringResource(Res.string.circumference_value_cm, signedTenths(row.valueCm - it.valueCm)),
-                )
-            } ?: AppDateFormat.list(local.date, today),
-            leading = {
-                if (latest) {
-                    IconBadge(
-                        Res.drawable.ic_straighten,
-                        AppTheme.colors.athleticCyan,
-                        size = IconBadgeDefaults.SmallSize,
-                        iconSize = IconBadgeDefaults.SmallIconSize,
-                    )
-                } else {
-                    Spacer(Modifier.size(IconBadgeDefaults.SmallSize))
-                }
-            },
-            onClick = { onEvent(CircumferencesEvent.OpenEdit(row.id)) },
-            clickLabel = stringResource(Res.string.circumference_row_edit_label),
-        )
-    }
+    RowGroupCard(
+        rows = summaries.map { summary ->
+            { CircumferenceSiteRow(summary, today, onClick = { onOpenSite(summary.site) }) }
+        },
+        modifier = Modifier.testTag("circumference_sites"),
+    )
 }
 
 /** The ratio with a decimal comma and two decimals: 0.86 -> "0,86". */

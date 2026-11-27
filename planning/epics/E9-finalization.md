@@ -227,6 +227,8 @@ A presentation-only pass (FR-6) over the screens built in E2…E8. Items collect
 | P | "Entreno completado" compare rows: the "before" figure in `textTertiary` next to the "now" figure (C-219) | owner: after Checkpoint E19-R2. |
 | Q | "Entreno completado" on tablet: the "Frente a la última vez" list as a supporting pane beside the celebration (C-222) | owner: after Checkpoint E19-R2. |
 | R | "Sin comparar" with a one-line reason under it (rep range changed, more than 14 days, deload) (C-224) | owner: after Checkpoint E19-R2. |
+| S | Weekly and block report waist pill: flat arrow inside the measurement margin, as on Peso since T-324 (R-34; ux-reviewer sweep S2, T-324) | owner: PM, after Checkpoint E19-C. |
+| T | Swipe delete vibrates twice (on release, `SwipeToDeleteRow.kt:129`, and again on `Deleted`; also weigh-ins, `WeightRoot.kt:149`) (R-29; ux-reviewer sweep S3, T-324) | owner: PM, after Checkpoint E19-C. |
 
 ---
 

@@ -431,6 +431,53 @@ Feature: Workout summary against the last time
     Then the summary is shown again until I tap "Listo"
 ```
 
+## US-148 · Circunferencias show my progress per site (T-324)
+**As** the user
+**I want** each body site on Peso to show its latest value, its change and a small chart
+**So that** I see my progress without opening every site (`07` §5 "Circumferences on Peso").
+
+```gherkin
+Feature: Circumference progress per site
+
+  Scenario: One entry per site
+    Given measurements of Cintura, Cadera and Pecho on several days
+    When I open Perfil > Peso
+    Then "Circunferencias" shows one row per site, in site order, with its latest value ("84,5 cm"), a chart of its history and its change
+    And no site repeats its name per date
+
+  Scenario: Change over 28 days and the margin
+    Given Cintura 86,5 cm on 22 sep and 84,5 cm today
+    Then the Cintura row reads "−2,0 cm" "desde el 22 sep" "dentro del margen de medida"
+    And a Cadera change of −2,0 cm shows no margin note (its margin is 2,0 cm)
+    And a Pecho change shows the change with no margin note (no margin)
+
+  Scenario: No comparable measurement
+    Given a site with one measurement, or none at least 28 days older than the latest
+    Then its row shows the date of the latest measurement and no change
+    And with one measurement there is no chart
+
+  Scenario: No measurement at all
+    Then the section shows "Aún no hay circunferencias" and "Añadir circunferencia"
+
+  Scenario: A site's full history
+    When I tap the Cintura row ("Ver historial")
+    Then the "Cintura" screen shows the latest value, the chart and "Historial" with every dated value, newest first
+    When I tap a value, change it and tap "Guardar"
+    Then the history, the chart and the change are recalculated
+    When I delete a value (swipe, or "Eliminar" in its sheet)
+    Then it is removed at once, with no confirmation and no "Deshacer" (ADR-45)
+    And deleting the site's last value returns to Peso
+
+  Scenario: Adding updates the entry
+    When I add a Cintura value with "Añadir circunferencia"
+    Then the Cintura row's value, change and chart update
+
+  Scenario: Leaving the app
+    Given the Cintura screen is open (also with its edit sheet half filled)
+    When I leave the app and come back
+    Then the same screen (and the same draft) is shown
+```
+
 ## US-123 · Review of all the UI
 **As** the user
 **I want** all the UI reviewed

@@ -69,6 +69,7 @@ class ShellChromeTest {
                 DiaryDayRoute::class,
                 WeightRoute::class,
                 WeightHistoryRoute,
+                CircumferenceSiteRoute::class,
                 AboutRoute,
                 PlanProposalRoute::class,
                 BeforeStartRoute::class,
@@ -146,6 +147,7 @@ class ShellChromeTest {
         assertEquals(ShellChrome.Screen, WeightRoute(WeightEntryTarget.Circumference).chrome)
         assertEquals(ShellChrome.Screen, NotificationCenterRoute.chrome)
         assertEquals(ShellChrome.Screen, WeightHistoryRoute.chrome)
+        assertEquals(ShellChrome.Screen, CircumferenceSiteRoute("Waist").chrome)
     }
 
     @Test

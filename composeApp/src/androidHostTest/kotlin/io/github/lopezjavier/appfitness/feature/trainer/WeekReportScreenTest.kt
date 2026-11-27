@@ -297,6 +297,15 @@ class WeekReportScreenTest {
     }
 
     @Test
+    fun waist_changeOfThreeCentimetres_isAtTheMarginAndHasNoMarginNote() {
+        val atMargin = WaistProgress(84.0, LocalDate(2026, 11, 8), 87.0, LocalDate(2026, 10, 11), -3.0)
+        show(contentOf(summaryOf(progress { copy(waist = atMargin) })))
+
+        rule.onNodeWithTag("week_summary_waist_value", useUnmergedTree = true).assertTextContainsIgnoringNbsp("84")
+        rule.onAllNodesWithTag("week_summary_waist_margin", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
     fun waist_withoutAMeasurement_hasNoCard() {
         show(contentOf(summaryOf()))
 

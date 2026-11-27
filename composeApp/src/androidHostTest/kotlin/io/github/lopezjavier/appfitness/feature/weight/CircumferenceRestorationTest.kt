@@ -20,6 +20,7 @@ import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
+import io.github.lopezjavier.appfitness.domain.usecase.SummarizeCircumferences
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
@@ -39,7 +40,10 @@ private object CircumferenceRestorationClock : Clock {
     override fun now(): Instant = Instant.parse("2026-10-21T10:30:00Z")
 }
 
-/** The open circumference sheet and its half-filled draft survive recreation (ADR-40), for add and for edit. */
+/**
+ * The open circumference sheet and its half-filled draft survive recreation (ADR-40): the add sheet on Peso and the
+ * edit sheet over a site's screen (T-324).
+ */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 class CircumferenceRestorationTest {
@@ -74,6 +78,7 @@ class CircumferenceRestorationTest {
         repository = repository,
         validate = ValidateCircumference(),
         waistHipRatio = WaistHipRatio(),
+        summarize = SummarizeCircumferences(),
         connectivity = FakeConnectivityObserver(),
         clock = CircumferenceRestorationClock,
         timeZone = TimeZone.UTC,
@@ -93,6 +98,20 @@ class CircumferenceRestorationTest {
                 circumferences = circumferenceState,
                 onCircumferenceEvent = circumferences::onEvent,
                 timeZone = TimeZone.UTC,
+            )
+        }
+    }
+
+    /** The site screen of Cintura; its view model is built inside the composition, so a recreation gets a new one. */
+    @Composable
+    private fun SiteHost(state: SavedStateHandle) {
+        val circumferences = remember { circumferenceModel(state) }
+        AppTheme {
+            CircumferenceSiteRoot(
+                CircumferenceSite.Waist,
+                onBack = {},
+                viewModel = circumferences,
+                clock = CircumferenceRestorationClock,
             )
         }
     }
@@ -126,10 +145,10 @@ class CircumferenceRestorationTest {
     }
 
     @Test
-    fun editSheet_keepsRowValueAndDay_afterRecreation() {
+    fun siteScreenEditSheet_keepsRowValueAndDay_afterRecreation() {
         val savedState = SavedStateHandle()
         val tester = StateRestorationTester(rule)
-        tester.setContent { Host(savedState) }
+        tester.setContent { SiteHost(savedState) }
         rule.waitForIdle()
         tap("circumference_row_w")
         rule.onNodeWithTag("circumference_sheet_value_input_waist").performTextReplacement("90,0")
@@ -142,5 +161,6 @@ class CircumferenceRestorationTest {
         rule.onNodeWithTag("circumference_sheet_value_input_hip").assertDoesNotExist()
         rule.onNodeWithTag("circumference_sheet_date_text").assertTextEquals("dom, 18 oct")
         rule.onNodeWithTag("circumference_sheet_delete").assertExists()
+        rule.onNodeWithTag("circumference_site_title").assertTextEquals("Cintura")
     }
 }

@@ -1,11 +1,13 @@
 package io.github.lopezjavier.appfitness.app
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.feature.about.AboutRoot
 import io.github.lopezjavier.appfitness.feature.activity.ActivityRoot
 import io.github.lopezjavier.appfitness.feature.analytics.ExerciseProgressRoot
@@ -44,6 +46,7 @@ import io.github.lopezjavier.appfitness.feature.trainer.ReportsRoot
 import io.github.lopezjavier.appfitness.feature.trainer.TrainerRoute
 import io.github.lopezjavier.appfitness.feature.trainer.WeekSummaryRoot
 import io.github.lopezjavier.appfitness.feature.trainer.YourDataRoot
+import io.github.lopezjavier.appfitness.feature.weight.CircumferenceSiteRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightHistoryRoot
 import io.github.lopezjavier.appfitness.feature.weight.WeightRoot
 import io.github.lopezjavier.appfitness.feature.workout.EditWorkoutRoot
@@ -171,14 +174,23 @@ fun AppRoot(
                 onQuickSearch = onQuickSearch,
             )
         },
-        weight = { weightModifier, openEntry, onOpenHistory, onBack ->
+        weight = { weightModifier, openEntry, onOpenHistory, onBack, onOpenSite ->
             WeightRoot(
                 onOpenHistory,
                 onBack,
                 weightModifier,
                 openEntry = openEntry,
                 onRemindersChange = refreshReminders,
+                onOpenCircumferenceSite = onOpenSite,
             )
+        },
+        circumferenceSite = { siteModifier, siteName, onBack ->
+            val site = CircumferenceSite.entries.firstOrNull { it.name == siteName }
+            if (site == null) {
+                LaunchedEffect(siteName) { onBack() }
+            } else {
+                CircumferenceSiteRoot(site, onBack, siteModifier, onRemindersChange = refreshReminders)
+            }
         },
         notificationCenter = { centerModifier, onOpenReminder, onOpenReports, onBack ->
             NotificationCenterRoot(onOpenReminder, onBack, centerModifier, onOpenReports)

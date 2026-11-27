@@ -91,6 +91,7 @@ import io.github.lopezjavier.appfitness.domain.usecase.SavePreferences
 import io.github.lopezjavier.appfitness.domain.usecase.ScaleNutrition
 import io.github.lopezjavier.appfitness.domain.usecase.SearchExercises
 import io.github.lopezjavier.appfitness.domain.usecase.SignInWithGoogle
+import io.github.lopezjavier.appfitness.domain.usecase.SummarizeCircumferences
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthData
 import io.github.lopezjavier.appfitness.domain.usecase.SyncHealthMeasurements
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
@@ -271,6 +272,7 @@ class AppModuleTest {
                 CoroutineScope::class,
                 ValidateCircumference::class,
                 WaistHipRatio::class,
+                SummarizeCircumferences::class,
                 Bmi::class,
                 InterpretMetric::class,
                 WeightChartPreferences::class,

@@ -27,6 +27,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
+import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.model.PlanFixTarget
 import io.github.lopezjavier.appfitness.domain.model.ReminderKind
 import io.github.lopezjavier.appfitness.feature.catalog.ComponentCatalogScreen
@@ -198,14 +199,21 @@ internal typealias DiarySlot =
 internal typealias DiaryHistorySlot =
     @Composable (modifier: Modifier, onOpenDay: (LocalDate) -> Unit, onBack: () -> Unit) -> Unit
 
-/** Weight screen content: modifier (full-screen insets), the opener of the history and the back arrow. */
+/**
+ * Weight screen content: modifier (full-screen insets), the entry to open, the opener of the history, the back arrow
+ * and the opener of one circumference site's screen (T-324).
+ */
 internal typealias WeightSlot =
     @Composable (
         modifier: Modifier,
         openEntry: WeightEntryTarget?,
         onOpenHistory: () -> Unit,
         onBack: () -> Unit,
+        onOpenSite: (CircumferenceSite) -> Unit,
     ) -> Unit
+
+/** One circumference site's screen (T-324): modifier (full-screen insets), the site's enum name and back. */
+internal typealias CircumferenceSiteSlot = @Composable (modifier: Modifier, site: String, onBack: () -> Unit) -> Unit
 
 /** Notification center content: modifier (full-screen insets), the opener of a reminder's entry and back. */
 internal typealias NotificationCenterSlot =
@@ -532,8 +540,13 @@ internal val DefaultDiaryHistorySlot: DiaryHistorySlot = { modifier, _, _ ->
 }
 
 /** Empty weight screen for previews and shell tests; the real one is wired by `AppRoot`. */
-internal val DefaultWeightSlot: WeightSlot = { modifier, _, _, _ ->
+internal val DefaultWeightSlot: WeightSlot = { modifier, _, _, _, _ ->
     Box(modifier.fillMaxSize().testTag("weight_screen"))
+}
+
+/** Empty circumference site screen for previews and shell tests; the real one is wired by `AppRoot`. */
+internal val DefaultCircumferenceSiteSlot: CircumferenceSiteSlot = { modifier, _, _ ->
+    Box(modifier.fillMaxSize().testTag("circumference_site_screen"))
 }
 
 /** Empty notification center for previews and shell tests; the real one is wired by `AppRoot`. */
@@ -754,6 +767,7 @@ internal fun AppNavHost(
     blockReview: BlockReviewSlot = DefaultBlockReviewSlot,
     reports: ReportsSlot = DefaultReportsSlot,
     pastReport: PastReportSlot = DefaultPastReportSlot,
+    circumferenceSite: CircumferenceSiteSlot = DefaultCircumferenceSiteSlot,
 ) {
     val catalogAvailable = features.isAvailable(CatalogRoute)
     val openCatalog = remember(navController) { { navController.navigateToFullScreen(CatalogRoute) } }
@@ -994,7 +1008,14 @@ internal fun AppNavHost(
                 entry.toRoute<WeightRoute>().openEntry,
                 { navController.navigateToFullScreen(WeightHistoryRoute) },
                 { navController.popFullScreen(entry) },
+                { site -> navController.navigateToFullScreen(CircumferenceSiteRoute(site.name)) },
             )
+        }
+        composable<CircumferenceSiteRoute> { entry ->
+            circumferenceSite(
+                Modifier.padding(fullScreenPadding),
+                entry.toRoute<CircumferenceSiteRoute>().site,
+            ) { navController.popFullScreen(entry) }
         }
         composable<NotificationCenterRoute> { entry ->
             notificationCenter(

@@ -21,6 +21,7 @@ import io.github.lopezjavier.appfitness.composeapp.resources.weight_save_error
 import io.github.lopezjavier.appfitness.designsystem.LocalAppHaptics
 import io.github.lopezjavier.appfitness.designsystem.LocalAppMessages
 import io.github.lopezjavier.appfitness.designsystem.offlineHint
+import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.platform.HealthConnectLauncher
 import io.github.lopezjavier.appfitness.platform.rememberHealthConnectLauncher
 import kotlinx.coroutines.flow.Flow
@@ -37,6 +38,7 @@ fun WeightRoot(
     modifier: Modifier = Modifier,
     openEntry: WeightEntryTarget? = null,
     onRemindersChange: () -> Unit = {},
+    onOpenCircumferenceSite: (CircumferenceSite) -> Unit = {},
     viewModel: WeightViewModel = koinViewModel(),
     circumferencesViewModel: CircumferencesViewModel = koinViewModel(),
     healthSyncViewModel: HealthSyncViewModel = koinViewModel(),
@@ -90,6 +92,7 @@ fun WeightRoot(
         onGoalEvent = goalViewModel::onEvent,
         onOpenHistory = onOpenHistory,
         onBack = onBack,
+        onOpenCircumferenceSite = onOpenCircumferenceSite,
     )
 }
 
@@ -186,10 +189,19 @@ private fun CollectHealthEffects(
     }
 }
 
-// Saves and deletes confirm with a haptic only, the change is visible (R-13); failures reject and show a message.
+/**
+ * Circumference saves and deletes confirm with a haptic only, the change is visible (R-13); failures reject and show a
+ * message. Shared by the Peso and the site routes, each with its own view model; it calls [onDelete] after a confirmed
+ * delete (the site screen leaves once its last value is gone).
+ */
 @Composable
-private fun CollectCircumferenceEffects(effects: Flow<CircumferencesEffect>, onRemindersChange: () -> Unit) {
+internal fun CollectCircumferenceEffects(
+    effects: Flow<CircumferencesEffect>,
+    onRemindersChange: () -> Unit,
+    onDelete: () -> Unit = {},
+) {
     val latestOnChanged by rememberUpdatedState(onRemindersChange)
+    val latestOnDelete by rememberUpdatedState(onDelete)
     val deleteFailed = stringResource(Res.string.delete_failed)
     val deleteOffline = stringResource(Res.string.delete_offline)
     val saveFailed = stringResource(Res.string.weight_save_error)
@@ -204,9 +216,15 @@ private fun CollectCircumferenceEffects(effects: Flow<CircumferencesEffect>, onR
                     appMessages.show(if (effect.offline) deleteOffline else deleteFailed)
                 }
 
-                CircumferencesEffect.Saved, CircumferencesEffect.Deleted -> {
+                CircumferencesEffect.Saved -> {
                     haptics.confirm()
                     latestOnChanged()
+                }
+
+                CircumferencesEffect.Deleted -> {
+                    haptics.confirm()
+                    latestOnChanged()
+                    latestOnDelete()
                 }
 
                 is CircumferencesEffect.SaveFailed -> {

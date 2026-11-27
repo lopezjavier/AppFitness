@@ -1,10 +1,20 @@
 package io.github.lopezjavier.appfitness.feature.weight
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.MutableFloatState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -15,10 +25,15 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.width
 import androidx.lifecycle.SavedStateHandle
 import io.github.lopezjavier.appfitness.app.FakeConnectivityObserver
 import io.github.lopezjavier.appfitness.designsystem.AppTheme
@@ -29,12 +44,14 @@ import io.github.lopezjavier.appfitness.domain.model.CircumferenceSite
 import io.github.lopezjavier.appfitness.domain.port.Clock
 import io.github.lopezjavier.appfitness.domain.usecase.MeasurementsByDay
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
+import io.github.lopezjavier.appfitness.domain.usecase.SummarizeCircumferences
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateBodyMeasurement
 import io.github.lopezjavier.appfitness.domain.usecase.ValidateCircumference
 import io.github.lopezjavier.appfitness.domain.usecase.WaistHipRatio
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -49,7 +66,7 @@ private object SectionClock : Clock {
     override fun now(): Instant = Instant.parse("2026-10-21T10:30:00Z")
 }
 
-/** US-25 circumferences on the weight screen: logging, ratio, editing, deleting, validation and states. */
+/** US-25 circumferences on the weight screen: logging, ratio, validation and states (T-324: one row per site). */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h2400dp-xxhdpi")
 @Suppress("TooManyFunctions") // One method per Gherkin scenario.
@@ -81,6 +98,7 @@ class CircumferenceSectionTest {
         repository = repository,
         validate = ValidateCircumference(),
         waistHipRatio = WaistHipRatio(),
+        summarize = SummarizeCircumferences(),
         connectivity = connectivity,
         clock = SectionClock,
         timeZone = TimeZone.UTC,
@@ -117,10 +135,6 @@ class CircumferenceSectionTest {
         rule.waitForIdle()
     }
 
-    private fun assertRowShows(rowTag: String, text: String) {
-        rule.onNode(hasText(text, substring = true) and hasAnyAncestor(hasTestTag(rowTag))).assertExists()
-    }
-
     private fun assertCardShows(cardTag: String, text: String) {
         rule.onNode(
             hasText(text, substring = true, ignoreCase = true) and hasAnyAncestor(hasTestTag(cardTag)),
@@ -130,13 +144,6 @@ class CircumferenceSectionTest {
 
     private fun type(tag: String, text: String) {
         rule.onNodeWithTag(tag).performTextReplacement(text)
-        rule.waitForIdle()
-    }
-
-    private fun deleteBySwipeAction(tag: String, label: String) {
-        val actions = rule.onNodeWithTag(tag).fetchSemanticsNode().config.getOrNull(SemanticsActions.CustomActions)
-        val action = actions?.firstOrNull { it.label == label } ?: error("No action '$label' on $tag")
-        rule.runOnUiThread { action.action() }
         rule.waitForIdle()
     }
 
@@ -161,21 +168,13 @@ class CircumferenceSectionTest {
         show(row("w", CircumferenceSite.Waist, 84.5), row("h", CircumferenceSite.Hip, 98.0))
 
         val add = rule.onNodeWithTag("circumference_add_button").getUnclippedBoundsInRoot()
-        listOf("circumference_row_w", "circumference_row_h", "weight_whr_card").forEach {
+        listOf("circumference_site_row_waist", "circumference_site_row_hip", "weight_whr_card").forEach {
             assertTrue("$it above the add button", rule.onNodeWithTag(it).getUnclippedBoundsInRoot().bottom <= add.top)
         }
     }
 
     @Test
-    fun history_rowsAreMeasurementRows_withTheListDate() {
-        show(row("w", CircumferenceSite.Waist, 84.5))
-
-        assertRowShows("circumference_row_w", "84,5 cm")
-        assertRowShows("circumference_row_w", "dom, 18 oct")
-    }
-
-    @Test
-    fun loggingWaist_showsTheRowInTheWaistHistory() {
+    fun loggingWaist_showsTheWaistSiteRow() {
         show()
 
         tap("circumference_add_button")
@@ -188,8 +187,7 @@ class CircumferenceSectionTest {
         assertEquals(84.5, saved.valueCm, 0.0)
         assertEquals(Instant.parse("2026-10-21T10:30:00Z"), saved.measuredAt)
         rule.onNodeWithTag("circumference_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("circumference_group_waist").assertExists()
-        assertRowShows("circumference_row_${saved.id}", "84,5 cm")
+        rule.onNodeWithTag("circumference_site_row_waist_value", useUnmergedTree = true).assertTextEquals("84,5 cm")
     }
 
     @Test
@@ -220,7 +218,7 @@ class CircumferenceSectionTest {
 
         assertEquals(setOf(CircumferenceSite.Waist, CircumferenceSite.Hip), repository.rows.map { it.site }.toSet())
         assertEquals(2, repository.rows.size)
-        rule.onNodeWithTag("circumference_group_hip").assertExists()
+        rule.onNodeWithTag("circumference_site_row_hip").assertExists()
         assertCardShows("weight_whr_card", "0,86")
     }
 
@@ -276,61 +274,211 @@ class CircumferenceSectionTest {
         assertCardShows("weight_whr_card", "Sin datos suficientes")
     }
 
-    // -- Editing and deleting ---------------------------------------------------------------------------------------
+    // -- One row per site (T-324) -----------------------------------------------------------------------------------
 
-    @Test
-    fun editingAValue_updatesTheRowAndTheRatio() {
-        show(row("w", CircumferenceSite.Waist, 84.5), row("h", CircumferenceSite.Hip, 98.0))
+    private val openedSites = mutableListOf<CircumferenceSite>()
 
-        tap("circumference_row_w")
-        rule.onNodeWithTag("circumference_sheet_title").assertTextEquals("Editar medida")
-        rule.onNodeWithTag("circumference_sheet_value_input_waist").assertExists()
-        rule.onNodeWithTag("circumference_sheet_value_input_hip").assertDoesNotExist()
-        type("circumference_sheet_value_input_waist", "86,0")
-        tap("circumference_sheet_commit")
+    private fun showSection(vararg rows: BodyCircumference) {
+        val state = circumferenceSectionState(rows.toList())
+        rule.setContent {
+            AppTheme {
+                CircumferenceSection(state, SectionClock.today(), {}, onOpenSite = { openedSites += it })
+            }
+        }
+        rule.waitForIdle()
+    }
 
-        assertEquals(86.0, repository.rows.first { it.id == "w" }.valueCm, 0.0)
-        assertRowShows("circumference_row_w", "86,0 cm")
-        assertCardShows("weight_whr_card", "0,88")
+    /** One `setContent` per test: the font scale changes through [scale]. */
+    private fun showScaled(scale: MutableFloatState, vararg rows: BodyCircumference) {
+        val state = circumferenceSectionState(rows.toList())
+        rule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, scale.floatValue)) {
+                AppTheme { CircumferenceSection(state, SectionClock.today(), {}) }
+            }
+        }
+        rule.waitForIdle()
+    }
+
+    private fun siteTag(site: CircumferenceSite) = "circumference_site_row_${site.name.lowercase()}"
+
+    private fun child(site: CircumferenceSite, part: String) =
+        rule.onNodeWithTag("${siteTag(site)}_$part", useUnmergedTree = true)
+
+    private fun inChange(site: CircumferenceSite, text: String) = rule.onNode(
+        hasText(text, substring = true) and hasAnyAncestor(hasTestTag("${siteTag(site)}_change")),
+        useUnmergedTree = true,
+    )
+
+    private fun textLayout(text: String): TextLayoutResult {
+        val results = mutableListOf<TextLayoutResult>()
+        rule.onNode(hasText(text), useUnmergedTree = true).fetchSemanticsNode()
+            .config[SemanticsActions.GetTextLayoutResult].action!!(results)
+        return results.single()
+    }
+
+    private val perMeasurementRow = SemanticsMatcher("has a per-measurement row tag") { node ->
+        node.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("circumference_row_") == true
     }
 
     @Test
-    fun eliminarInTheEditSheet_removesTheRowAtOnce() {
-        show(row("w", CircumferenceSite.Waist, 84.5))
-
-        tap("circumference_row_w")
-        tap("circumference_sheet_delete")
-
-        assertEquals(listOf("w"), repository.deletes)
-        rule.onNodeWithTag("circumference_sheet").assertDoesNotExist()
-        rule.onNodeWithTag("circumference_row_w").assertDoesNotExist()
-    }
-
-    @Test
-    fun swipeDelete_removesTheRowAtOnceAndUpdatesTheRatio_withNoUndo() {
-        show(row("w", CircumferenceSite.Waist, 84.5), row("h", CircumferenceSite.Hip, 98.0))
-        assertCardShows("weight_whr_card", "0,86")
-
-        deleteBySwipeAction("circumference_row_w", "Eliminar Cintura 84,5 cm")
-
-        assertEquals(listOf("w"), repository.deletes)
-        rule.onNodeWithTag("circumference_row_w").assertDoesNotExist()
-        assertCardShows("weight_whr_card", "Sin datos suficientes")
-        rule.onNodeWithText("Deshacer").assertDoesNotExist()
-    }
-
-    @Test
-    fun history_isOrderedNewestFirstWithinASite() {
-        show(
-            row("old", CircumferenceSite.Waist, 86.0, "2026-10-01T08:30:00Z"),
-            row("new", CircumferenceSite.Waist, 84.5, "2026-10-18T08:30:00Z"),
+    fun severalSites_showOneRowPerSiteInSiteOrder_withEachNameOnce() {
+        showSection(
+            row("h1", CircumferenceSite.Hip, 99.0, "2026-10-01T08:30:00Z"),
+            row("h2", CircumferenceSite.Hip, 98.0),
+            row("w1", CircumferenceSite.Waist, 86.0, "2026-10-01T08:30:00Z"),
+            row("w2", CircumferenceSite.Waist, 84.5),
+            row("c1", CircumferenceSite.Chest, 101.0),
         )
 
-        val newest = rule.onNodeWithTag("circumference_row_new").getUnclippedBoundsInRoot()
-        val oldest = rule.onNodeWithTag("circumference_row_old").getUnclippedBoundsInRoot()
-        assertTrue(oldest.top >= newest.bottom)
-        assertRowShows("circumference_row_new", "18 oct")
-        rule.onNode(hasText("08:30", substring = true)).assertDoesNotExist()
+        val chest = rule.onNodeWithTag(siteTag(CircumferenceSite.Chest)).getUnclippedBoundsInRoot()
+        val waist = rule.onNodeWithTag(siteTag(CircumferenceSite.Waist)).getUnclippedBoundsInRoot()
+        val hip = rule.onNodeWithTag(siteTag(CircumferenceSite.Hip)).getUnclippedBoundsInRoot()
+        assertTrue(chest.bottom <= waist.top && waist.bottom <= hip.top)
+        listOf("Pecho", "Cintura", "Cadera").forEach {
+            assertEquals(it, 1, rule.onAllNodesWithText(it, useUnmergedTree = true).fetchSemanticsNodes().size)
+        }
+        child(CircumferenceSite.Waist, "value").assertTextEquals("84,5 cm")
+        assertEquals(0, rule.onAllNodes(perMeasurementRow, useUnmergedTree = true).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun changeBeyondTheMargin_showsThePillAndTheReferenceDay_withNoMarginNote() {
+        showSection(
+            row("w1", CircumferenceSite.Waist, 88.5, "2026-09-20T08:30:00Z"),
+            row("w2", CircumferenceSite.Waist, 84.5),
+        )
+
+        inChange(CircumferenceSite.Waist, "−4,0 cm").assertExists()
+        inChange(CircumferenceSite.Waist, "desde el 20 sep").assertExists()
+        child(CircumferenceSite.Waist, "margin_note").assertDoesNotExist()
+    }
+
+    @Test
+    fun changeInsideTheMargin_readsDentroDelMargenDeMedida() {
+        showSection(
+            row("w1", CircumferenceSite.Waist, 86.5, "2026-09-20T08:30:00Z"),
+            row("w2", CircumferenceSite.Waist, 84.5),
+        )
+
+        inChange(CircumferenceSite.Waist, "−2,0 cm").assertExists()
+        child(CircumferenceSite.Waist, "margin_note").assertTextEquals("dentro del margen de medida")
+    }
+
+    @Test
+    fun hipChangeAtItsMargin_hasNoMarginNote() {
+        showSection(
+            row("h1", CircumferenceSite.Hip, 100.0, "2026-09-20T08:30:00Z"),
+            row("h2", CircumferenceSite.Hip, 98.0),
+        )
+
+        inChange(CircumferenceSite.Hip, "−2,0 cm").assertExists()
+        child(CircumferenceSite.Hip, "margin_note").assertDoesNotExist()
+    }
+
+    @Test
+    fun chestChange_hasNoMarginNote() {
+        showSection(
+            row("c1", CircumferenceSite.Chest, 100.0, "2026-09-20T08:30:00Z"),
+            row("c2", CircumferenceSite.Chest, 99.5),
+        )
+
+        inChange(CircumferenceSite.Chest, "−0,5 cm").assertExists()
+        child(CircumferenceSite.Chest, "margin_note").assertDoesNotExist()
+    }
+
+    @Test
+    fun oneMeasurement_showsItsDay_andNoSparkline() {
+        showSection(row("w", CircumferenceSite.Waist, 84.5))
+
+        child(CircumferenceSite.Waist, "change").assertTextEquals("dom, 18 oct")
+        child(CircumferenceSite.Waist, "sparkline").assertDoesNotExist()
+    }
+
+    @Test
+    fun noPairTwentyEightDaysApart_showsTheSparklineAndTheDay_withNoPill() {
+        showSection(
+            row("w1", CircumferenceSite.Waist, 86.0, "2026-10-01T08:30:00Z"),
+            row("w2", CircumferenceSite.Waist, 84.5),
+        )
+
+        child(CircumferenceSite.Waist, "sparkline").assertExists()
+        child(CircumferenceSite.Waist, "change").assertTextEquals("dom, 18 oct")
+        inChange(CircumferenceSite.Waist, "cm").assertDoesNotExist()
+    }
+
+    @Test
+    fun siteRow_isOneButtonReadingVerHistorial_atLeast48dpTall_andOpensTheSite() {
+        showSection(row("w", CircumferenceSite.Waist, 84.5))
+
+        val node = rule.onNodeWithTag(siteTag(CircumferenceSite.Waist))
+        node.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+        assertEquals("Ver historial", node.fetchSemanticsNode().config[SemanticsActions.OnClick].label)
+        node.assertHeightIsAtLeast(48.dp)
+        node.assertTextContains("Cintura", substring = true).assertTextContains("84,5 cm", substring = true)
+
+        node.performClick()
+
+        assertEquals(listOf(CircumferenceSite.Waist), openedSites)
+    }
+
+    @Test
+    fun addingCintura_updatesItsRowValueChangeAndSparkline() {
+        show(row("w1", CircumferenceSite.Waist, 86.5, "2026-09-23T08:30:00Z"))
+        child(CircumferenceSite.Waist, "sparkline").assertDoesNotExist()
+
+        logMeasurement("84,5")
+
+        child(CircumferenceSite.Waist, "value").assertTextEquals("84,5 cm")
+        inChange(CircumferenceSite.Waist, "−2,0 cm").assertExists()
+        inChange(CircumferenceSite.Waist, "desde el 23 sep").assertExists()
+        child(CircumferenceSite.Waist, "sparkline").assertExists()
+    }
+
+    @Test
+    fun sparkline_spansAtLeastThreeQuartersOfTheRow_atEveryFontScale() {
+        val scale = mutableFloatStateOf(1f)
+        showScaled(
+            scale,
+            row("w1", CircumferenceSite.Waist, 86.5, "2026-09-20T08:30:00Z"),
+            row("w2", CircumferenceSite.Waist, 84.5),
+        )
+        listOf(1f, 1.3f, 2f).forEach {
+            scale.floatValue = it
+            rule.waitForIdle()
+
+            val rowWidth = rule.onNodeWithTag(siteTag(CircumferenceSite.Waist)).getUnclippedBoundsInRoot().width
+            val lineWidth = child(CircumferenceSite.Waist, "sparkline").getUnclippedBoundsInRoot().width
+            assertTrue("font scale $it: $lineWidth of $rowWidth", lineWidth >= rowWidth * 0.75f)
+        }
+    }
+
+    @Test
+    fun largeFonts_keepPantorrillaWhole_withTheValueUnderItAndTheChangeShown() {
+        val scale = mutableFloatStateOf(1.3f)
+        showScaled(scale, row("c", CircumferenceSite.Calf, 123.4))
+        listOf(1.3f, 2f).forEach {
+            scale.floatValue = it
+            rule.waitForIdle()
+
+            assertFalse("font scale $it", textLayout("Pantorrilla").hasVisualOverflow)
+            child(CircumferenceSite.Calf, "value").assertIsDisplayed()
+            child(CircumferenceSite.Calf, "change").assertIsDisplayed()
+            val name = rule.onNode(hasText("Pantorrilla"), useUnmergedTree = true).getUnclippedBoundsInRoot()
+            val value = child(CircumferenceSite.Calf, "value").getUnclippedBoundsInRoot()
+            assertTrue("font scale $it: the value goes under the name", value.top >= name.bottom)
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "w320dp-h2400dp-xxhdpi")
+    fun narrowWindow_keepsPantorrillaWholeBesideAThreeDigitValue() {
+        showSection(row("c", CircumferenceSite.Calf, 123.4))
+
+        val name = textLayout("Pantorrilla")
+        assertFalse(name.hasVisualOverflow)
+        assertFalse(name.isLineEllipsized(name.lineCount - 1))
+        child(CircumferenceSite.Calf, "value").assertTextEquals("123,4 cm").assertIsDisplayed()
     }
 
     // -- Validation -------------------------------------------------------------------------------------------------
@@ -412,13 +560,15 @@ class CircumferenceSectionTest {
         rule.onNodeWithTag("circumference_empty").assertExists()
         rule.onNodeWithText("Aún no hay circunferencias").assertExists()
         rule.onNodeWithText("Registra tu primera circunferencia.").assertExists()
+        rule.onNodeWithTag("circumference_add_button").assertTextEquals("Añadir circunferencia")
+        rule.onNodeWithTag("circumference_sites").assertDoesNotExist()
     }
 
     @Test
     fun loading_showsTheSkeleton() {
         rule.setContent {
             AppTheme {
-                CircumferenceSection(CircumferencesUiState.Loading, LocalDate(2026, 10, 21), TimeZone.UTC, {})
+                CircumferenceSection(CircumferencesUiState.Loading, LocalDate(2026, 10, 21), {})
             }
         }
 
@@ -439,21 +589,18 @@ class CircumferenceSectionTest {
         repository.failReads = false
         tap("circumference_error_action")
 
-        rule.onNodeWithTag("circumference_row_w").assertExists()
+        rule.onNodeWithTag("circumference_site_row_waist").assertExists()
     }
 
     @Test
-    fun offline_disablesGuardarAndEliminar_withTheHint_andLocksSwipeDelete() {
+    fun offline_disablesGuardarInTheAddSheet_withTheHint() {
         connectivity.state.value = false
         show(row("w", CircumferenceSite.Waist, 84.5))
 
-        val actions = rule.onNodeWithTag("circumference_row_w").fetchSemanticsNode().config
-            .getOrNull(SemanticsActions.CustomActions)
-        assertTrue(actions.isNullOrEmpty())
-        tap("circumference_row_w")
+        tap("circumference_add_button")
+        type("circumference_sheet_value_input_waist", "84,0")
 
         rule.onNodeWithTag("circumference_sheet_commit").assertIsNotEnabled()
-        rule.onNodeWithTag("circumference_sheet_delete").assertIsNotEnabled()
         rule.onNodeWithTag("circumference_sheet_commit_hint").assertTextEquals("Sin conexión: no se puede guardar")
     }
 
