@@ -13,6 +13,7 @@ import io.github.lopezjavier.appfitness.domain.model.RoutineExercise
 import io.github.lopezjavier.appfitness.domain.model.SessionExercise
 import io.github.lopezjavier.appfitness.domain.model.SetEntry
 import io.github.lopezjavier.appfitness.domain.model.SetType
+import io.github.lopezjavier.appfitness.domain.model.TrainingPreferences
 import io.github.lopezjavier.appfitness.domain.model.WorkoutSet
 import io.github.lopezjavier.appfitness.domain.port.RestAlertKind
 import io.github.lopezjavier.appfitness.domain.usecase.SaveBodyMeasurement
@@ -111,6 +112,7 @@ class LiveSessionCardioViewModelTest {
     private val haptics = FakeHaptics()
     private val sound = FakeAlertSound()
     private val savedState = SavedStateHandle()
+    private val preferences = FakeTrainingPreferencesRepository()
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(StandardTestDispatcher())
@@ -129,7 +131,7 @@ class LiveSessionCardioViewModelTest {
             haptics,
             routines,
             sound,
-            FakeTrainingPreferencesRepository(),
+            preferences,
             bodyMeasurements,
             SaveBodyMeasurement(bodyMeasurements, clock, TimeZone.UTC),
             TimeZone.UTC,
@@ -477,6 +479,112 @@ class LiveSessionCardioViewModelTest {
         assertEquals(52.minutes, second.cardioBar().elapsed)
     }
 
+    private fun LiveSessionViewModel.bikeRow() = active().exercises[1].sets.single()
+
+    @Test
+    fun theTimeCountsUpEverySecondFromPlay() = runSessionTest {
+        val vm = loaded()
+        vm.toggleBike()
+        runCurrent()
+        assertEquals(0, vm.bikeRow().durationSeconds)
+        assertTrue(vm.bikeRow().stopwatchRunning)
+
+        elapse(1.seconds)
+        assertEquals(1, vm.bikeRow().durationSeconds)
+        elapse(9.seconds)
+        assertEquals(10, vm.bikeRow().durationSeconds)
+    }
+
+    @Test
+    fun stopBanksTheTime_andPlayResumesFromIt() = runSessionTest {
+        val vm = loaded()
+        vm.toggleBike()
+        elapse(12.minutes + 30.seconds)
+
+        vm.toggleBike()
+        runCurrent()
+        elapse(5.minutes)
+        assertEquals(750, vm.bikeRow().durationSeconds)
+        assertFalse(vm.bikeRow().stopwatchRunning)
+
+        vm.toggleBike()
+        runCurrent()
+        elapse(10.seconds)
+        assertEquals(760, vm.bikeRow().durationSeconds)
+        assertTrue(vm.bikeRow().stopwatchRunning)
+    }
+
+    @Test
+    fun pastTheTarget_theTimerKeepsCounting_andResumingPastItDoesNotAlertAgain() = runSessionTest {
+        val vm = loaded()
+        vm.toggleBike()
+        elapse(50.minutes)
+        assertEquals(1, haptics.alerts)
+        elapse(2.minutes)
+        assertTrue(vm.bikeRow().stopwatchRunning)
+        assertEquals(52 * 60, vm.bikeRow().durationSeconds)
+
+        vm.toggleBike()
+        runCurrent()
+        vm.toggleBike()
+        runCurrent()
+        elapse(3.minutes)
+
+        assertEquals(1, haptics.alerts)
+        assertEquals(55 * 60, vm.bikeRow().durationSeconds)
+    }
+
+    @Test
+    fun listoWhileRunning_stopsAndSavesTheDistanceAndTheTime() = runSessionTest {
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.DistanceChanged(2, 1, "5"))
+        vm.onEvent(LiveSessionEvent.StopwatchToggled(2, 1))
+        elapse(32.minutes + 10.seconds)
+
+        vm.onEvent(LiveSessionEvent.SetChecked(2, 1, true))
+        runCurrent()
+        elapse(5.minutes)
+
+        assertTrue(vm.runRow().completed)
+        assertFalse(vm.runRow().stopwatchRunning)
+        assertEquals(32 * 60 + 10, vm.runRow().durationSeconds)
+        assertEquals("5", vm.runRow().distance)
+    }
+
+    @Test
+    fun addSet_isIgnoredOnACardioExercise_andStillWorksOnStrength() = runSessionTest {
+        val vm = loaded()
+
+        vm.onEvent(LiveSessionEvent.AddSet(1))
+        vm.onEvent(LiveSessionEvent.AddSet(2))
+        vm.onEvent(LiveSessionEvent.AddSet(0))
+        runCurrent()
+
+        assertEquals(1, vm.active().exercises[1].sets.size)
+        assertEquals(1, vm.active().exercises[2].sets.size)
+        assertEquals(2, vm.active().exercises[0].sets.size)
+    }
+
+    @Test
+    fun durationEdited_isAppliedWhenStopped_ignoredWhileRunning_andIgnoredOnceDone() = runSessionTest {
+        val vm = loaded()
+        vm.onEvent(LiveSessionEvent.DurationEdited(1, 1, 750))
+        runCurrent()
+        assertEquals(750, vm.bikeRow().durationSeconds)
+
+        vm.toggleBike()
+        runCurrent()
+        vm.onEvent(LiveSessionEvent.DurationEdited(1, 1, 60))
+        runCurrent()
+        assertEquals(750, vm.bikeRow().durationSeconds)
+
+        vm.onEvent(LiveSessionEvent.SetChecked(1, 1, true))
+        runCurrent()
+        vm.onEvent(LiveSessionEvent.DurationEdited(1, 1, 60))
+        runCurrent()
+        assertEquals(750, vm.bikeRow().durationSeconds)
+    }
+
     @Test
     fun aRecreatedViewModel_withARunningRun_keepsCountingAndReschedulesTheAlert() = runSessionTest {
         val first = loaded()
@@ -489,5 +597,102 @@ class LiveSessionCardioViewModelTest {
         assertEquals(10.minutes, second.cardioBar().elapsed)
         assertFalse(second.cardioBar().paused)
         assertEquals(clock.current + 40.minutes, scheduler.scheduled)
+    }
+
+    @Test
+    fun stopAt4130AgainstATargetOf30_thenListo_savesTheTimeDone() = runSessionTest {
+        routines.routines[0] = routines.routines[0].let { r ->
+            r.copy(
+                exercises = r.exercises.map {
+                    if (it.exerciseId ==
+                        "bike"
+                    ) {
+                        it.copy(plannedSets = listOf(PlannedSet.ofMinutes(30)))
+                    } else {
+                        it
+                    }
+                },
+            )
+        }
+        val vm = loaded()
+        vm.toggleBike()
+        elapse(41.minutes + 30.seconds)
+        vm.toggleBike()
+        runCurrent()
+
+        vm.onEvent(LiveSessionEvent.SetChecked(1, 1, true))
+        runCurrent()
+
+        assertEquals(41 * 60 + 30, vm.bikeRow().durationSeconds)
+        assertTrue(vm.bikeRow().completed)
+    }
+
+    @Test
+    fun withoutATarget_noAlertNorHaptic_andTheTimerKeepsCounting() = runSessionTest {
+        routines = FakeRoutineRepository(emptyList())
+        val vm = loaded()
+
+        vm.toggleBike()
+        elapse(90.minutes)
+
+        assertEquals(0, haptics.alerts)
+        assertEquals(0, sound.plays)
+        assertTrue(vm.bikeRow().stopwatchRunning)
+        assertEquals(90 * 60, vm.bikeRow().durationSeconds)
+    }
+
+    private fun TestScope.finishWithCardioOnlyDifference(vm: LiveSessionViewModel) {
+        vm.onEvent(LiveSessionEvent.WeightChanged(0, 1, "60"))
+        vm.onEvent(LiveSessionEvent.RepsChanged(0, 1, "8"))
+        vm.onEvent(LiveSessionEvent.SetChecked(0, 1, true))
+        vm.onEvent(LiveSessionEvent.SetRpeChosen(0, 1, 8.0))
+        runCurrent()
+        vm.toggleBike()
+        elapse(41.minutes + 30.seconds)
+        vm.onEvent(LiveSessionEvent.SetChecked(1, 1, true))
+        vm.onEvent(LiveSessionEvent.DistanceChanged(2, 1, "5"))
+        vm.onEvent(LiveSessionEvent.SetChecked(2, 1, true))
+        runCurrent()
+        vm.onEvent(LiveSessionEvent.RequestFinish)
+        vm.onEvent(LiveSessionEvent.ConfirmFinish)
+        advanceUntilIdle()
+    }
+
+    private fun withBenchPlannedAs60x8() {
+        routines.routines[0] = routines.routines[0].let { r ->
+            r.copy(
+                exercises = r.exercises.map {
+                    if (it.exerciseId ==
+                        "e1"
+                    ) {
+                        it.copy(plannedSets = listOf(PlannedSet(60.0, 8)))
+                    } else {
+                        it
+                    }
+                },
+            )
+        }
+    }
+
+    @Test
+    fun aCardioOnlyDifference_withAutoUpdateOff_showsNoUpdateSheet() = runSessionTest {
+        withBenchPlannedAs60x8()
+        val vm = loaded()
+
+        finishWithCardioOnlyDifference(vm)
+
+        assertNull(assertIs<LiveSessionUiState.Finished>(vm.uiState.value).updateRoutineSheet)
+        assertTrue(routines.updatedFromSession.isEmpty())
+    }
+
+    @Test
+    fun aCardioOnlyDifference_withAutoUpdateOn_neverCallsUpdateFromSession() = runSessionTest {
+        preferences.result = Result.success(TrainingPreferences(autoUpdateRoutine = true))
+        withBenchPlannedAs60x8()
+        val vm = loaded()
+
+        finishWithCardioOnlyDifference(vm)
+
+        assertTrue(routines.updatedFromSession.isEmpty())
     }
 }

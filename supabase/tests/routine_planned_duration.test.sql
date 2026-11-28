@@ -133,8 +133,8 @@ select results_eq(
   $$select e.position::int, e.target_reps::int, s.target_reps::int, s.target_duration_s, s.target_weight_kg
     from public.routine_exercises e join public.routine_exercise_sets s on s.routine_exercise_id = e.id
     join public.routines r on r.id = e.routine_id where r.name = 'Con cardio' order by e.position$$,
-  $$values (0, 9, 9, null::int, 42.50::numeric), (1, 1, null::int, 3120, null::numeric)$$,
-  'cardio planned 3120 s from 52 min performed; the lifting set keeps reps and weight');
+  $$values (0, 9, 9, null::int, 42.50::numeric), (1, 1, null::int, 3000, null::numeric)$$,
+  'the cardio target stays 3000 s after 52 min performed (T-332); the lifting set keeps reps and weight');
 select results_eq(
   $$select e.rep_min::int, e.rep_max::int, e.rest_seconds::int from public.routine_exercises e
     join public.routines r on r.id = e.routine_id where r.name = 'Con cardio' and e.position = 0$$,
@@ -144,7 +144,7 @@ select lives_ok($$select public.update_routine_from_session('c0000000-0000-4000-
 select is((select s.target_duration_s from public.routine_exercise_sets s
            join public.routine_exercises e on e.id = s.routine_exercise_id
            join public.routines r on r.id = e.routine_id where r.name = 'Con cardio' and e.position = 1),
-  60, 'a cardio set without a performed duration is planned as the 60 s minimum');
+  3000, 'a cardio set without a performed duration leaves the planned target untouched (T-332)');
 
 -- ---------------------------------------------------------------------------
 -- RLS cross-user and anon

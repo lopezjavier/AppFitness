@@ -241,4 +241,72 @@ class RoutineDiffTest {
         assertTrue(routineDiff(baseSession(), emptyMap(), withNote, same).isSame)
         assertTrue(routineDiff(baseSession(), emptyMap(), baseRoutine, mapOf(0 to null)).isSame)
     }
+
+    private fun cardioSet(index: Int, seconds: Int) =
+        WorkoutSet(index, SetType.Working, SetEntry.Duration(seconds), NOW)
+
+    private val cardio = setOf("c")
+    private val cardioRoutine = routine(
+        planned("a", 0, listOf(working(80.0, 8))),
+        planned("c", 1, listOf(PlannedSet.ofMinutes(30))),
+    )
+
+    private fun cardioSession(vararg sets: WorkoutSet, strengthReps: Int = 8) = session(
+        sessionExercise("a", 0, listOf(done(1, 80.0, strengthReps))),
+        sessionExercise("c", 1, sets.toList()),
+    )
+
+    @Test
+    fun cardioTimeDoneDifferentFromTheTarget_isNotAChange() {
+        val s = cardioSession(cardioSet(1, 41 * 60 + 30))
+
+        assertTrue(routineDiff(s, emptyMap(), cardioRoutine, cardioExerciseIds = cardio).isSame)
+    }
+
+    @Test
+    fun moreOrFewerCardioSets_areNotAChange() {
+        val more = cardioSession(cardioSet(1, 600), cardioSet(2, 900))
+        val routineWithThree = routine(
+            planned("a", 0, listOf(working(80.0, 8))),
+            planned("c", 1, List(3) { PlannedSet.ofMinutes(15) }),
+        )
+
+        assertTrue(routineDiff(more, emptyMap(), cardioRoutine, cardioExerciseIds = cardio).isSame)
+        assertTrue(routineDiff(more, emptyMap(), routineWithThree, cardioExerciseIds = cardio).isSame)
+    }
+
+    @Test
+    fun cardioIgnored_butAStrengthChangeStillCounts_withNoCardioSetInTheSummary() {
+        val s = cardioSession(cardioSet(1, 41 * 60), strengthReps = 9)
+
+        val changes = routineDiff(s, emptyMap(), cardioRoutine, cardioExerciseIds = cardio).changes
+
+        assertEquals(listOf(RoutineChange.SetChanged("a")), changes)
+    }
+
+    @Test
+    fun cardioExerciseAddedOrRemoved_stillCounts_andRestAndSupersetToo() {
+        val withoutCardio = session(sessionExercise("a", 0, listOf(done(1, 80.0, 8))))
+        val added =
+            routineDiff(
+                cardioSession(cardioSet(1, 600)),
+                emptyMap(),
+                routine(cardioRoutine.exercises[0]),
+                cardioExerciseIds = cardio,
+            )
+        val removed = routineDiff(withoutCardio, emptyMap(), cardioRoutine, cardioExerciseIds = cardio)
+        val rest =
+            routineDiff(cardioSession(cardioSet(1, 600)), mapOf(1 to 30), cardioRoutine, cardioExerciseIds = cardio)
+
+        assertEquals(listOf(RoutineChange.ExerciseAdded("c")), added.changes)
+        assertEquals(listOf(RoutineChange.ExerciseRemoved("c")), removed.changes)
+        assertEquals(listOf(RoutineChange.RestChanged("c")), rest.changes)
+    }
+
+    @Test
+    fun withoutTheCardioSet_theTimeDifferenceCountsAsBefore() {
+        val s = cardioSession(cardioSet(1, 41 * 60))
+
+        assertEquals(listOf(RoutineChange.SetChanged("c")), routineDiff(s, emptyMap(), cardioRoutine).changes)
+    }
 }

@@ -76,18 +76,29 @@ class RoutineDetailsScreenTest {
     }
 
     @Test
-    fun aCardioSet_readsItsMinutes_neverZeroReps() {
+    fun aCardio_readsItsTargetInMinutes_neverSeries() {
         show(
             RoutineDetailsUiState.Content(
                 name = "Torso A",
                 exercises = listOf(
-                    RoutineDetailsExerciseUi("e3", "Bicicleta", null, listOf(PlannedSet.ofMinutes(50))),
+                    RoutineDetailsExerciseUi(
+                        "e3",
+                        "Bicicleta",
+                        null,
+                        List(3) {
+                            PlannedSet.ofMinutes(15)
+                        },
+                        cardio = true,
+                    ),
+                    RoutineDetailsExerciseUi("e4", "Plancha", null, List(3) { PlannedSet.ofMinutes(1) }),
                 ),
                 lastDone = null,
             ),
         )
 
-        rule.onNodeWithText("1 × 50 min", substring = true).assertExists()
+        rule.onNodeWithText("45 min").assertExists()
+        rule.onNodeWithText("3 × 15 min", substring = true).assertDoesNotExist()
+        rule.onNodeWithText("3 × 1 min").assertExists()
         rule.onNodeWithText("0 reps", substring = true).assertDoesNotExist()
     }
 

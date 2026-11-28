@@ -297,6 +297,8 @@ private fun RowIdentity(
 private fun Steppers(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilderEvent) -> Unit) {
     Column(Modifier.fillMaxWidth().padding(top = Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         PlannedSets(row, index, onEvent)
+        // A cardio exercise is one target in minutes (T-332): no rest, RPE or reps.
+        if (row.isCardio) return@Column
         StepperLine(
             unit = stringResource(Res.string.builder_rest_unit),
             valueText = restDurationText(row.restSeconds),

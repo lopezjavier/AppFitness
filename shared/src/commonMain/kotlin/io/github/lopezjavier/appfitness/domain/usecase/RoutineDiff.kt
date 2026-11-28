@@ -43,12 +43,14 @@ data class RoutineDiffResult(val changes: List<RoutineChange>) {
  * Compares the COMPLETED sets of [session] with the routine's planned sets. [rests] maps the session's exercise
  * position (original, not renumbered) to its rest seconds; a missing entry means "unchanged". Exercises are matched
  * by exercise id in order; the routine's weight and reps are the only values compared (null weight equals 0).
+ * The sets of the [cardioExerciseIds] are never compared: the cardio target is static (US-151).
  */
 fun routineDiff(
     session: WorkoutSession,
     rests: Map<Int, Int>,
     routine: Routine,
     editedNotes: Map<Int, Note<ExerciseNoteKind>?> = emptyMap(),
+    cardioExerciseIds: Set<String> = emptySet(),
 ): RoutineDiffResult {
     val done = session.exercises
         .sortedBy { it.position }
@@ -68,7 +70,7 @@ fun routineDiff(
         }
         planned.remove(match)
         matchedSessionIds += exercise.exerciseId
-        changes += exerciseChanges(exercise, completed, match, rests)
+        changes += exerciseChanges(exercise, completed, match, rests, exercise.exerciseId in cardioExerciseIds)
         if (exercise.position in editedNotes && editedNotes[exercise.position] != match.note()) {
             changes += RoutineChange.NoteChanged(exercise.exerciseId)
         }
@@ -85,8 +87,20 @@ private fun exerciseChanges(
     completed: List<WorkoutSet>,
     planned: RoutineExercise,
     rests: Map<Int, Int>,
+    cardio: Boolean,
 ): List<RoutineChange> {
     val id = exercise.exerciseId
+    val changes = mutableListOf<RoutineChange>()
+    // The cardio target is static (US-151): its sets never count as a change, only rest and superset do.
+    if (!cardio) changes += setChanges(id, completed, planned)
+    if ((rests[exercise.position] ?: planned.restSeconds) != planned.restSeconds) {
+        changes += RoutineChange.RestChanged(id)
+    }
+    if (exercise.supersetGroup != planned.supersetGroup) changes += RoutineChange.SupersetChanged(id)
+    return changes
+}
+
+private fun setChanges(id: String, completed: List<WorkoutSet>, planned: RoutineExercise): List<RoutineChange> {
     val changes = mutableListOf<RoutineChange>()
     val common = minOf(completed.size, planned.plannedSets.size)
     repeat(common) { index ->
@@ -96,10 +110,6 @@ private fun exerciseChanges(
     }
     repeat(completed.size - common) { changes += RoutineChange.SetAdded(id) }
     repeat(planned.plannedSets.size - common) { changes += RoutineChange.SetRemoved(id) }
-    if ((rests[exercise.position] ?: planned.restSeconds) != planned.restSeconds) {
-        changes += RoutineChange.RestChanged(id)
-    }
-    if (exercise.supersetGroup != planned.supersetGroup) changes += RoutineChange.SupersetChanged(id)
     return changes
 }
 

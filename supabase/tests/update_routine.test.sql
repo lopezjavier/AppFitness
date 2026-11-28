@@ -11,7 +11,7 @@ insert into auth.users (id, email) values
 
 create temp table cat as
   select id, (row_number() over (order by key))::int as n
-  from public.exercises where not is_custom order by key limit 3;
+  from public.exercises where not is_custom and movement_pattern is distinct from 'cardio' order by key limit 3;
 grant select on cat to authenticated;
 
 select has_column('public', 'workout_sessions', 'exercise_rests', 'workout_sessions has exercise_rests');

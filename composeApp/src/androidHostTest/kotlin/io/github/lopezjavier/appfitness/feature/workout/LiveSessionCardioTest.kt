@@ -10,7 +10,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -197,15 +196,50 @@ class LiveSessionCardioTest {
     }
 
     @Test
-    fun runningCardio_showsTheBarWithTheExerciseName_andNothingRunsInTheRow() {
+    fun runningCardio_countsUpInTheTimeField_andTheStartButtonBecomesStop() {
         showScreen(cardioState(bar = cardioBar(12.minutes + 5.seconds), running = true, seconds = 725))
 
         rule.onNodeWithTag("live_cardio_timer_elapsed").assertTextContains("12:05")
         rule.onNodeWithTag("live_cardio_timer_label").assertTextContains("Bicicleta Estática")
-        rule.onNodeWithTag("session_cardio_start_0_1").assertIsNotEnabled()
-            .assertContentDescriptionEquals("En marcha en la barra")
-        rule.onNodeWithTag("live_set_0_1_stopwatch_time").assertDoesNotExist()
+        rule.onNodeWithTag("live_set_0_1_stopwatch_time").assertTextContains("12:05")
+        rule.onNodeWithTag("session_cardio_start_0_1").assertIsEnabled()
+            .assertContentDescriptionEquals("Parar cronómetro").performClick()
+        assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.StopwatchToggled(0, 1)), events)
+    }
+
+    @Test
+    fun runningCardio_timeIsNotTypable() {
+        showScreen(cardioState(bar = cardioBar(12.minutes), running = true, seconds = 720))
+
+        rule.onNodeWithTag("live_set_0_1_stopwatch_time").performClick()
+
+        rule.onNodeWithTag("live_set_0_1_stopwatch_input").assertDoesNotExist()
         rule.onNodeWithContentDescription("Detener cronómetro").assertDoesNotExist()
+    }
+
+    @Test
+    fun stoppedCardio_showsTheBankedTime_andPlayContinues() {
+        showScreen(cardioState(bar = cardioBar(12.minutes + 30.seconds, paused = true), seconds = 750))
+
+        rule.onNodeWithTag("live_set_0_1_stopwatch_time").assertTextContains("12:30")
+        rule.onNodeWithTag("session_cardio_start_0_1").assertContentDescriptionEquals("Iniciar cardio")
+            .performClick()
+        assertEquals(listOf<LiveSessionEvent>(LiveSessionEvent.StopwatchToggled(0, 1)), events)
+    }
+
+    @Test
+    fun overTheTarget_timeKeepsCounting_andNothingIsAdded() {
+        showScreen(cardioState(bar = cardioBar(TARGET + 90.seconds), running = true, seconds = 2490))
+
+        rule.onNodeWithTag("live_set_0_1_stopwatch_time").assertTextContains("41:30")
+    }
+
+    @Test
+    fun cardioCard_hasNoAddSetButton_butAStrengthCardKeepsIt() {
+        showScreen(twoCardsState())
+
+        rule.onNodeWithTag("live_exercise_0_add_set").assertExists()
+        rule.onNodeWithTag("live_exercise_1_add_set").assertDoesNotExist()
     }
 
     @Test
@@ -257,7 +291,7 @@ class LiveSessionCardioTest {
     }
 
     @Test
-    fun timeField_isEditableWhilePaused() {
+    fun timeField_isEditableWhileStopped() {
         showScreen(cardioState(bar = cardioBar(5.minutes, paused = true), seconds = 300))
 
         rule.onNodeWithTag("live_set_0_1_stopwatch_time").performClick()

@@ -48,15 +48,20 @@ import org.jetbrains.compose.resources.stringResource
 internal fun PlannedSets(row: BuilderRowUi, index: Int, onEvent: (RoutineBuilderEvent) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         SetColumnsHeader(timed = row.plannedSets.isNotEmpty() && row.plannedSets.all { it.timed })
-        row.plannedSets.forEachIndexed { setIndex, set ->
+        // A cardio exercise is one target in minutes (T-332): one set carrying the sum, and no "Añadir serie".
+        val shown =
+            if (row.isCardio) row.plannedSets.take(1).map { it.copy(minutes = row.cardioMinutes) } else row.plannedSets
+        shown.forEachIndexed { setIndex, set ->
             key(set.setId) { PlannedSetRow(row, index, setIndex, set, onEvent) }
         }
-        AddItemButton(
-            objectLabel = stringResource(Res.string.live_object_set),
-            onClick = { onEvent(RoutineBuilderEvent.AddSet(index)) },
-            modifier = Modifier.testTag("routine_builder_add_set_$index"),
-            enabled = row.canAddSet,
-        )
+        if (!row.isCardio) {
+            AddItemButton(
+                objectLabel = stringResource(Res.string.live_object_set),
+                onClick = { onEvent(RoutineBuilderEvent.AddSet(index)) },
+                modifier = Modifier.testTag("routine_builder_add_set_$index"),
+                enabled = row.canAddSet,
+            )
+        }
     }
 }
 

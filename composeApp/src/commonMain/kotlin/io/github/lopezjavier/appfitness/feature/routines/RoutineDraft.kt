@@ -64,32 +64,58 @@ internal data class RoutineDraft(
 internal const val WEIGHT_MAX_CHARS = 8
 internal const val REPS_MAX_CHARS = 3
 
-internal fun RoutineDraft.withNewRow(exerciseId: String): RoutineDraft {
-    val defaults = RoutineBounds.defaultPlannedSets()
+/** Cardio ([cardio]) starts with ONE timed set with no target (T-332); the rest with the default sets. */
+internal fun RoutineDraft.withNewRow(exerciseId: String, cardio: Boolean = false): RoutineDraft {
+    val sets =
+        if (cardio) {
+            listOf(DraftSet(nextSetId, "", "", SetType.Working, timed = true, minutes = null))
+        } else {
+            RoutineBounds.defaultPlannedSets().mapIndexed { i, set -> set.toDraft(nextSetId + i) }
+        }
     return copy(
         rows =
         rows +
             DraftRow(
                 rowId = nextRowId,
                 exerciseId = exerciseId,
-                sets = defaults.mapIndexed { i, set -> set.toDraft(nextSetId + i) },
+                sets = sets,
                 restSeconds = RoutineBounds.DEFAULT_REST_SECONDS,
                 group = null,
             ),
         nextRowId = nextRowId + 1,
-        nextSetId = nextSetId + defaults.size,
+        nextSetId = nextSetId + sets.size,
     )
 }
 
-/** Indices of the rows that move together with [index]: the whole superset group, or just the row. */
-internal fun RoutineDraft.membersOf(index: Int): List<Int> {
-    val group = rows.getOrNull(index)?.group ?: return listOfNotNull(index.takeIf { it in rows.indices })
-    return rows.indices.filter { rows[it].group == group }
+/**
+ * Indices of the rows that move together with [index]: the whole superset group, or just the row. A cardio row
+ * ([cardioIds]) has one set and is never levelled, so it is never a member (US-151).
+ */
+internal fun RoutineDraft.membersOf(index: Int, cardioIds: Set<String> = emptySet()): List<Int> {
+    val group = rows.getOrNull(index)?.group
+    val members = if (group == null) {
+        listOfNotNull(index.takeIf { it in rows.indices })
+    } else {
+        rows.indices.filter { rows[it].group == group }
+    }
+    return members.filter { rows[it].exerciseId !in cardioIds }
 }
 
+/** Collapses the row to one timed set carrying [minutes] (null = undefined); rest, RPE and rep range are untouched. */
+internal fun RoutineDraft.withSingleTimedSet(index: Int, minutes: Int?): RoutineDraft = copy(
+    rows = rows.mapIndexed { i, row ->
+        val first = row.sets.firstOrNull()
+        if (i != index || first == null) {
+            row
+        } else {
+            row.copy(sets = listOf(first.copy(weight = "", reps = "", timed = true, minutes = minutes)))
+        }
+    },
+)
+
 /** Adds a copy of the last set to the row and to every other member of its superset. */
-internal fun RoutineDraft.withAddedSet(index: Int): RoutineDraft {
-    val members = membersOf(index)
+internal fun RoutineDraft.withAddedSet(index: Int, cardioIds: Set<String> = emptySet()): RoutineDraft {
+    val members = membersOf(index, cardioIds)
     if (members.isEmpty() || members.any { rows[it].sets.size >= RoutineBounds.SETS_MAX }) return this
     var next = nextSetId
     val updated =
@@ -110,7 +136,11 @@ internal fun RoutineDraft.canAddWarmUps(index: Int, count: Int): Boolean {
  * other members are levelled with copies of their last set (ADR-38). Nothing changes when the row is unknown, [sets]
  * is empty or the result would exceed [RoutineBounds.SETS_MAX].
  */
-internal fun RoutineDraft.withWarmUpSets(index: Int, sets: List<WarmUpSet>): RoutineDraft {
+internal fun RoutineDraft.withWarmUpSets(
+    index: Int,
+    sets: List<WarmUpSet>,
+    cardioIds: Set<String> = emptySet(),
+): RoutineDraft {
     val row = rows.getOrNull(index)
     if (row == null || sets.isEmpty() || !canAddWarmUps(index, sets.size)) return this
     val insertAt = row.sets.indexOfFirst { it.type != SetType.WarmUp }.takeIf { it >= 0 } ?: row.sets.size
@@ -120,12 +150,12 @@ internal fun RoutineDraft.withWarmUpSets(index: Int, sets: List<WarmUpSet>): Rou
     val updated = rows.mapIndexed { i, r ->
         if (i == index) r.copy(sets = r.sets.take(insertAt) + added + r.sets.drop(insertAt)) else r
     }
-    return copy(rows = updated, nextSetId = nextSetId + sets.size).leveledTo(index)
+    return copy(rows = updated, nextSetId = nextSetId + sets.size).leveledTo(index, cardioIds)
 }
 
 /** Removes set [setIndex] from the row and from every other member of its superset; the last set stays. */
-internal fun RoutineDraft.withoutSet(index: Int, setIndex: Int): RoutineDraft {
-    val members = membersOf(index)
+internal fun RoutineDraft.withoutSet(index: Int, setIndex: Int, cardioIds: Set<String> = emptySet()): RoutineDraft {
+    val members = membersOf(index, cardioIds)
     val blocked =
         members.isEmpty() || members.any { rows[it].sets.size <= RoutineBounds.SETS_MIN } ||
             setIndex !in rows[index].sets.indices
@@ -151,10 +181,10 @@ internal fun RoutineDraft.withSetEdit(index: Int, setIndex: Int, edit: (DraftSet
     },
 )
 
-/** Makes every member of the superset of row [index] adopt that row's set count (grow by copy, shrink from the end). */
-internal fun RoutineDraft.leveledTo(index: Int): RoutineDraft {
+/** Makes every non-cardio member of the superset of row [index] adopt its set count (copy to grow, trim to shrink). */
+internal fun RoutineDraft.leveledTo(index: Int, cardioIds: Set<String> = emptySet()): RoutineDraft {
     val target = rows.getOrNull(index)?.sets?.size ?: return this
-    val members = membersOf(index)
+    val members = membersOf(index, cardioIds)
     var next = nextSetId
     val updated =
         rows.mapIndexed { i, row ->
